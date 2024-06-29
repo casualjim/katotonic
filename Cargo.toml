@@ -20,17 +20,16 @@ webpki-roots = "0.26"
 async-trait = { version = "0.1" }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "valuable"] }
-futures = "~0.3"
+futures = "0.3"
+futures-util = "=0.3.29"
 rand = "0.8"
 thiserror = "1"
-clap = { version = "4.5.8", registry = "artifactory-remote", features = [
-  "derive",
-  "env",
-] }
+clap = { version = "4.5.8", features = ["derive", "env"] }
+ruserf = { version = "0.1.0", features = ["tls"] }
 
 [[bin]]
 name = "ulidd"
-path = "src/server.rs"
+path = "src/bin/server.rs"
 bench = false
 test = false
 
