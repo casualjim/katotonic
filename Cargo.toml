@@ -1,0 +1,41 @@
+[package]
+name = "ulidd"
+version = "0.1.0"
+edition = "2021"
+publish = ["artifactory-remote"]
+
+[dependencies]
+dashmap = "6"
+ulid = "1"
+tokio = { version = "1", features = ["full"] }
+tokio-rustls = "0.26"
+tokio-serde-cbor = "*"
+tokio-util = "*"
+rustls = "0.23"
+rustls-pemfile = "2"
+serde = { version = "1", features = ["derive"] }
+serde_cbor = "0.11"
+webpki = "0.22"
+webpki-roots = "0.26"
+async-trait = { version = "0.1" }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "valuable"] }
+futures = "~0.3"
+rand = "0.8"
+thiserror = "1"
+clap = { version = "4.5.8", registry = "artifactory-remote", features = [
+  "derive",
+  "env",
+] }
+
+[[bin]]
+name = "ulidd"
+path = "src/server.rs"
+bench = false
+test = false
+
+[[example]]
+name = "client"
+path = "examples/client.rs"
+bench = false
+test = false
