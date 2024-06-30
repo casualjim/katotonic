@@ -6,7 +6,7 @@ publish = ["artifactory-remote"]
 
 [dependencies]
 dashmap = "6"
-ulid = "1"
+ulid = { version = "1", features = ["serde"] }
 tokio = { version = "1", features = ["full"] }
 tokio-rustls = "0.26"
 tokio-serde-cbor = "*"
@@ -26,6 +26,10 @@ rand = "0.8"
 thiserror = "1"
 clap = { version = "4.5.8", features = ["derive", "env"] }
 ruserf = { version = "0.1.0", features = ["tls"] }
+# memberlist = { version = "*", features = ["serde", "tls"] }
+futures-rustls = { version = "0.26.0" }
+smol_str = "0.2"
+humantime = "2"
 
 [[bin]]
 name = "ulidd"

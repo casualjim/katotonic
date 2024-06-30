@@ -1,10 +1,10 @@
+pub mod cluster;
 mod config;
 mod ulidd;
 use std::io;
 
-use thiserror::Error;
-
 pub use config::*;
+use thiserror::Error;
 pub use ulidd::*;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -17,6 +17,8 @@ pub enum Error {
   Tls(#[from] rustls::Error),
   #[error("Serde error: {0}")]
   Serde(#[from] serde_cbor::Error),
+  #[error("Serde error: {0}")]
+  SerdeCbor(#[from] tokio_serde_cbor::Error),
   #[error("Unexpected response: {0}")]
   UnexpectedResponse(String),
   #[error("parse: {0}")]

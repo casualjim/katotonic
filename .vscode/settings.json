@@ -1,0 +1,18 @@
+{
+  "files.watcherExclude": {
+    "**/target": true,
+    "**/.git": true,
+  },
+  "rust-analyzer.linkedProjects": [
+    "./Cargo.toml"
+  ],
+  "rust-analyzer.runnables.extraArgs": [
+    "--all-features"
+  ],
+  "rust-analyzer.rustfmt.overrideCommand": [
+    "rustfmt",
+    "+nightly",
+    "--edition=2021"
+  ],
+  "rust-analyzer.rustfmt.rangeFormatting.enable": true
+}

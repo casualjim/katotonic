@@ -5,10 +5,11 @@
 
 use std::{pin::Pin, sync::Arc};
 
-use crate::Result;
 use futures::Future;
 use protocol::{Request, Response};
 use ulid::Ulid;
+
+use crate::Result;
 
 #[async_trait::async_trait]
 pub trait IdGenerator {
@@ -52,8 +53,6 @@ pub mod client {
     time::Duration,
   };
 
-  use crate::Result;
-
   use dashmap::DashMap;
   use futures::{SinkExt as _, StreamExt as _};
   use rustls::{pki_types::ServerName, ClientConfig};
@@ -72,6 +71,7 @@ pub mod client {
     protocol::{Request, Response},
     IdGenerator,
   };
+  use crate::Result;
 
   async fn run<P: ToSocketAddrs>(
     connector: TlsConnector,
@@ -188,13 +188,13 @@ pub mod server {
   use tokio::net::TcpListener;
   use tokio_rustls::TlsAcceptor;
   use tokio_serde_cbor::Codec;
+  use tokio_util::codec::Decoder;
   use tracing::{info, instrument};
 
   use crate::{
     protocol::{Request, Response},
-    Result, ServerConfig,
+    server_tls_config, Result, ServerConfig,
   };
-  use tokio_util::codec::Decoder;
 
   #[async_trait]
   pub trait Handler: Send + Sync {
@@ -248,24 +248,7 @@ pub mod server {
   where
     H: Handler + 'static,
   {
-    let (certs, private_key) = conf.keypair()?.expect("tls keypair not found");
-    let cfg_builder = rustls::ServerConfig::builder();
-
-    let cfg_builder = match conf.root_store()? {
-      Some(root_store) => cfg_builder.with_client_cert_verifier(
-        rustls::server::WebPkiClientVerifier::builder(Arc::new(root_store))
-          .build()
-          .expect("enable to build client verifier"),
-      ),
-      None => cfg_builder.with_no_client_auth(),
-    };
-
-    // Configure the server
-    let config = Arc::new(
-      cfg_builder
-        .with_single_cert(certs, private_key)
-        .map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?,
-    );
+    let config = Arc::new(server_tls_config(&conf.cert, &conf.key, conf.ca.as_ref())?);
     let acceptor = TlsAcceptor::from(config);
 
     // Bind to the address

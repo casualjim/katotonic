@@ -1200,6 +1200,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "futures-rustls"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8f2f12607f92c69b12ed746fabf9ca4f5c482cba46679c1a75b874ed7c26adb"
+dependencies = [
+ "futures-io",
+ "rustls 0.23.10",
+ "rustls-pki-types",
+]
+
+[[package]]
 name = "futures-sink"
 version = "0.3.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1731,7 +1742,7 @@ dependencies = [
  "crc32fast",
  "either",
  "futures",
- "futures-rustls",
+ "futures-rustls 0.25.1",
  "getrandom",
  "indexmap",
  "local-ip-address",
@@ -3113,6 +3124,7 @@ checksum = "34778c17965aa2a08913b57e1f34db9b4a63f5de31768b55bf20d2795f921259"
 dependencies = [
  "getrandom",
  "rand",
+ "serde",
  "web-time",
 ]
 
@@ -3124,13 +3136,16 @@ dependencies = [
  "clap",
  "dashmap",
  "futures",
+ "futures-rustls 0.26.0",
  "futures-util",
+ "humantime",
  "rand",
  "ruserf",
  "rustls 0.23.10",
  "rustls-pemfile 2.1.2",
  "serde",
  "serde_cbor",
+ "smol_str",
  "thiserror",
  "tokio",
  "tokio-rustls",
