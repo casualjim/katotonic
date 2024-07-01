@@ -19,7 +19,6 @@ use smol_str::SmolStr;
 use tracing::instrument;
 use ulid::Ulid;
 use ulidd::{
-  cluster,
   protocol::{Request, Response},
   server,
 };
@@ -103,7 +102,6 @@ async fn main() -> ulidd::Result<()> {
   //   .await
   //   .expect("unable to join");
 
-  tokio::spawn(cluster::run(conf.clone()));
   server::run(conf, handler).await?;
   Ok(())
 }

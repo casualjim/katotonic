@@ -1,4 +1,3 @@
-pub mod cluster;
 mod config;
 mod ulidd;
 use std::io;
