@@ -78,9 +78,8 @@ pub struct ServerConfig {
     default_value = "/Users/ivan/Library/Application Support/mkcert/rootCA.pem"
   )]
   pub ca: Option<String>,
-  #[clap(long, default_value = "localhost:9000")]
+  #[clap(long, default_value = "127.0.0.1:9000")]
   pub addr: String,
-
   #[clap(long, default_value = "false")]
   pub bootstrap: bool,
   #[clap(long, value_parser = parse_seed_node, value_delimiter = ',')]
@@ -98,12 +97,8 @@ pub struct ServerConfig {
     default_value = "/Users/ivan/Library/Application Support/mkcert/rootCA.pem"
   )]
   pub cluster_ca: String,
-  #[clap(long, default_value = "localhost:9100")]
+  #[clap(long, default_value = "127.0.0.1:9100")]
   pub cluster_addr: Option<String>,
-  #[clap(long, default_value = "30s", value_parser = humantime::parse_duration)]
-  pub election_timeout: time::Duration,
-  #[clap(long, default_value = "1s", value_parser = humantime::parse_duration)]
-  pub heartbeat_interval: time::Duration,
 }
 
 fn parse_seed_node(s: &str) -> Result<SeedNode> {

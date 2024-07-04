@@ -1,10 +1,20 @@
+pub mod client;
 mod config;
-mod ulidd;
+mod disco;
+pub mod protocol;
+pub mod server;
+// mod ulidd;
 use std::io;
 
 pub use config::*;
 use thiserror::Error;
-pub use ulidd::*;
+use ulid::Ulid;
+// pub use ulidd::*;
+
+#[async_trait::async_trait]
+pub trait IdGenerator {
+  async fn next_id(&self) -> Result<Ulid>;
+}
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -24,4 +34,6 @@ pub enum Error {
   Parse(#[from] clap::Error),
   #[error("socket addr: {0}")]
   SocketAddr(#[from] std::net::AddrParseError),
+  #[error("DNS resolution error: {0}")]
+  Dns(#[from] trust_dns_resolver::error::ResolveError),
 }
