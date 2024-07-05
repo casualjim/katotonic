@@ -1,6 +1,7 @@
+pub mod leadership;
 pub mod client;
 mod config;
-mod disco;
+pub mod disco;
 pub mod protocol;
 pub mod server;
 // mod ulidd;
@@ -9,6 +10,7 @@ use std::io;
 pub use config::*;
 use thiserror::Error;
 use ulid::Ulid;
+
 // pub use ulidd::*;
 
 #[async_trait::async_trait]

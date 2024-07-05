@@ -21,22 +21,27 @@ async-trait = { version = "0.1" }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "valuable"] }
 futures = "0.3"
-futures-util = "=0.3.29"
+futures-util = "0.3"
 rand = "0.8"
+anyhow = "1"
 thiserror = "1"
 clap = { version = "4.5.8", features = ["derive", "env"] }
-ruserf = { version = "0.1.0", features = ["tls"] }
-memberlist = { version = "0.2", features = ["serde", "tls"] }
-futures-rustls = { version = "0.26.0" }
-smol_str = "0.2"
 humantime = "2"
 config = "0.14"
 trust-dns-resolver = "0.23"
-chitchat = "*"
+chitchat = "0.7"
+cool-id-generator = "1"
+stateright = "0.30"
 
 [[bin]]
 name = "ulidd"
 path = "src/bin/server.rs"
+bench = false
+test = false
+
+[[bin]]
+name = "cluster"
+path = "src/bin/cluster.rs"
 bench = false
 test = false
 

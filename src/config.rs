@@ -9,15 +9,16 @@ use std::{
   net::SocketAddr,
   path::Path,
   sync::Arc,
-  time,
+  time::{self, Duration, SystemTime},
 };
 
+use chitchat::{ChitchatConfig, ChitchatId};
 use clap::Parser;
+use cool_id_generator::Size;
 use rustls::{
   pki_types::{CertificateDer, PrivateKeyDer},
   RootCertStore,
 };
-use smol_str::SmolStr;
 
 use crate::{Error, Result};
 
@@ -98,7 +99,45 @@ pub struct ServerConfig {
   )]
   pub cluster_ca: String,
   #[clap(long, default_value = "127.0.0.1:9100")]
-  pub cluster_addr: Option<String>,
+  pub cluster_addr: Option<SocketAddr>,
+  #[clap(long, default_value = "default")]
+  pub cluster_id: String,
+  #[clap(long, default_value = "default")]
+  pub node_id: String,
+
+  #[clap(long, default_value = "500ms", value_parser = humantime::parse_duration)]
+  pub gossip_interval: time::Duration,
+  #[clap(long)]
+  pub gossip_addr: Option<SocketAddr>,
+}
+
+fn generate_server_id(public_addr: SocketAddr) -> String {
+  let cool_id = cool_id_generator::get_id(Size::Medium);
+  format!("server:{public_addr}-{cool_id}")
+}
+
+impl From<&ServerConfig> for ChitchatConfig {
+  fn from(value: &ServerConfig) -> Self {
+    let gossip_addr = value.cluster_addr.unwrap();
+    let node_id = generate_server_id(gossip_addr);
+    let generation = SystemTime::now()
+      .duration_since(SystemTime::UNIX_EPOCH)
+      .unwrap()
+      .as_secs();
+    let chitchat_id = ChitchatId::new(node_id, generation, gossip_addr);
+    ChitchatConfig {
+      chitchat_id: chitchat_id,
+      cluster_id: value.cluster_id.clone(),
+      gossip_interval: value.gossip_interval,
+      listen_addr: gossip_addr,
+      seed_nodes: value.seed.iter().map(|s| s.addr.to_string()).collect(),
+      failure_detector_config: chitchat::FailureDetectorConfig {
+        dead_node_grace_period: Duration::from_secs(5),
+        ..Default::default()
+      },
+      marked_for_deletion_grace_period: 60_000,
+    }
+  }
 }
 
 fn parse_seed_node(s: &str) -> Result<SeedNode> {
@@ -162,17 +201,14 @@ impl ServerConfig {
   }
 
   pub fn cluster_addr(&self) -> Result<Option<SocketAddr>> {
-    if let Some(addr) = self.cluster_addr.as_ref() {
-      return Ok(Some(addr.parse()?));
-    }
-    Ok(None)
+    Ok(self.cluster_addr)
   }
 
-  pub fn cluster_server_name(&self) -> Option<SmolStr> {
+  pub fn cluster_server_name(&self) -> Option<String> {
     self
       .cluster_addr
       .as_ref()
-      .map(|v| SmolStr::new(v.split(':').next().unwrap()))
+      .map(|v| v.to_string().split(':').next().unwrap().to_string())
   }
 }
 
