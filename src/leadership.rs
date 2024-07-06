@@ -522,4 +522,165 @@ mod tests {
       }
     }
   }
+
+  #[tokio::test]
+  async fn test_network_partitions() {
+    let nodes = Arc::new(Mutex::new(HashMap::new()));
+    let (tx, rx) = mpsc::channel(64);
+
+    let disco = Arc::new(MockDiscovery::from_iter((0..11).into_iter().map(|i| {
+      let port = 9000 + i;
+      Member {
+        id: i,
+        addr: format!("127.0.0.1:{}", port).parse().unwrap(),
+      }
+    })));
+
+    for member in disco.members().await.unwrap() {
+      let node = Node::new(member.id as usize);
+      nodes.lock().await.insert(member.id as usize, node);
+    }
+
+    let nodes_clone = Arc::clone(&nodes);
+    tokio::spawn(node_task(rx, nodes_clone, |id, _| {
+      // Simulate partition by dropping messages for half the nodes
+      id < 5
+    }));
+
+    let mut handles = vec![];
+    for i in 1..=11 {
+      let tx_clone = tx.clone();
+      let disco_clone = disco.clone();
+      let handle: JoinHandle<Result<bool>> = tokio::spawn(async move {
+        let mut proposal = Proposer::new(i, format!("value{}", i), disco_clone, tx_clone);
+        proposal.propose().await
+      });
+      handles.push(handle);
+    }
+
+    let mut successes = 0;
+    for handle in handles {
+      let result = handle.await.unwrap();
+      if result.is_ok() && result.unwrap() {
+        successes += 1;
+      }
+    }
+
+    // Expect some proposals to fail due to partition
+    assert!(successes > 0);
+
+    // Verify final state of each node in the majority partition
+    let final_nodes = nodes.lock().await;
+
+    let mut final_accepted_id = None;
+    let mut final_accepted_value = None;
+
+    for id in 6..11 {
+      if let Some(node) = final_nodes.get(&id) {
+        if let Some(accepted_id) = node.accepted_id {
+          if final_accepted_id.is_none() || accepted_id > final_accepted_id.unwrap() {
+            final_accepted_id = Some(accepted_id);
+            final_accepted_value = node.accepted_value.clone();
+          }
+        }
+      }
+    }
+
+    assert!(final_accepted_id.is_some());
+    assert!(final_accepted_value.is_some());
+
+    for id in 5..10 {
+      if let Some(node) = final_nodes.get(&id) {
+        if let Some(accepted_id) = node.accepted_id {
+          assert_eq!(accepted_id, final_accepted_id.unwrap());
+          assert_eq!(
+            node.accepted_value.as_ref().unwrap(),
+            final_accepted_value.as_ref().unwrap()
+          );
+        } else {
+          panic!("Node {} does not have an accepted value", node.node_id);
+        }
+      }
+    }
+  }
+
+  #[tokio::test]
+  async fn test_node_failures_and_recovery() {
+    let nodes = Arc::new(Mutex::new(HashMap::new()));
+    let (tx, rx) = mpsc::channel(64);
+
+    let disco = Arc::new(MockDiscovery::from_iter((0..10).into_iter().map(|i| {
+      let port = 9000 + i;
+      Member {
+        id: i,
+        addr: format!("127.0.0.1:{}", port).parse().unwrap(),
+      }
+    })));
+
+    for member in disco.members().await.unwrap() {
+      let node = Node::new(member.id as usize);
+      nodes.lock().await.insert(member.id as usize, node);
+    }
+
+    let nodes_clone = Arc::clone(&nodes);
+    tokio::spawn(node_task(rx, nodes_clone, |id, _| {
+      // Simulate node failure by dropping messages for certain nodes
+      id == 0 || id == 1
+    }));
+
+    let mut handles = vec![];
+    for i in 1..=10 {
+      let tx_clone = tx.clone();
+      let disco_clone = disco.clone();
+      let handle: JoinHandle<Result<bool>> = tokio::spawn(async move {
+        let mut proposal = Proposer::new(i, format!("value{}", i), disco_clone, tx_clone);
+        proposal.propose().await
+      });
+      handles.push(handle);
+    }
+
+    let mut successes = 0;
+    for handle in handles {
+      let result = handle.await.unwrap();
+      if result.is_ok() && result.unwrap() {
+        successes += 1;
+      }
+    }
+
+    // Expect some proposals to fail due to node failures
+    assert!(successes > 0);
+
+    // Verify final state of each node
+    let final_nodes = nodes.lock().await;
+    let mut final_accepted_id = None;
+    let mut final_accepted_value = None;
+
+    for id in 2..11 {
+      if let Some(node) = final_nodes.get(&id) {
+        if let Some(accepted_id) = node.accepted_id {
+          if final_accepted_id.is_none() || accepted_id > final_accepted_id.unwrap() {
+            final_accepted_id = Some(accepted_id);
+            final_accepted_value = node.accepted_value.clone();
+          }
+        }
+      }
+    }
+
+    assert!(final_accepted_id.is_some());
+    assert!(final_accepted_value.is_some());
+
+    for id in 2..11 {
+      if let Some(node) = final_nodes.get(&id) {
+        if let Some(accepted_id) = node.accepted_id {
+          assert_eq!(accepted_id, final_accepted_id.unwrap());
+          assert_eq!(
+            node.accepted_value.as_ref().unwrap(),
+            final_accepted_value.as_ref().unwrap()
+          );
+        } else {
+          panic!("Node {} does not have an accepted value", node.node_id);
+        }
+      }
+    }
+  }
 }
