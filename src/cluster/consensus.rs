@@ -1,10 +1,31 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
+use dashmap::DashMap;
+use futures::StreamExt as _;
 use serde::{Deserialize, Serialize};
-use tokio::sync::{mpsc, oneshot, Mutex};
+use tokio::sync::{mpsc, oneshot};
 use tracing::info;
 
-use crate::{disco::Discovery, Result};
+use super::disco::Discovery;
+use crate::Result;
+
+pub async fn run(membership: Arc<dyn Discovery>) -> Result<()> {
+  let membership_clone = Arc::clone(&membership);
+
+  let (_tx, rx) = mpsc::channel(32);
+  let nodes = Arc::new(DashMap::new());
+
+  tokio::spawn(async move {
+    let mut watcher = membership_clone.membership_changes().await;
+    while let Some(change) = watcher.next().await {
+      info!("Membership change: {:?}", change);
+    }
+  });
+
+  tokio::spawn(node_task(rx, nodes, |_, _| false));
+
+  Ok(())
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 struct Node {
@@ -162,7 +183,7 @@ impl Proposer {
 
 async fn node_task<F>(
   mut rx: mpsc::Receiver<(usize, Message, oneshot::Sender<Response>)>,
-  state: Arc<Mutex<HashMap<usize, Node>>>,
+  state: Arc<DashMap<usize, Node>>,
   should_drop_or_reorder: F,
 ) where
   F: Fn(usize, &Message) -> bool + Send + 'static,
@@ -173,15 +194,14 @@ async fn node_task<F>(
       continue; // Drop or reorder the message
     }
 
-    let mut nodes = state.lock().await;
-    if let Some(node) = nodes.get_mut(&id) {
+    if let Some(mut node) = state.get_mut(&id) {
       match msg {
         Message::Prepare(proposal_id) => {
-          let (success, accepted_id, accepted_value) = node.prepare(proposal_id).await;
+          let (success, accepted_id, accepted_value) = node.value_mut().prepare(proposal_id).await;
           let _ = resp_tx.send(Response::Prepare(success, accepted_id, accepted_value));
         }
         Message::Accept(proposal_id, value) => {
-          let result = node.accept(proposal_id, value).await;
+          let result = node.value_mut().accept(proposal_id, value).await;
           let _ = resp_tx.send(Response::Accept(result));
         }
       }
@@ -202,10 +222,11 @@ async fn node_task<F>(
 #[cfg(test)]
 mod tests {
   use async_trait::async_trait;
+  use futures::stream::BoxStream;
   use tokio::task::JoinHandle;
 
   use super::*;
-  use crate::{disco::Member, Result};
+  use crate::{cluster::disco::Member, Result};
 
   struct MockDiscovery {
     members: Vec<Member>,
@@ -224,6 +245,14 @@ mod tests {
     async fn members(&self) -> Result<Vec<Member>> {
       Ok(self.members.clone())
     }
+
+    async fn membership_changes(&self) -> BoxStream<Result<Vec<Member>>> {
+      unimplemented!()
+    }
+
+    async fn myself(&self) -> Result<Member> {
+      unimplemented!()
+    }
   }
 
   fn keep_all_messages(_: usize, _: &Message) -> bool {
@@ -233,7 +262,7 @@ mod tests {
   #[tokio::test]
   async fn test_basic_functionality() {
     info!("test_basic_functionality");
-    let nodes = Arc::new(Mutex::new(HashMap::new()));
+    let nodes = Arc::new(DashMap::new());
     let (tx, rx) = mpsc::channel(32);
 
     let disco = Arc::new(MockDiscovery::from_iter((0..5).into_iter().map(|i| {
@@ -245,7 +274,7 @@ mod tests {
 
     for member in disco.members().await.unwrap() {
       let node = Node::new(member.id as usize);
-      nodes.lock().await.insert(member.id as usize, node);
+      nodes.insert(member.id as usize, node);
     }
 
     let nodes_clone = Arc::clone(&nodes);
@@ -260,7 +289,7 @@ mod tests {
 
   #[tokio::test]
   async fn test_majority_rule() {
-    let nodes = Arc::new(Mutex::new(HashMap::new()));
+    let nodes = Arc::new(DashMap::new());
     let (tx, rx) = mpsc::channel(32);
 
     let disco = Arc::new(MockDiscovery::from_iter((0..5).into_iter().map(|i| {
@@ -272,7 +301,7 @@ mod tests {
 
     for i in 0..2 {
       let node = Node::new(i as usize);
-      nodes.lock().await.insert(i as usize, node);
+      nodes.insert(i as usize, node);
     }
 
     let nodes_clone = Arc::clone(&nodes);
@@ -287,7 +316,7 @@ mod tests {
 
   #[tokio::test]
   async fn test_promise_handling() {
-    let nodes = Arc::new(Mutex::new(HashMap::new()));
+    let nodes = Arc::new(DashMap::new());
     let (tx, rx) = mpsc::channel(32);
 
     let disco = Arc::new(MockDiscovery::from_iter((0..5).into_iter().map(|i| {
@@ -299,7 +328,7 @@ mod tests {
 
     for member in disco.members().await.unwrap() {
       let node = Node::new(member.id as usize);
-      nodes.lock().await.insert(member.id as usize, node);
+      nodes.insert(member.id as usize, node);
     }
 
     let nodes_clone = Arc::clone(&nodes);
@@ -318,7 +347,7 @@ mod tests {
 
   #[tokio::test]
   async fn test_acceptance_handling() {
-    let nodes = Arc::new(Mutex::new(HashMap::new()));
+    let nodes = Arc::new(DashMap::new());
     let (tx, rx) = mpsc::channel(32);
 
     let disco: Arc<dyn Discovery> =
@@ -331,7 +360,7 @@ mod tests {
 
     for member in disco.members().await.unwrap() {
       let node = Node::new(member.id as usize);
-      nodes.lock().await.insert(member.id as usize, node);
+      nodes.insert(member.id as usize, node);
     }
 
     let nodes_clone = Arc::clone(&nodes);
@@ -350,7 +379,7 @@ mod tests {
 
   #[tokio::test]
   async fn test_multiple_proposers() {
-    let nodes = Arc::new(Mutex::new(HashMap::new()));
+    let nodes = Arc::new(DashMap::new());
     let (tx, rx) = mpsc::channel(32);
 
     let disco: Arc<dyn Discovery> =
@@ -363,7 +392,7 @@ mod tests {
 
     for member in disco.members().await.unwrap() {
       let node = Node::new(member.id as usize);
-      nodes.lock().await.insert(member.id as usize, node);
+      nodes.insert(member.id as usize, node);
     }
 
     let nodes_clone = Arc::clone(&nodes);
@@ -386,7 +415,7 @@ mod tests {
 
   #[tokio::test]
   async fn test_node_failures() {
-    let nodes = Arc::new(Mutex::new(HashMap::new()));
+    let nodes = Arc::new(DashMap::new());
     let (tx, rx) = mpsc::channel(32);
 
     let disco: Arc<dyn Discovery> =
@@ -399,12 +428,12 @@ mod tests {
 
     for member in disco.members().await.unwrap() {
       let node = Node::new(member.id as usize);
-      nodes.lock().await.insert(member.id as usize, node);
+      nodes.insert(member.id as usize, node);
     }
 
     // Simulate node failure by removing node 0 and 1 from the map
-    nodes.lock().await.remove(&0);
-    nodes.lock().await.remove(&1);
+    nodes.remove(&0);
+    nodes.remove(&1);
 
     let nodes_clone = Arc::clone(&nodes);
     tokio::spawn(node_task(rx, nodes_clone, keep_all_messages));
@@ -418,7 +447,7 @@ mod tests {
 
   #[tokio::test]
   async fn test_message_drops_and_reordering() {
-    let nodes = Arc::new(Mutex::new(HashMap::new()));
+    let nodes = Arc::new(DashMap::new());
     let (tx, rx) = mpsc::channel(32);
 
     let disco = Arc::new(MockDiscovery::from_iter((0..5).into_iter().map(|i| {
@@ -430,7 +459,7 @@ mod tests {
 
     for member in disco.members().await.unwrap() {
       let node = Node::new(member.id as usize);
-      nodes.lock().await.insert(member.id as usize, node);
+      nodes.insert(member.id as usize, node);
     }
 
     let nodes_clone = Arc::clone(&nodes);
@@ -455,7 +484,7 @@ mod tests {
 
   #[tokio::test]
   async fn test_high_concurrency() {
-    let nodes = Arc::new(Mutex::new(HashMap::new()));
+    let nodes = Arc::new(DashMap::new());
     let (tx, rx) = mpsc::channel(64);
 
     let disco = Arc::new(MockDiscovery::from_iter((0..10).into_iter().map(|i| {
@@ -467,7 +496,7 @@ mod tests {
 
     for member in disco.members().await.unwrap() {
       let node = Node::new(member.id as usize);
-      nodes.lock().await.insert(member.id as usize, node);
+      nodes.insert(member.id as usize, node);
     }
 
     let nodes_clone = Arc::clone(&nodes);
@@ -496,11 +525,12 @@ mod tests {
     assert!(successes > 0);
 
     // Verify final state of each node
-    let final_nodes = nodes.lock().await;
+    let final_nodes = nodes;
     let mut final_accepted_id = None;
     let mut final_accepted_value = None;
 
-    for node in final_nodes.values() {
+    for node_ref in final_nodes.iter() {
+      let node = node_ref.value();
       if let Some(accepted_id) = node.accepted_id {
         if final_accepted_id.is_none() || accepted_id > final_accepted_id.unwrap() {
           final_accepted_id = Some(accepted_id);
@@ -513,7 +543,8 @@ mod tests {
     assert!(final_accepted_value.is_some());
     assert_eq!(final_accepted_value.as_ref().unwrap(), "value10");
 
-    for node in final_nodes.values() {
+    for node_ref in final_nodes.iter() {
+      let node = node_ref.value();
       if let Some(accepted_id) = node.accepted_id {
         assert_eq!(accepted_id, final_accepted_id.unwrap());
         assert_eq!(node.accepted_value, final_accepted_value);
@@ -525,7 +556,7 @@ mod tests {
 
   #[tokio::test]
   async fn test_network_partitions() {
-    let nodes = Arc::new(Mutex::new(HashMap::new()));
+    let nodes = Arc::new(DashMap::new());
     let (tx, rx) = mpsc::channel(64);
 
     let disco = Arc::new(MockDiscovery::from_iter((0..11).into_iter().map(|i| {
@@ -538,7 +569,7 @@ mod tests {
 
     for member in disco.members().await.unwrap() {
       let node = Node::new(member.id as usize);
-      nodes.lock().await.insert(member.id as usize, node);
+      nodes.insert(member.id as usize, node);
     }
 
     let nodes_clone = Arc::clone(&nodes);
@@ -570,7 +601,7 @@ mod tests {
     assert!(successes > 0);
 
     // Verify final state of each node in the majority partition
-    let final_nodes = nodes.lock().await;
+    let final_nodes = nodes;
 
     let mut final_accepted_id = None;
     let mut final_accepted_value = None;
@@ -606,7 +637,7 @@ mod tests {
 
   #[tokio::test]
   async fn test_node_failures_and_recovery() {
-    let nodes = Arc::new(Mutex::new(HashMap::new()));
+    let nodes = Arc::new(DashMap::new());
     let (tx, rx) = mpsc::channel(64);
 
     let disco = Arc::new(MockDiscovery::from_iter((0..10).into_iter().map(|i| {
@@ -619,7 +650,7 @@ mod tests {
 
     for member in disco.members().await.unwrap() {
       let node = Node::new(member.id as usize);
-      nodes.lock().await.insert(member.id as usize, node);
+      nodes.insert(member.id as usize, node);
     }
 
     let nodes_clone = Arc::clone(&nodes);
@@ -651,7 +682,7 @@ mod tests {
     assert!(successes > 0);
 
     // Verify final state of each node
-    let final_nodes = nodes.lock().await;
+    let final_nodes = nodes;
     let mut final_accepted_id = None;
     let mut final_accepted_value = None;
 

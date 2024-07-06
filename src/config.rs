@@ -14,11 +14,11 @@ use std::{
 
 use chitchat::{ChitchatConfig, ChitchatId};
 use clap::Parser;
-use cool_id_generator::Size;
 use rustls::{
   pki_types::{CertificateDer, PrivateKeyDer},
   RootCertStore,
 };
+use ulid::Ulid;
 
 use crate::{Error, Result};
 
@@ -102,19 +102,15 @@ pub struct ServerConfig {
   pub gossip_addr: Option<SocketAddr>,
 }
 
-fn generate_server_id(public_addr: SocketAddr) -> String {
-  let cool_id = cool_id_generator::get_id(Size::Medium);
-  format!("server:{public_addr}-{cool_id}")
-}
-
 impl From<&ServerConfig> for ChitchatConfig {
   fn from(value: &ServerConfig) -> Self {
     let gossip_addr = value.cluster_addr.unwrap();
-    let node_id = generate_server_id(gossip_addr);
+    let node_id = value.node_id.clone();
     let generation = SystemTime::now()
       .duration_since(SystemTime::UNIX_EPOCH)
       .unwrap()
       .as_secs();
+    // let generation = 0;
     let chitchat_id = ChitchatId::new(node_id, generation, gossip_addr);
     ChitchatConfig {
       chitchat_id: chitchat_id,

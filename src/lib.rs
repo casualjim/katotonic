@@ -1,9 +1,9 @@
 pub mod client;
+pub mod cluster;
 mod config;
-pub mod disco;
-pub mod leadership;
 pub mod protocol;
 pub mod server;
+pub mod transport;
 // mod ulidd;
 use std::io;
 
@@ -38,6 +38,8 @@ pub enum Error {
   SocketAddr(#[from] std::net::AddrParseError),
   #[error("DNS resolution error: {0}")]
   Dns(#[from] trust_dns_resolver::error::ResolveError),
+  #[error("Node not found: {0}")]
+  NodeNotFound(String),
 }
 
 #[cfg(test)]

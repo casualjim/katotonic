@@ -1,12 +1,10 @@
-use std::time::Duration;
-
 use chitchat::{spawn_chitchat, transport::UdpTransport};
 use clap::Parser;
 use futures::StreamExt;
 use tracing::{info, instrument};
 use ulid::Ulid;
 use ulidd::{
-  disco::{ChitchatDiscovery, Discovery},
+  cluster::disco::ChitchatDiscovery,
   protocol::{Request, Response},
   server,
 };
@@ -48,11 +46,12 @@ async fn main() -> anyhow::Result<()> {
     //   info!("members: {:?}", members);
     // }
     while let Some(change) = change_watcher.next().await {
-      let members = change
-        .iter()
-        .map(|(k, _)| k.gossip_advertise_addr)
-        .collect::<Vec<_>>();
-      info!("members: {:?}", members);
+      // let members = change
+      //   .iter()
+      //   .map(|(k, _)| k.gossip_advertise_addr)
+      //   .collect::<Vec<_>>();
+      // info!("members: {:?}", members);
+      info!("change: {:?}", change);
     }
   });
 
