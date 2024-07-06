@@ -37,12 +37,16 @@ pub async fn resolve_dns(name: &str) -> Result<Vec<IpAddr>> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Member {
+  pub id: u64,
   pub addr: SocketAddr,
 }
 
 #[async_trait]
-pub trait Discovery {
+pub trait Discovery: Send + Sync {
   async fn members(&self) -> Result<Vec<Member>>;
+  async fn member_count(&self) -> Result<usize> {
+    Ok(self.members().await?.len())
+  }
 }
 
 pub struct ChitchatDiscovery {
@@ -63,6 +67,7 @@ impl Discovery for ChitchatDiscovery {
     Ok(
       online_peers
         .map(|cid| Member {
+          id: cid.generation_id,
           addr: cid.gossip_advertise_addr,
         })
         .collect(),

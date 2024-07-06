@@ -24,14 +24,11 @@ use crate::{Error, Result};
 
 #[derive(Parser)]
 pub struct ClientConfig {
-  #[clap(long, default_value = "ulidd.client-client.pem")]
+  #[clap(long, default_value = "tests/certs/ulidd.client-client.pem")]
   pub cert: Option<String>,
-  #[clap(long, default_value = "ulidd.client-client-key.pem")]
+  #[clap(long, default_value = "tests/certs/ulidd.client-client-key.pem")]
   pub key: Option<String>,
-  #[clap(
-    long,
-    default_value = "/Users/ivan/Library/Application Support/mkcert/rootCA.pem"
-  )]
+  #[clap(long, default_value = "tests/certs/rootCA.pem")]
   pub ca: String,
   #[clap(long, default_value = "localhost:9000")]
   pub addr: String,
@@ -70,14 +67,11 @@ pub struct SeedNode {
 
 #[derive(Parser, Debug, Clone)]
 pub struct ServerConfig {
-  #[clap(long, default_value = "ulidd.service+3.pem")]
+  #[clap(long, default_value = "tests/certs/ulidd.service+3.pem")]
   pub cert: String,
-  #[clap(long, default_value = "ulidd.service+3-key.pem")]
+  #[clap(long, default_value = "tests/certs/ulidd.service+3-key.pem")]
   pub key: String,
-  #[clap(
-    long,
-    default_value = "/Users/ivan/Library/Application Support/mkcert/rootCA.pem"
-  )]
+  #[clap(long, default_value = "tests/certs/rootCA.pem")]
   pub ca: Option<String>,
   #[clap(long, default_value = "127.0.0.1:9000")]
   pub addr: String,
@@ -85,18 +79,15 @@ pub struct ServerConfig {
   pub bootstrap: bool,
   #[clap(long, value_parser = parse_seed_node, value_delimiter = ',')]
   pub seed: Vec<SeedNode>,
-  #[clap(long, default_value = "ulidd.service+3.pem")]
+  #[clap(long, default_value = "tests/certs/ulidd.service+3.pem")]
   pub cluster_cert: String,
-  #[clap(long, default_value = "ulidd.service+3-key.pem")]
+  #[clap(long, default_value = "tests/certs/ulidd.service+3-key.pem")]
   pub cluster_key: String,
-  #[clap(long, default_value = "ulidd.client-client-key.pem")]
+  #[clap(long, default_value = "tests/certs/ulidd.client-client-key.pem")]
   pub cluster_client_key: Option<String>,
-  #[clap(long, default_value = "ulidd.client-client.pem")]
+  #[clap(long, default_value = "tests/certs/ulidd.client-client.pem")]
   pub cluster_client_cert: Option<String>,
-  #[clap(
-    long,
-    default_value = "/Users/ivan/Library/Application Support/mkcert/rootCA.pem"
-  )]
+  #[clap(long, default_value = "tests/certs/rootCA.pem")]
   pub cluster_ca: String,
   #[clap(long, default_value = "127.0.0.1:9100")]
   pub cluster_addr: Option<SocketAddr>,

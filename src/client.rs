@@ -18,7 +18,7 @@ use tokio::{
 use tokio_rustls::TlsConnector;
 use tokio_serde_cbor::Codec;
 use tokio_util::codec::Decoder;
-use tracing::debug;
+use tracing::{debug, error, info};
 use ulid::Ulid;
 
 use super::{
@@ -35,11 +35,19 @@ async fn run<P: ToSocketAddrs>(
   mut receiver: mpsc::Receiver<Request>,
 ) {
   debug!("connecting to server");
-  let stream = TcpStream::connect(addr).await.unwrap();
-  let stream = connector
-    .connect(server_name.clone(), stream)
-    .await
-    .unwrap();
+  let stream = TcpStream::connect(addr).await;
+  if let Err(e) = stream {
+    error!("failed to connect to server: {}", e);
+    return;
+  }
+  let stream = stream.unwrap();
+  let stream = connector.connect(server_name.clone(), stream).await;
+  if let Err(e) = stream {
+    error!("failed to connect to server: {}", e);
+    return;
+  }
+  let stream = stream.unwrap();
+  debug!("connected to server");
   let codec: Codec<Response, Request> = Codec::new();
 
   let (mut server_sender, mut server_receiver) = codec.framed(stream).split();
@@ -48,29 +56,66 @@ async fn run<P: ToSocketAddrs>(
   tokio::spawn(async move {
     loop {
       tokio::select! {
-          _ = interval.tick() => {
-              server_sender.send(Request::Heartbeat).await.unwrap();
-          },
-          Some(request) = receiver.recv() => {
-              server_sender.send(request).await.unwrap();
+        _ = interval.tick() => {
+          if let Err(e) = server_sender.send(Request::Heartbeat).await {
+            error!("failed to send heartbeat: {}", e);
           }
+        },
+        Some(request) = receiver.recv() => {
+          if let Err(e) = server_sender.send(request).await {
+            error!("failed to send request: {}", e);
+          }
+        }
       }
     }
   });
 
-  while let Some(Ok(response)) = server_receiver.next().await {
-    if let Some((_, sender)) = in_flight.remove(&response.get_request_id()) {
-      match response {
-        Response::Id(_, data) => {
-          sender.send(data).unwrap();
+  debug!("waiting for server responses");
+  loop {
+    let response = match server_receiver.next().await {
+      Some(Ok(response)) => response,
+      Some(Err(e)) => {
+        error!("failed to receive request: {}", e);
+        break;
+      }
+      None => {
+        error!("server disconnected");
+        break;
+      }
+    };
+
+    // debug!("received response: {:?}", response);
+    match response {
+      Response::Id(_, data) => {
+        if let Some((_, sender)) = in_flight.remove(&response.get_request_id()) {
+          if let Err(e) = sender.send(data) {
+            error!("failed to send response: {}", Ulid::from_bytes(e));
+          }
+        } else {
+          error!("unexpected response: {:?}", response);
         }
-        Response::HeartbeatAck => (),
-        Response::Error(_, msg) => {
-          tracing::error!("server error: {}", msg);
-        }
+      }
+      Response::HeartbeatAck => (),
+      Response::Error(_, msg) => {
+        error!("server error: {}", msg);
       }
     }
   }
+  // while let Some(Ok(response)) = server_receiver.next().await {
+  //   if let Some((_, sender)) = in_flight.remove(&response.get_request_id()) {
+  //     match response {
+  //       Response::Id(_, data) => {
+  //         if let Err(e) = sender.send(data) {
+  //           error!("failed to send response: {}", Ulid::from_bytes(e));
+  //         }
+  //       }
+  //       Response::HeartbeatAck => (),
+  //       Response::Error(_, msg) => {
+  //         tracing::error!("server error: {}", msg);
+  //       }
+  //     }
+  //   }
+  // }
 }
 
 pub struct Client {
@@ -85,6 +130,7 @@ impl Client {
     let server_name = config.server_name();
     let addr = config.addr();
 
+    info!("connecting to server={addr} server_name={server_name}");
     let builder = ClientConfig::builder().with_root_certificates(root_store);
 
     let config = match config.keypair()? {
@@ -126,9 +172,17 @@ impl IdGenerator for Client {
     let (sender, receiver) = tokio::sync::oneshot::channel();
     self.in_flight_requests.insert(request_id, sender);
 
-    self.sender.send(request).await.unwrap();
+    if let Err(e) = self.sender.send(request).await {
+      error!("failed to send request: {}", e);
+      panic!("{e:?}");
+    }
 
-    let response = receiver.await.unwrap();
+    let response = receiver.await.map_err(|e| {
+      io::Error::new(
+        io::ErrorKind::Other,
+        format!("failed to receive response: {e:?}"),
+      )
+    })?;
     Ok(Ulid::from_bytes(response))
   }
 }

@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use chitchat::{spawn_chitchat, transport::UdpTransport};
 use clap::Parser;
+use futures::StreamExt;
 use tracing::{info, instrument};
 use ulid::Ulid;
 use ulidd::{
@@ -36,13 +37,21 @@ async fn main() -> anyhow::Result<()> {
   let handle = spawn_chitchat(chitchat_config, vec![], &UdpTransport).await?;
   let cc = handle.chitchat();
 
+  let mut change_watcher = cc.lock().await.live_nodes_watcher();
   let disc = ChitchatDiscovery::new(cc.clone());
 
   tokio::spawn(async move {
-    let mut interval = tokio::time::interval(Duration::from_secs(5));
-    loop {
-      interval.tick().await;
-      let members = disc.members().await.unwrap();
+    // let mut interval = tokio::time::interval(Duration::from_secs(5));
+    // loop {
+    //   interval.tick().await;
+    //   let members = disc.members().await.unwrap();
+    //   info!("members: {:?}", members);
+    // }
+    while let Some(change) = change_watcher.next().await {
+      let members = change
+        .iter()
+        .map(|(k, _)| k.gossip_advertise_addr)
+        .collect::<Vec<_>>();
       info!("members: {:?}", members);
     }
   });

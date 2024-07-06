@@ -1,7 +1,7 @@
-pub mod leadership;
 pub mod client;
 mod config;
 pub mod disco;
+pub mod leadership;
 pub mod protocol;
 pub mod server;
 // mod ulidd;
@@ -38,4 +38,19 @@ pub enum Error {
   SocketAddr(#[from] std::net::AddrParseError),
   #[error("DNS resolution error: {0}")]
   Dns(#[from] trust_dns_resolver::error::ResolveError),
+}
+
+#[cfg(test)]
+mod tests {
+  use ctor::ctor;
+
+  #[ctor]
+  fn init_color_backtrace() {
+    let subscriber = tracing_subscriber::fmt::fmt()
+      .with_max_level(tracing::Level::ERROR)
+      .with_test_writer()
+      .finish();
+    tracing::subscriber::set_global_default(subscriber).expect("Failed to set tracing subscriber");
+    color_backtrace::install();
+  }
 }
