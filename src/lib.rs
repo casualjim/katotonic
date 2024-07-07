@@ -40,6 +40,8 @@ pub enum Error {
   Dns(#[from] trust_dns_resolver::error::ResolveError),
   #[error("Node not found: {0}")]
   NodeNotFound(String),
+  #[error("Consensus not achieved")]
+  ConsensusNotAchieved,
 }
 
 #[cfg(test)]

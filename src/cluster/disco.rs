@@ -1,12 +1,12 @@
 use std::{
+  fmt::Debug,
   net::{IpAddr, SocketAddr},
-  pin::Pin,
   sync::Arc,
 };
 
 use async_trait::async_trait;
 use chitchat::Chitchat;
-use futures::{stream::BoxStream, Stream, StreamExt as _};
+use futures::{stream::BoxStream, StreamExt as _};
 use tokio::sync::Mutex;
 use trust_dns_resolver::{
   proto::rr::rdata::{A, AAAA},
@@ -43,9 +43,10 @@ pub struct Member {
   pub addr: SocketAddr,
 }
 
+#[cfg_attr(test, mry::mry)]
 #[async_trait]
-pub trait Discovery: Send + Sync {
-  async fn membership_changes(&self) -> BoxStream<Result<Vec<Member>>>;
+pub trait Discovery: std::fmt::Debug + Send + Sync + 'static {
+  async fn membership_changes(&self) -> BoxStream<'static, Result<Vec<Member>>>;
   async fn members(&self) -> Result<Vec<Member>>;
   async fn member_count(&self) -> Result<usize> {
     Ok(self.members().await?.len())
@@ -53,8 +54,15 @@ pub trait Discovery: Send + Sync {
   async fn myself(&self) -> Result<Member>;
 }
 
+#[derive(Clone)]
 pub struct ChitchatDiscovery {
   chitchat: Arc<Mutex<Chitchat>>,
+}
+
+impl Debug for ChitchatDiscovery {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("ChitchatDiscovery").finish()
+  }
 }
 
 impl ChitchatDiscovery {
@@ -78,7 +86,7 @@ impl Discovery for ChitchatDiscovery {
     )
   }
 
-  async fn membership_changes(&self) -> BoxStream<Result<Vec<Member>>> {
+  async fn membership_changes(&self) -> BoxStream<'static, Result<Vec<Member>>> {
     let watcher = self.chitchat.lock().await.live_nodes_watcher();
     Box::pin(watcher.map(|peers| {
       Ok(
@@ -94,9 +102,7 @@ impl Discovery for ChitchatDiscovery {
   }
 
   async fn myself(&self) -> Result<Member> {
-    let mut guard = self.chitchat.lock().await;
-    let state = guard.self_node_state();
-
+    let guard = self.chitchat.lock().await;
     let cid = guard.self_chitchat_id();
 
     Ok(Member {

@@ -1,24 +1,62 @@
+use std::{sync::Arc, time::Duration};
+
+use async_trait::async_trait;
 use chitchat::{spawn_chitchat, transport::UdpTransport};
 use clap::Parser;
 use futures::StreamExt;
+use tokio::time::sleep;
 use tracing::{info, instrument};
-use ulid::Ulid;
 use ulidd::{
   cluster::disco::ChitchatDiscovery,
   protocol::{Request, Response},
-  server,
+  server::{self, Handler},
 };
 
-#[instrument]
-async fn handler(request: Request) -> ulidd::Result<Response> {
-  let response = match request {
-    Request::NewId(id) => {
-      let new_data = Ulid::new().to_bytes();
-      Response::Id(id, new_data)
+struct MonotonicHandler(Arc<tokio::sync::Mutex<ulid::Generator>>);
+
+impl std::fmt::Debug for MonotonicHandler {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("MonotonicHandler").finish()
+  }
+}
+
+impl MonotonicHandler {
+  fn new(generator: ulid::Generator) -> Self {
+    Self(Arc::new(tokio::sync::Mutex::new(generator)))
+  }
+
+  async fn generate(&self) -> Result<ulid::Ulid, ulid::MonotonicError> {
+    self.0.lock().await.generate()
+  }
+}
+
+impl Default for MonotonicHandler {
+  fn default() -> Self {
+    Self::new(ulid::Generator::new())
+  }
+}
+
+#[async_trait]
+impl Handler for MonotonicHandler {
+  #[instrument]
+  async fn handle(&self, request: Request) -> ulidd::Result<Response> {
+    match request {
+      Request::NewId(id) => {
+        for _ in 0..3 {
+          match self.generate().await {
+            Ok(ulid) => {
+              return Ok(Response::Id(id, ulid.to_bytes()));
+            }
+            Err(ulid::MonotonicError::Overflow) => {
+              sleep(Duration::from_millis(1)).await;
+            }
+          }
+        }
+        return Ok(Response::Error(id, "unable to generate id".to_string()));
+      }
+      Request::Heartbeat => Ok(Response::HeartbeatAck),
     }
-    Request::Heartbeat => Response::HeartbeatAck,
-  };
-  Ok(response)
+  }
 }
 
 #[tokio::main]
@@ -36,7 +74,7 @@ async fn main() -> anyhow::Result<()> {
   let cc = handle.chitchat();
 
   let mut change_watcher = cc.lock().await.live_nodes_watcher();
-  let disc = ChitchatDiscovery::new(cc.clone());
+  let _disc = ChitchatDiscovery::new(cc.clone());
 
   tokio::spawn(async move {
     // let mut interval = tokio::time::interval(Duration::from_secs(5));
@@ -66,7 +104,7 @@ async fn main() -> anyhow::Result<()> {
   // });
 
   // tokio::spawn(join_mesh(conf.clone()));
-  server::run(conf, handler).await?;
+  server::run(conf, MonotonicHandler::default()).await?;
   handle.shutdown().await?;
   Ok(())
 }

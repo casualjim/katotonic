@@ -18,7 +18,6 @@ use rustls::{
   pki_types::{CertificateDer, PrivateKeyDer},
   RootCertStore,
 };
-use ulid::Ulid;
 
 use crate::{Error, Result};
 

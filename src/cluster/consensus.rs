@@ -1,41 +1,130 @@
-use std::sync::Arc;
+use std::{collections::HashSet, fmt::Debug, sync::Arc, time::Duration};
 
+use async_trait::async_trait;
 use dashmap::DashMap;
 use futures::StreamExt as _;
-use serde::{Deserialize, Serialize};
-use tokio::sync::{mpsc, oneshot};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use tokio::{
+  sync::{mpsc, oneshot, watch, Mutex},
+  time::sleep,
+};
 use tracing::info;
+use ulid::{Generator, Ulid};
 
 use super::disco::Discovery;
-use crate::Result;
+use crate::{Error, Result};
 
-pub async fn run(membership: Arc<dyn Discovery>) -> Result<()> {
-  let membership_clone = Arc::clone(&membership);
+#[async_trait]
+pub trait Consensus: Send + Sync {
+  type Item: Send + Sync;
+  async fn propose(&self, value: Self::Item) -> Result<()>;
+  fn subscribe(&self) -> watch::Receiver<Self::Item>;
+}
 
-  let (_tx, rx) = mpsc::channel(32);
-  let nodes = Arc::new(DashMap::new());
+#[derive(Clone)]
+struct Client<T>
+where
+  T: Serialize + DeserializeOwned + Send + Sync,
+{
+  generator: Arc<Mutex<Generator>>,
+  tx: mpsc::Sender<(usize, Message<T>, oneshot::Sender<Response<T>>)>,
+  discovery: Arc<dyn Discovery + 'static>,
+  leader: watch::Sender<T>,
+}
 
+#[async_trait]
+impl<T> Consensus for Client<T>
+where
+  T: Serialize + DeserializeOwned + Clone + Send + Sync,
+{
+  type Item = T;
+
+  fn subscribe(&self) -> watch::Receiver<Self::Item> {
+    self.leader.subscribe()
+  }
+
+  async fn propose(&self, value: Self::Item) -> Result<()> {
+    loop {
+      let new_id = self.generator.lock().await.generate();
+      match new_id {
+        Ok(proposal_id) => {
+          let mut proposer = Proposer::new(
+            proposal_id,
+            value,
+            Arc::clone(&self.discovery),
+            self.tx.clone(),
+          );
+          let result = proposer.propose().await?;
+          if result {
+            return Ok(());
+          }
+          return Err(Error::ConsensusNotAchieved);
+        }
+        Err(_) => {
+          sleep(Duration::from_millis(1)).await;
+        }
+      }
+    }
+  }
+}
+
+pub(super) async fn run<
+  T: Serialize + Send + Sync + DeserializeOwned + Clone + Default + 'static,
+>(
+  discovery: Arc<dyn Discovery>,
+) -> Result<Arc<dyn Consensus<Item = T>>> {
+  let membership = Arc::clone(&discovery);
+
+  let (tx, rx) = mpsc::channel(32);
+  let nodes = Arc::new(DashMap::<usize, Node<T>>::new());
+
+  let nodes_clone = Arc::clone(&nodes);
   tokio::spawn(async move {
-    let mut watcher = membership_clone.membership_changes().await;
+    let mut watcher = membership.membership_changes().await;
     while let Some(change) = watcher.next().await {
-      info!("Membership change: {:?}", change);
+      if let Ok(change) = change {
+        info!("Membership change: {:?}", change);
+        let old_keys = nodes_clone
+          .iter()
+          .map(|kv| *kv.key())
+          .collect::<HashSet<_>>();
+        let mut seen_ids = HashSet::new();
+        for member in &change {
+          let node = Node::new(member.id as usize);
+          nodes_clone.insert(member.id as usize, node);
+          seen_ids.insert(member.id as usize);
+        }
+        old_keys.difference(&seen_ids).for_each(|v| {
+          nodes_clone.remove(v);
+        });
+      }
     }
   });
 
   tokio::spawn(node_task(rx, nodes, |_, _| false));
 
-  Ok(())
+  let generator = Arc::new(Mutex::const_new(Generator::new()));
+
+  Ok(Arc::new(Client {
+    tx,
+    discovery,
+    generator,
+    leader: watch::channel(T::default()).0,
+  }))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-struct Node {
+struct Node<T> {
   node_id: usize,
-  promised_id: Option<u64>,
-  accepted_id: Option<u64>,
-  accepted_value: Option<String>,
+  promised_id: Option<Ulid>,
+  accepted_id: Option<Ulid>,
+  accepted_value: Option<T>,
 }
 
-impl Node {
+impl<T> Node<T>
+where
+  T: Clone,
+{
   fn new(node_id: usize) -> Self {
     Self {
       node_id,
@@ -45,7 +134,7 @@ impl Node {
     }
   }
 
-  async fn prepare(&mut self, proposal_id: u64) -> (bool, Option<u64>, Option<String>) {
+  async fn prepare(&mut self, proposal_id: Ulid) -> (bool, Option<Ulid>, Option<T>) {
     info!(
       "Node {} received prepare request with proposal_id {}",
       self.node_id, proposal_id
@@ -57,7 +146,7 @@ impl Node {
     (false, self.accepted_id, self.accepted_value.clone())
   }
 
-  async fn accept(&mut self, proposal_id: u64, value: String) -> bool {
+  async fn accept(&mut self, proposal_id: Ulid, value: T) -> bool {
     info!(
       "Node {} received accept request with proposal_id {} at promised_id {:?}",
       self.node_id, proposal_id, self.promised_id
@@ -73,30 +162,36 @@ impl Node {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-enum Message {
-  Prepare(u64),
-  Accept(u64, String),
+enum Message<T: Serialize> {
+  Prepare(Ulid),
+  Accept(Ulid, T),
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-enum Response {
-  Prepare(bool, Option<u64>, Option<String>),
+enum Response<T> {
+  Prepare(bool, Option<Ulid>, Option<T>),
   Accept(bool),
 }
 
-struct Proposer {
-  proposal_id: u64,
-  value: String,
+struct Proposer<T>
+where
+  T: Serialize,
+{
+  proposal_id: Ulid,
+  value: T,
   discovery: Arc<dyn Discovery>,
-  tx: mpsc::Sender<(usize, Message, oneshot::Sender<Response>)>,
+  tx: mpsc::Sender<(usize, Message<T>, oneshot::Sender<Response<T>>)>,
 }
 
-impl Proposer {
+impl<T> Proposer<T>
+where
+  T: Serialize + Send + Sync + Clone + DeserializeOwned,
+{
   fn new(
-    proposal_id: u64,
-    value: String,
+    proposal_id: Ulid,
+    value: T,
     discovery: Arc<dyn Discovery>,
-    tx: mpsc::Sender<(usize, Message, oneshot::Sender<Response>)>,
+    tx: mpsc::Sender<(usize, Message<T>, oneshot::Sender<Response<T>>)>,
   ) -> Self {
     Proposer {
       proposal_id,
@@ -110,8 +205,7 @@ impl Proposer {
     (num_nodes / 2) + 1
   }
 
-  async fn propose(&mut self) -> Result<bool> {
-    // Prepare phase
+  async fn prepare(&mut self) -> Result<(usize, Option<T>)> {
     let mut promises = 0;
     let mut highest_accepted_id = None;
     let mut highest_accepted_value = None;
@@ -128,7 +222,7 @@ impl Proposer {
         .await
         .is_err()
       {
-        return Ok(false);
+        return Ok((0, None));
       }
       let resp = resp_rx.await;
       if let Ok(Response::Prepare(success, accepted_id, accepted_value)) = resp {
@@ -143,6 +237,11 @@ impl Proposer {
         }
       }
     }
+    Ok((promises, highest_accepted_value))
+  }
+
+  async fn propose(&mut self) -> Result<bool> {
+    let (promises, highest_accepted_value) = self.prepare().await?;
 
     if promises < self.quorum_size(self.discovery.member_count().await?) {
       return Ok(false);
@@ -181,12 +280,13 @@ impl Proposer {
   }
 }
 
-async fn node_task<F>(
-  mut rx: mpsc::Receiver<(usize, Message, oneshot::Sender<Response>)>,
-  state: Arc<DashMap<usize, Node>>,
+async fn node_task<T, F>(
+  mut rx: mpsc::Receiver<(usize, Message<T>, oneshot::Sender<Response<T>>)>,
+  state: Arc<DashMap<usize, Node<T>>>,
   should_drop_or_reorder: F,
 ) where
-  F: Fn(usize, &Message) -> bool + Send + 'static,
+  T: Serialize + Send + Sync + Clone + DeserializeOwned,
+  F: Fn(usize, &Message<T>) -> bool + Send,
 {
   while let Some((id, msg, resp_tx)) = rx.recv().await {
     if should_drop_or_reorder(id, &msg) {
@@ -224,10 +324,12 @@ mod tests {
   use async_trait::async_trait;
   use futures::stream::BoxStream;
   use tokio::task::JoinHandle;
+  use ulid::Generator;
 
   use super::*;
   use crate::{cluster::disco::Member, Result};
 
+  #[derive(Debug, Clone)]
   struct MockDiscovery {
     members: Vec<Member>,
   }
@@ -246,7 +348,7 @@ mod tests {
       Ok(self.members.clone())
     }
 
-    async fn membership_changes(&self) -> BoxStream<Result<Vec<Member>>> {
+    async fn membership_changes(&self) -> BoxStream<'static, Result<Vec<Member>>> {
       unimplemented!()
     }
 
@@ -255,7 +357,7 @@ mod tests {
     }
   }
 
-  fn keep_all_messages(_: usize, _: &Message) -> bool {
+  fn keep_all_messages<T: Serialize>(_: usize, _: &Message<T>) -> bool {
     false
   }
 
@@ -280,7 +382,7 @@ mod tests {
     let nodes_clone = Arc::clone(&nodes);
     tokio::spawn(node_task(rx, nodes_clone, keep_all_messages));
 
-    let mut proposer = Proposer::new(1, "value".to_string(), disco, tx.clone());
+    let mut proposer = Proposer::new(Ulid::new(), "value".to_string(), disco, tx.clone());
 
     let result = proposer.propose().await;
     assert!(result.is_ok());
@@ -307,7 +409,7 @@ mod tests {
     let nodes_clone = Arc::clone(&nodes);
     tokio::spawn(node_task(rx, nodes_clone, keep_all_messages));
 
-    let mut proposer = Proposer::new(1, "value".to_string(), disco, tx.clone());
+    let mut proposer = Proposer::new(Ulid::new(), "value".to_string(), disco, tx.clone());
 
     let result = proposer.propose().await;
     assert!(result.is_ok());
@@ -333,13 +435,22 @@ mod tests {
 
     let nodes_clone = Arc::clone(&nodes);
     tokio::spawn(node_task(rx, nodes_clone, keep_all_messages));
+    let mut gen = Generator::new();
 
-    let mut proposer1 = Proposer::new(1, "value1".to_string(), disco.clone(), tx.clone());
+    let proposal_id2 = gen.generate().unwrap();
+    let proposal_id = gen.generate().unwrap();
+
+    let mut proposer1 = Proposer::new(proposal_id, "value1".to_string(), disco.clone(), tx.clone());
     let result1 = proposer1.propose().await;
     assert!(result1.is_ok());
     assert!(result1.unwrap());
 
-    let mut proposer2 = Proposer::new(0, "value2".to_string(), disco.clone(), tx.clone());
+    let mut proposer2 = Proposer::new(
+      proposal_id2,
+      "value2".to_string(),
+      disco.clone(),
+      tx.clone(),
+    );
     let result2 = proposer2.propose().await;
     assert!(result2.is_ok());
     assert!(!result2.unwrap());
@@ -366,12 +477,24 @@ mod tests {
     let nodes_clone = Arc::clone(&nodes);
     tokio::spawn(node_task(rx, nodes_clone, keep_all_messages));
 
-    let mut proposer1 = Proposer::new(1, "value1".to_string(), Arc::clone(&disco), tx.clone());
+    let mut gen = Generator::new();
+
+    let mut proposer1 = Proposer::new(
+      gen.generate().unwrap(),
+      "value1".to_string(),
+      Arc::clone(&disco),
+      tx.clone(),
+    );
     let result1 = proposer1.propose().await;
     assert!(result1.is_ok());
     assert!(result1.unwrap());
 
-    let mut proposer2 = Proposer::new(2, "value2".to_string(), disco, tx.clone());
+    let mut proposer2 = Proposer::new(
+      gen.generate().unwrap(),
+      "value2".to_string(),
+      disco,
+      tx.clone(),
+    );
     let result2 = proposer2.propose().await;
     assert!(result2.is_ok());
     assert!(result2.unwrap());
@@ -399,8 +522,18 @@ mod tests {
     tokio::spawn(node_task(rx, nodes_clone, keep_all_messages));
 
     let disco = Arc::new(disco);
-    let mut proposer1 = Proposer::new(1, "value1".to_string(), Arc::clone(&disco), tx.clone());
-    let mut proposer2 = Proposer::new(2, "value2".to_string(), Arc::clone(&disco), tx.clone());
+    let mut proposer1 = Proposer::new(
+      Ulid::new(),
+      "value1".to_string(),
+      Arc::clone(&disco),
+      tx.clone(),
+    );
+    let mut proposer2 = Proposer::new(
+      Ulid::new(),
+      "value2".to_string(),
+      Arc::clone(&disco),
+      tx.clone(),
+    );
 
     let handle1: JoinHandle<Result<bool>> = tokio::spawn(async move { proposer1.propose().await });
     let handle2: JoinHandle<Result<bool>> = tokio::spawn(async move { proposer2.propose().await });
@@ -438,7 +571,7 @@ mod tests {
     let nodes_clone = Arc::clone(&nodes);
     tokio::spawn(node_task(rx, nodes_clone, keep_all_messages));
 
-    let mut proposer = Proposer::new(1, "value".to_string(), disco, tx.clone());
+    let mut proposer = Proposer::new(Ulid::new(), "value".to_string(), disco, tx.clone());
 
     let result = proposer.propose().await;
     assert!(result.is_ok());
@@ -475,7 +608,7 @@ mod tests {
       false
     }));
 
-    let mut proposer = Proposer::new(1, "value".to_string(), disco.clone(), tx.clone());
+    let mut proposer = Proposer::new(Ulid::new(), "value".to_string(), disco.clone(), tx.clone());
 
     let result = proposer.propose().await;
     assert!(result.is_ok());
@@ -502,12 +635,15 @@ mod tests {
     let nodes_clone = Arc::clone(&nodes);
     tokio::spawn(node_task(rx, nodes_clone, |_, _| false));
 
+    let mut gen = Generator::new();
+
     let mut handles = vec![];
     for i in 1..=10 {
       let tx_clone = tx.clone();
       let disco_clone = disco.clone();
+      let proposal_id = gen.generate().unwrap();
       let handle: JoinHandle<Result<bool>> = tokio::spawn(async move {
-        let mut proposal = Proposer::new(i, format!("value{}", i), disco_clone, tx_clone);
+        let mut proposal = Proposer::new(proposal_id, format!("value{}", i), disco_clone, tx_clone);
         proposal.propose().await
       });
       handles.push(handle);
@@ -583,7 +719,7 @@ mod tests {
       let tx_clone = tx.clone();
       let disco_clone = disco.clone();
       let handle: JoinHandle<Result<bool>> = tokio::spawn(async move {
-        let mut proposal = Proposer::new(i, format!("value{}", i), disco_clone, tx_clone);
+        let mut proposal = Proposer::new(Ulid::new(), format!("value{}", i), disco_clone, tx_clone);
         proposal.propose().await
       });
       handles.push(handle);
@@ -659,12 +795,14 @@ mod tests {
       id == 0 || id == 1
     }));
 
+    let mut gen = Generator::new();
     let mut handles = vec![];
     for i in 1..=10 {
       let tx_clone = tx.clone();
       let disco_clone = disco.clone();
+      let proposal_id = gen.generate().unwrap();
       let handle: JoinHandle<Result<bool>> = tokio::spawn(async move {
-        let mut proposal = Proposer::new(i, format!("value{}", i), disco_clone, tx_clone);
+        let mut proposal = Proposer::new(proposal_id, format!("value{}", i), disco_clone, tx_clone);
         proposal.propose().await
       });
       handles.push(handle);

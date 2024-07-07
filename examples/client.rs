@@ -14,7 +14,7 @@ async fn main() -> Result<()> {
 
   info!("Sending newid request");
   // let mut rng = rand::thread_rng();
-  for _ in 0..10 {
+  for _ in 0..100_000 {
     let response: ulid::Ulid = client.next_id().await?;
     info!(%response, "Received response");
     // let period = Duration::from_millis(rng.gen_range(50..500));
