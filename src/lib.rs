@@ -8,6 +8,7 @@ pub mod transport;
 use std::io;
 
 pub use config::*;
+use rustls::pki_types::InvalidDnsNameError;
 use thiserror::Error;
 use ulid::Ulid;
 
@@ -42,6 +43,8 @@ pub enum Error {
   NodeNotFound(String),
   #[error("Consensus not achieved")]
   ConsensusNotAchieved,
+  #[error("Invalid server name: {0}")]
+  InvalidServerName(#[from] InvalidDnsNameError),
 }
 
 #[cfg(test)]

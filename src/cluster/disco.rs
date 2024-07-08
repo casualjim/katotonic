@@ -5,9 +5,12 @@ use std::{
 };
 
 use async_trait::async_trait;
+use axum::extract::FromRef;
 use chitchat::Chitchat;
 use futures::{stream::BoxStream, StreamExt as _};
+use rustls::pki_types::{DnsName, ServerName};
 use tokio::sync::Mutex;
+use tokio_stream::wrappers::ReceiverStream;
 use trust_dns_resolver::{
   proto::rr::rdata::{A, AAAA},
   AsyncResolver,
@@ -37,10 +40,12 @@ pub async fn resolve_dns(name: &str) -> Result<Vec<IpAddr>> {
   Ok(all_addresses)
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Member {
+  pub name: String,
   pub id: u64,
   pub addr: SocketAddr,
+  pub server_name: Option<ServerName<'static>>,
 }
 
 #[cfg_attr(test, mry::mry)]
@@ -69,6 +74,20 @@ impl ChitchatDiscovery {
   pub fn new(chitchat: Arc<Mutex<Chitchat>>) -> Self {
     Self { chitchat }
   }
+
+  async fn find<S: AsRef<str>>(&self, id: S) -> Option<Member> {
+    let guard = self.chitchat.lock().await;
+
+    let cid = guard.live_nodes().find(|cid| cid.node_id == id.as_ref())?;
+    let state = guard.node_state(&cid)?;
+    let server_name = state.get("server_name")?.to_string();
+    Some(Member {
+      name: cid.node_id.clone(),
+      id: cid.generation_id,
+      addr: cid.gossip_advertise_addr,
+      server_name: ServerName::try_from(server_name).ok(),
+    })
+  }
 }
 
 #[async_trait]
@@ -76,25 +95,44 @@ impl Discovery for ChitchatDiscovery {
   async fn members(&self) -> Result<Vec<Member>> {
     let guard = self.chitchat.lock().await;
     let online_peers = guard.live_nodes();
-    Ok(
-      online_peers
-        .map(|cid| Member {
-          id: cid.generation_id,
-          addr: cid.gossip_advertise_addr,
-        })
-        .collect(),
-    )
+
+    let mut members = vec![];
+    for peer in online_peers {
+      if let Some(server_name) = guard
+        .node_state(peer)
+        .and_then(|v| v.get("server_name").map(|v| v.to_string()))
+      {
+        let server_name = ServerName::try_from(server_name).ok();
+        let member = Member {
+          name: peer.node_id.clone(),
+          id: peer.generation_id,
+          addr: peer.gossip_advertise_addr,
+          server_name,
+        };
+        members.push(member);
+      }
+    }
+    Ok(members)
   }
 
   async fn membership_changes(&self) -> BoxStream<'static, Result<Vec<Member>>> {
     let watcher = self.chitchat.lock().await.live_nodes_watcher();
+
     Box::pin(watcher.map(|peers| {
       Ok(
         peers
           .iter()
-          .map(|cid| Member {
-            id: cid.0.generation_id,
-            addr: cid.0.gossip_advertise_addr,
+          .map(|(cid, state)| {
+            let server_name = state
+              .get("server_name")
+              .map(|v| v.to_string())
+              .unwrap_or_default();
+            Member {
+              name: cid.node_id.clone(),
+              addr: cid.gossip_advertise_addr,
+              id: cid.generation_id,
+              server_name: ServerName::try_from(server_name).ok(),
+            }
           })
           .collect(),
       )
@@ -102,12 +140,28 @@ impl Discovery for ChitchatDiscovery {
   }
 
   async fn myself(&self) -> Result<Member> {
-    let guard = self.chitchat.lock().await;
+    let mut guard = self.chitchat.lock().await;
+    let state = guard
+      .self_node_state()
+      .get("server_name")
+      .map(|v| v.to_string());
     let cid = guard.self_chitchat_id();
 
+    if let Some(sn) = state {
+      let server_name = ServerName::try_from(sn.to_string()).ok();
+      return Ok(Member {
+        name: cid.node_id.clone(),
+        id: cid.generation_id,
+        addr: cid.gossip_advertise_addr,
+        server_name,
+      });
+    }
+
     Ok(Member {
+      name: cid.node_id.clone(),
       id: cid.generation_id,
       addr: cid.gossip_advertise_addr,
+      server_name: None,
     })
   }
 }

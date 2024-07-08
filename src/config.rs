@@ -14,10 +14,12 @@ use std::{
 
 use chitchat::{ChitchatConfig, ChitchatId};
 use clap::Parser;
+use rand::Rng as _;
 use rustls::{
   pki_types::{CertificateDer, PrivateKeyDer},
   RootCertStore,
 };
+use ulid::Ulid;
 
 use crate::{Error, Result};
 
@@ -92,8 +94,8 @@ pub struct ServerConfig {
   pub cluster_addr: Option<SocketAddr>,
   #[clap(long, default_value = "default")]
   pub cluster_id: String,
-  #[clap(long, default_value = "default")]
-  pub node_id: String,
+  #[clap(long)]
+  pub node_id: Option<String>,
 
   #[clap(long, default_value = "500ms", value_parser = humantime::parse_duration)]
   pub gossip_interval: time::Duration,
@@ -104,11 +106,13 @@ pub struct ServerConfig {
 impl From<&ServerConfig> for ChitchatConfig {
   fn from(value: &ServerConfig) -> Self {
     let gossip_addr = value.cluster_addr.unwrap();
-    let node_id = value.node_id.clone();
-    let generation = SystemTime::now()
-      .duration_since(SystemTime::UNIX_EPOCH)
-      .unwrap()
-      .as_secs();
+    let mut rng = rand::thread_rng();
+    let node_id = value
+      .node_id
+      .clone()
+      .unwrap_or_else(|| Ulid::new().to_string());
+
+    let generation = rng.gen_range(1_000..65_000);
     // let generation = 0;
     let chitchat_id = ChitchatId::new(node_id, generation, gossip_addr);
     ChitchatConfig {
@@ -118,7 +122,7 @@ impl From<&ServerConfig> for ChitchatConfig {
       listen_addr: gossip_addr,
       seed_nodes: value.seed.iter().map(|s| s.addr.to_string()).collect(),
       failure_detector_config: chitchat::FailureDetectorConfig {
-        dead_node_grace_period: Duration::from_secs(5),
+        dead_node_grace_period: Duration::from_secs(3600), // 1 hour
         ..Default::default()
       },
       marked_for_deletion_grace_period: 60_000,

@@ -2,7 +2,6 @@
 name = "ulidd"
 version = "0.1.0"
 edition = "2021"
-publish = ["artifactory-remote"]
 
 [dependencies]
 dashmap = "6"
@@ -34,7 +33,10 @@ chitchat = "0.7"
 stateright = "0.30"
 mry = "0.8"
 axum = { version = "0.7" }
-bytes = { version = "1.6.0", registry = "artifactory-remote", features = ["serde"] }
+bytes = { version = "1.6.0", features = ["serde"] }
+tokio-stream = { version = "0.1.15" }
+reqwest = { version = "0.12.5" }
+backon = { version = "0.4.4", registry = "artifactory-remote" }
 
 [dev-dependencies]
 color-backtrace = "0.6"
