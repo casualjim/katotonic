@@ -1,123 +1,26 @@
 use std::{borrow::Cow, cmp::Reverse, collections::HashSet, io, sync::Arc, time::Duration};
 
-use async_trait::async_trait;
 use backon::{ExponentialBuilder, Retryable};
 use dashmap::DashMap;
 use futures::{SinkExt, StreamExt as _};
 use serde::{Deserialize, Serialize};
-use serde_json::error;
 use tokio::{
-  net::{TcpListener, TcpStream},
-  sync::{
-    mpsc::{Receiver, Sender},
-    oneshot, watch, RwLock,
-  },
-  time::{sleep, timeout},
+  io::{AsyncRead, AsyncWrite},
+  net::TcpListener,
+  sync::watch,
+  time::timeout,
 };
-use tokio_rustls::{server::TlsStream, TlsAcceptor};
+use tokio_rustls::TlsAcceptor;
 use tokio_serde_cbor::Codec;
 use tokio_util::codec::Decoder;
-use tracing::info;
+use tracing::{error, info};
 
 use super::disco::Discovery;
-use crate::{server_tls_config, Error, Result, ServerConfig};
-
-#[async_trait]
-pub trait Transport: Send + Sync {
-  type Request: Send + Sync + Serialize + for<'de> Deserialize<'de>;
-  type Response: Send + Sync + Serialize + for<'de> Deserialize<'de>;
-
-  async fn send(&self, msg: Self::Request) -> Result<Self::Response>;
-}
-
-pub struct ChannelTransport<I, O> {
-  sender: tokio::sync::mpsc::Sender<I>,
-  receiver: Arc<RwLock<tokio::sync::mpsc::Receiver<O>>>,
-}
-
-impl<I, O> ChannelTransport<I, O>
-where
-  I: Send + Sync + Serialize + for<'de> Deserialize<'de>,
-  O: Send + Sync + Serialize + for<'de> Deserialize<'de>,
-{
-  pub fn new(sender: Sender<I>, receiver: Receiver<O>) -> Self {
-    Self {
-      sender,
-      receiver: Arc::new(RwLock::new(receiver)),
-    }
-  }
-}
-
-#[async_trait]
-impl<I, O> Transport for ChannelTransport<I, O>
-where
-  I: Send + Sync + Serialize + for<'de> Deserialize<'de>,
-  O: Send + Sync + Serialize + for<'de> Deserialize<'de>,
-{
-  type Request = I;
-  type Response = O;
-
-  async fn send(&self, msg: Self::Request) -> Result<Self::Response> {
-    if let Err(_) = self.sender.send(msg).await {
-      return Err(Error::Io(io::Error::new(
-        io::ErrorKind::UnexpectedEof,
-        "unexpected EOF",
-      )));
-    }
-    let mut receiver = self.receiver.write().await;
-    if let Some(response) = receiver.recv().await {
-      Ok(response)
-    } else {
-      Err(Error::Io(io::Error::new(
-        io::ErrorKind::UnexpectedEof,
-        "unexpected EOF",
-      )))
-    }
-  }
-}
-
-pub struct TcpTransport<'a, I, O> {
-  addr: Cow<'a, str>,
-  codec: Codec<O, I>,
-}
-
-impl<'a, I, O> TcpTransport<'a, I, O>
-where
-  I: Send + Sync + Serialize + for<'de> Deserialize<'de>,
-  O: Send + Sync + Serialize + for<'de> Deserialize<'de>,
-{
-  pub fn new(addr: Cow<'a, str>) -> Self {
-    Self {
-      addr,
-      codec: Codec::new(),
-    }
-  }
-}
-
-#[async_trait]
-impl<'a, I, O> Transport for TcpTransport<'a, I, O>
-where
-  I: Clone + Send + Sync + Serialize + for<'de> Deserialize<'de>,
-  O: Clone + Send + Sync + Serialize + for<'de> Deserialize<'de>,
-{
-  type Request = I;
-  type Response = O;
-
-  async fn send(&self, req: Self::Request) -> Result<Self::Response> {
-    let stream = tokio::net::TcpStream::connect(self.addr.as_ref()).await?;
-    let codec = self.codec.clone();
-    let (mut sender, mut receiver) = codec.framed(stream).split();
-    sender.send(req).await?;
-    if let Some(response) = receiver.next().await {
-      Ok(response?)
-    } else {
-      Err(Error::Io(io::Error::new(
-        io::ErrorKind::UnexpectedEof,
-        "unexpected EOF",
-      )))
-    }
-  }
-}
+use crate::{
+  server_tls_config,
+  transport::{TcpTransport, Transport},
+  Error, Result, ServerConfig,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -135,30 +38,23 @@ pub enum Response {
 }
 
 pub struct Peer {
-  node_name: String,
   node_id: u64,
   transport: Arc<dyn Transport<Request = Request, Response = Response>>,
 }
 
 impl Peer {
-  pub fn new(node_name: String, node_id: u64, addr: String) -> Self {
+  pub fn new(node_id: u64, addr: String) -> Self {
     Self {
-      node_name,
       node_id,
       transport: Arc::new(TcpTransport::new(addr.into())),
     }
   }
 
   pub fn with_transport(
-    node_name: String,
     node_id: u64,
     transport: Arc<dyn Transport<Request = Request, Response = Response>>,
   ) -> Self {
-    Self {
-      node_name,
-      node_id,
-      transport,
-    }
+    Self { node_id, transport }
   }
 
   async fn send(&self, req: Request) -> Result<Response> {
@@ -198,7 +94,7 @@ async fn manage_state(
       let mut new_keys = HashSet::new();
       for member in members {
         if !state.contains_key(&member.name) {
-          let peer = Peer::new(member.name.clone(), member.id, member.addr.to_string());
+          let peer = Peer::new(member.id, member.addr.to_string());
           new_keys.insert(member.name.clone());
           state.insert(member.name, peer);
         }
@@ -252,13 +148,14 @@ async fn run_election<'a>(
 
 async fn broadcast_coordinator<'a>(this_node: &LocalPeer<'a>, state: Arc<DashMap<String, Peer>>) {
   for peer in state.iter() {
-    let _ = peer
+    let res = peer
       .value()
       .send(Request::Coordinator {
         node_name: this_node.name.to_string(),
         node_id: this_node.id,
       })
       .await;
+    if let Ok(Response::Done(_name)) = res {}
   }
 }
 
@@ -273,7 +170,8 @@ async fn monitor_leader<'a>(
       break;
     }
 
-    match leader_changes.borrow().clone() {
+    let leader = leader_changes.borrow().clone();
+    match leader {
       Some((name, id)) => {
         if id != this_node.id || name != this_node.name {
           continue;
@@ -282,6 +180,7 @@ async fn monitor_leader<'a>(
         broadcast_coordinator(this_node, state.clone()).await;
       }
       None => {
+        drop(leader);
         if run_election(this_node, state.clone()).await == ElectionResult::Won {
           leader_holder.send_modify(|v| {
             if let Some((_, id)) = v {
@@ -296,25 +195,27 @@ async fn monitor_leader<'a>(
   }
 }
 
-struct ServerRequest(Request, oneshot::Sender<Response>);
-
-async fn handle_requests<'a>(
+async fn handle_requests<'a, S: AsyncRead + AsyncWrite>(
   this_node: &LocalPeer<'a>,
   leader_holder: watch::Sender<Option<(String, u64)>>,
-  stream: TlsStream<TcpStream>,
+  stream: S,
 ) {
   let codec: Codec<Request, Response> = tokio_serde_cbor::Codec::new();
   let (mut sender, mut receiver) = codec.framed(stream).split();
-  while let Some(request) = receiver.next().await {
-    match request {
-      ServerRequest(Request::ElectMe(sender_id), reply_to) => {
+  while let Some(maybe_error) = receiver.next().await {
+    if let Err(e) = maybe_error {
+      error!("failed to decode request: {}", e);
+      continue;
+    }
+    match maybe_error.unwrap() {
+      Request::ElectMe(sender_id) => {
         if sender_id < this_node.id {
-          let _ = reply_to.send(Response::NotYou);
+          let _ = sender.send(Response::NotYou).await;
         } else {
-          let _ = reply_to.send(Response::ItsYou);
+          let _ = sender.send(Response::ItsYou).await;
         }
       }
-      ServerRequest(Request::Coordinator { node_name, node_id }, reply_to) => {
+      Request::Coordinator { node_name, node_id } => {
         leader_holder.send_modify(|v| {
           if let Some((name, id)) = v {
             if *id != node_id || name != &node_name {
@@ -322,18 +223,23 @@ async fn handle_requests<'a>(
             }
           }
         });
-        let _ = reply_to.send(Response::Done(this_node.name.to_string()));
+        let _ = sender.send(Response::Done(this_node.name.to_string()));
       }
     }
   }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 struct LocalPeer<'a> {
   id: u64,
-  name: &'a str,
+  name: Cow<'a, str>,
 }
 
-async fn run_server(conf: ServerConfig, discovery: Arc<dyn Discovery>) -> Result<()> {
+async fn run_server(
+  conf: ServerConfig,
+  discovery: Arc<dyn Discovery>,
+  current_leader: watch::Sender<Option<(String, u64)>>,
+) -> Result<()> {
   let config = Arc::new(server_tls_config(
     &conf.cluster_cert,
     &conf.cluster_key,
@@ -344,63 +250,73 @@ async fn run_server(conf: ServerConfig, discovery: Arc<dyn Discovery>) -> Result
   info!(%addr, "cluster listening");
 
   let id = discovery.myself().await?;
-  let this_node = LocalPeer {
-    id: id.id,
-    name: &id.name,
-  };
-  let current_leader = watch::channel(None);
 
   let listener = TcpListener::bind(addr).await?;
   loop {
     let (stream, _) = listener.accept().await?;
     let acceptor = acceptor.clone();
 
+    let this_node = LocalPeer {
+      id: id.id,
+      name: id.name.clone().into(),
+    };
+
+    let current_leader = current_leader.clone();
     tokio::spawn(async move {
       let stream = acceptor.accept(stream).await.unwrap();
-      if let Err(e) = handle_requests(&this_node, current_leader.clone()).await {
-        tracing::error!("failed to handle request: {}", e);
-      }
+      handle_requests(&this_node, current_leader.clone(), stream).await
     });
   }
+}
 
-  Ok(())
+pub async fn track_leader(
+  conf: ServerConfig,
+  discovery: Arc<dyn Discovery>,
+) -> Result<watch::Receiver<Option<(String, u64)>>> {
+  let (leader_holder, leader_receiver) = watch::channel(None as Option<(String, u64)>);
+
+  let state = Arc::new(DashMap::new());
+
+  tokio::spawn({
+    let disco = Arc::clone(&discovery);
+    let state = Arc::clone(&state);
+    let leader_holder = leader_holder.clone();
+    async move {
+      manage_state(state, disco, leader_holder).await;
+    }
+  });
+
+  let this_node = discovery.myself().await?;
+  let state_clone = Arc::clone(&state);
+  tokio::spawn({
+    let leader_holder = leader_holder.clone();
+    async move {
+      monitor_leader(
+        &LocalPeer {
+          id: this_node.id,
+          name: this_node.name.clone().into(),
+        },
+        state_clone,
+        leader_holder.clone(),
+      )
+      .await;
+    }
+  });
+
+  tokio::spawn(async move {
+    run_server(conf, discovery, leader_holder).await.unwrap();
+  });
+
+  Ok(leader_receiver)
 }
 
 #[cfg(test)]
 mod tests {
-  use tokio::sync::{mpsc, oneshot};
+
+  use tokio::sync::mpsc;
 
   use super::*;
-
-  #[tokio::test]
-  async fn test_channel_transport() {
-    let (req_tx, req_rx) = mpsc::channel(1);
-    let (resp_tx, mut resp_rx) = mpsc::channel(1);
-    let transport = ChannelTransport::new(resp_tx, req_rx);
-    let msg = Request::Coordinator {
-      node_name: "test".to_string(),
-      node_id: 1,
-    };
-
-    let (response_value_tx, response_value_rx) = oneshot::channel();
-    let msg_to_send = msg.clone();
-    tokio::spawn(async move {
-      let response = transport.send(msg_to_send).await;
-      response_value_tx.send(response).unwrap();
-    });
-
-    assert_eq!(msg, resp_rx.recv().await.unwrap());
-    req_tx.send(Response::Done("1".to_string())).await.unwrap();
-    assert_eq!(
-      response_value_rx.await.unwrap().unwrap(),
-      Response::Done("1".to_string())
-    );
-  }
-
-  #[tokio::test]
-  async fn test_tcp_transport() {
-    let addr = "".to_string();
-  }
+  use crate::transport::ChannelTransport;
 
   #[tokio::test]
   async fn test_peer() {
@@ -408,7 +324,13 @@ mod tests {
     let (resp_tx, mut resp_rx) = mpsc::channel(1);
     let transport = ChannelTransport::new(resp_tx, req_rx);
 
-    let peer = Peer::with_transport("test".to_string(), 1, Arc::new(transport));
+    tokio::spawn(async move {
+      while let Some(_) = resp_rx.recv().await {
+        req_tx.send(Response::Done("".to_string())).await.unwrap();
+      }
+    });
+
+    let peer = Peer::with_transport(1, Arc::new(transport));
     let msg = Request::Coordinator {
       node_name: "test".to_string(),
       node_id: 1,

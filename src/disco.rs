@@ -5,12 +5,10 @@ use std::{
 };
 
 use async_trait::async_trait;
-use axum::extract::FromRef;
 use chitchat::Chitchat;
 use futures::{stream::BoxStream, StreamExt as _};
-use rustls::pki_types::{DnsName, ServerName};
+use rustls::pki_types::ServerName;
 use tokio::sync::Mutex;
-use tokio_stream::wrappers::ReceiverStream;
 use trust_dns_resolver::{
   proto::rr::rdata::{A, AAAA},
   AsyncResolver,
@@ -75,7 +73,7 @@ impl ChitchatDiscovery {
     Self { chitchat }
   }
 
-  async fn find<S: AsRef<str>>(&self, id: S) -> Option<Member> {
+  pub async fn find<S: AsRef<str>>(&self, id: S) -> Option<Member> {
     let guard = self.chitchat.lock().await;
 
     let cid = guard.live_nodes().find(|cid| cid.node_id == id.as_ref())?;

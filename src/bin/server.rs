@@ -7,7 +7,8 @@ use futures::StreamExt;
 use tokio::time::sleep;
 use tracing::{info, instrument};
 use ulidd::{
-  cluster::disco::ChitchatDiscovery,
+  bully,
+  disco::ChitchatDiscovery,
   protocol::{Request, Response},
   server::{self, Handler},
 };
@@ -96,7 +97,17 @@ async fn main() -> anyhow::Result<()> {
     }
   });
 
-  let _disc = ChitchatDiscovery::new(cc.clone());
+  let discovery = ChitchatDiscovery::new(cc.clone());
+
+  let mut leader_tracker = bully::track_leader(conf.clone(), Arc::new(discovery)).await?;
+  tokio::spawn(async move {
+    loop {
+      if leader_tracker.changed().await.is_err() {
+        break;
+      }
+      info!("leader changed: {:?}", leader_tracker.borrow());
+    }
+  });
 
   server::run(conf, MonotonicHandler::default()).await?;
   handle.shutdown().await?;

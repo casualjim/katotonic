@@ -9,7 +9,7 @@ use std::{
   net::SocketAddr,
   path::Path,
   sync::Arc,
-  time::{self, Duration, SystemTime},
+  time::{self, Duration},
 };
 
 use chitchat::{ChitchatConfig, ChitchatId};

@@ -1,6 +1,7 @@
+pub mod bully;
 pub mod client;
-pub mod cluster;
 mod config;
+pub mod disco;
 pub mod protocol;
 pub mod server;
 pub mod transport;
