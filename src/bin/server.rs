@@ -105,7 +105,8 @@ async fn main() -> anyhow::Result<()> {
       if leader_tracker.changed().await.is_err() {
         break;
       }
-      info!("leader changed: {:?}", leader_tracker.borrow());
+      let leader_id = leader_tracker.borrow().clone();
+      info!("leader changed: {:?}", leader_id);
     }
   });
 

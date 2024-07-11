@@ -64,7 +64,35 @@ pub struct ChitchatDiscovery {
 
 impl Debug for ChitchatDiscovery {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("ChitchatDiscovery").finish()
+    let rt = tokio::runtime::Builder::new_current_thread()
+      .enable_all()
+      .build()
+      .unwrap();
+    let mut b = f.debug_struct("ChitchatDiscovery");
+
+    let cc = self.chitchat.clone();
+    let members = rt.block_on(async move {
+      let guard = cc.lock().await;
+      let nodes = guard.live_nodes();
+      let mut members = vec![];
+      for cid in nodes {
+        if let Some(state) = guard.node_state(cid) {
+          let server_name = state
+            .get("server_name")
+            .map(|v| v.to_string())
+            .and_then(|sn| ServerName::try_from(sn).ok());
+          members.push(Member {
+            name: cid.node_id.clone(),
+            id: cid.generation_id,
+            addr: cid.gossip_advertise_addr,
+            server_name,
+          });
+        }
+      }
+      members
+    });
+    b.field("members", &members);
+    b.finish()
   }
 }
 

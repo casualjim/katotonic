@@ -34,12 +34,15 @@ stateright = "0.30"
 mry = "0.8"
 axum = { version = "0.7" }
 bytes = { version = "1.6.0", features = ["serde"] }
-tokio-stream = { version = "0.1.15" }
+tokio-stream = { version = "0.1.15", registry = "artifactory-remote", features = ["net", "sync"] }
 reqwest = { version = "0.12.5" }
 backon = { version = "0.4.4", registry = "artifactory-remote" }
+async-stream = { version = "0.3.5", registry = "artifactory-remote" }
+tower-service = { version = "0.3.2", registry = "artifactory-remote" }
 
 [dev-dependencies]
 color-backtrace = "0.6"
+console-subscriber = { version = "0.3.0", registry = "artifactory-remote" }
 ctor = "0.2"
 
 [[bin]]

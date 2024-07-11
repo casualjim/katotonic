@@ -55,7 +55,7 @@ mod tests {
   #[ctor]
   fn init_color_backtrace() {
     let subscriber = tracing_subscriber::fmt::fmt()
-      .with_max_level(tracing::Level::ERROR)
+      .with_max_level(tracing::Level::DEBUG)
       .with_test_writer()
       .finish();
     tracing::subscriber::set_global_default(subscriber).expect("Failed to set tracing subscriber");

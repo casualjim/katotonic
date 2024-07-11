@@ -1,16 +1,48 @@
-use std::{borrow::Cow, io, sync::Arc};
+use std::{borrow::Cow, io, pin::Pin, sync::Arc};
 
 use async_trait::async_trait;
-use futures::{SinkExt as _, StreamExt as _};
+use futures::{Future, SinkExt as _, StreamExt as _};
 use serde::{Deserialize, Serialize};
-use tokio::sync::{
-  mpsc::{Receiver, Sender},
-  RwLock,
+use tokio::{
+  net::TcpStream,
+  sync::{
+    mpsc::{Receiver, Sender},
+    RwLock,
+  },
 };
 use tokio_serde_cbor::Codec;
 use tokio_util::codec::Decoder;
 
 use crate::{Error, Result};
+
+pub trait Handler<I, O>: Send + Sync
+where
+  I: Send + Sync + Serialize + for<'de> Deserialize<'de>,
+  O: Send + Sync + Serialize + for<'de> Deserialize<'de>,
+{
+  fn handle<'a>(&'a self, request: I) -> Pin<Box<dyn Future<Output = Result<O>> + Send + 'a>>
+  where
+    I: 'a,
+    O: 'a,
+    Self: 'a;
+}
+
+impl<I, O, F, Fut> Handler<I, O> for F
+where
+  I: Send + Sync + Serialize + for<'de> Deserialize<'de>,
+  O: Send + Sync + Serialize + for<'de> Deserialize<'de>,
+  F: Fn(I) -> Fut + Send + Sync,
+  Fut: Future<Output = Result<O>> + Send + 'static,
+{
+  fn handle<'a>(&'a self, request: I) -> Pin<Box<dyn Future<Output = Result<O>> + Send + 'a>>
+  where
+    I: 'a,
+    O: 'a,
+    Self: 'a,
+  {
+    Box::pin((self)(request))
+  }
+}
 
 #[async_trait]
 pub trait Transport: Send + Sync {
@@ -18,6 +50,40 @@ pub trait Transport: Send + Sync {
   type Response: Send + Sync + Serialize + for<'de> Deserialize<'de>;
 
   async fn send(&self, msg: Self::Request) -> Result<Self::Response>;
+}
+
+#[cfg(test)]
+pub fn channel_server_client<I, O, H>(handle: H) -> ChannelTransport<I, O>
+where
+  I: Send + Sync + Serialize + for<'de> Deserialize<'de> + 'static,
+  O: Send + Sync + Serialize + for<'de> Deserialize<'de> + 'static,
+  H: Handler<I, O> + 'static,
+{
+  use tokio::sync::Mutex;
+  use tracing::error;
+
+  let (req_tx, req_rx) = tokio::sync::mpsc::channel(1);
+  let (resp_tx, resp_rx) = tokio::sync::mpsc::channel(1);
+  let transport = ChannelTransport::new(req_tx, resp_rx);
+  let rx = Arc::new(Mutex::new(req_rx));
+  tokio::spawn({
+    let rx = Arc::clone(&rx);
+    async move {
+      while let Some(req) = rx.lock().await.recv().await {
+        match handle.handle(req).await {
+          Ok(resp) => {
+            if let Err(_) = resp_tx.send(resp).await {
+              break;
+            }
+          }
+          Err(e) => {
+            error!("failed to handle request: {:?}", e);
+          }
+        }
+      }
+    }
+  });
+  transport
 }
 
 pub struct ChannelTransport<I, O> {
@@ -98,7 +164,7 @@ where
   type Response = O;
 
   async fn send(&self, req: Self::Request) -> Result<Self::Response> {
-    let stream = tokio::net::TcpStream::connect(self.addr.as_ref()).await?;
+    let stream = TcpStream::connect(self.addr.as_ref()).await?;
     let codec = self.codec.clone();
     let (mut sender, mut receiver) = codec.framed(stream).split();
     sender.send(req).await?;
@@ -115,7 +181,7 @@ where
 
 #[cfg(test)]
 mod tests {
-  use tokio::sync::{mpsc, oneshot};
+  use tokio::sync::oneshot;
   use tokio_serde_cbor::Codec;
 
   use super::*;
@@ -132,29 +198,27 @@ mod tests {
 
   #[tokio::test]
   async fn test_channel_transport() {
-    let (req_tx, req_rx) = mpsc::channel(1);
-    let (resp_tx, mut resp_rx) = mpsc::channel(1);
-    let transport = ChannelTransport::new(resp_tx, req_rx);
+    let handler = {
+      move |_| async move {
+        Ok(TestResponse {
+          value: "1".to_string(),
+        })
+      }
+    };
+    let transport = channel_server_client(handler);
+
     let msg = TestRequest {
       value: "test".to_string(),
     };
 
     let (response_value_tx, response_value_rx) = oneshot::channel();
-    let msg_to_send = msg.clone();
     tokio::spawn(async move {
-      let response = transport.send(msg_to_send).await;
+      let response = transport.send(msg).await.unwrap();
       response_value_tx.send(response).unwrap();
     });
 
-    assert_eq!(msg, resp_rx.recv().await.unwrap());
-    req_tx
-      .send(TestResponse {
-        value: "1".to_string(),
-      })
-      .await
-      .unwrap();
     assert_eq!(
-      response_value_rx.await.unwrap().unwrap(),
+      response_value_rx.await.unwrap(),
       TestResponse {
         value: "1".to_string(),
       }
