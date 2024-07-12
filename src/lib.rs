@@ -5,15 +5,12 @@ pub mod disco;
 pub mod protocol;
 pub mod server;
 pub mod transport;
-// mod ulidd;
 use std::io;
 
 pub use config::*;
 use rustls::pki_types::InvalidDnsNameError;
 use thiserror::Error;
 use ulid::Ulid;
-
-// pub use ulidd::*;
 
 #[async_trait::async_trait]
 pub trait IdGenerator {
@@ -51,14 +48,22 @@ pub enum Error {
 #[cfg(test)]
 mod tests {
   use ctor::ctor;
+  use tracing_subscriber::prelude::*;
 
   #[ctor]
   fn init_color_backtrace() {
-    let subscriber = tracing_subscriber::fmt::fmt()
-      .with_max_level(tracing::Level::DEBUG)
+    let console_layer = console_subscriber::spawn();
+
+    let env_filter = tracing_subscriber::EnvFilter::from_default_env();
+    let subscriber = tracing_subscriber::fmt::layer()
+      .pretty()
       .with_test_writer()
-      .finish();
-    tracing::subscriber::set_global_default(subscriber).expect("Failed to set tracing subscriber");
+      .with_filter(env_filter);
+
+    tracing_subscriber::registry()
+      .with(subscriber)
+      .with(console_layer)
+      .init();
     color_backtrace::install();
   }
 }

@@ -84,7 +84,6 @@ async fn run<P: ToSocketAddrs>(
       }
     };
 
-    // debug!("received response: {:?}", response);
     match response {
       Response::Id(_, data) => {
         if let Some((_, sender)) = in_flight.remove(&response.get_request_id()) {
@@ -101,21 +100,6 @@ async fn run<P: ToSocketAddrs>(
       }
     }
   }
-  // while let Some(Ok(response)) = server_receiver.next().await {
-  //   if let Some((_, sender)) = in_flight.remove(&response.get_request_id()) {
-  //     match response {
-  //       Response::Id(_, data) => {
-  //         if let Err(e) = sender.send(data) {
-  //           error!("failed to send response: {}", Ulid::from_bytes(e));
-  //         }
-  //       }
-  //       Response::HeartbeatAck => (),
-  //       Response::Error(_, msg) => {
-  //         tracing::error!("server error: {}", msg);
-  //       }
-  //     }
-  //   }
-  // }
 }
 
 pub struct Client {

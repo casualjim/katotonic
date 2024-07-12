@@ -3,7 +3,6 @@ use std::{sync::Arc, time::Duration};
 use async_trait::async_trait;
 use chitchat::{spawn_chitchat, transport::UdpTransport};
 use clap::Parser;
-use futures::StreamExt;
 use tokio::time::sleep;
 use tracing::{info, instrument};
 use ulidd::{
@@ -100,15 +99,6 @@ async fn main() -> anyhow::Result<()> {
       }
       let leader_id = leader_tracker.borrow().clone();
       info!("leader changed: {:?}", leader_id);
-    }
-  });
-
-  let mut watcher = cc.lock().await.live_nodes_watcher();
-  tokio::spawn(async move {
-    while let Some(members) = watcher.next().await {
-      for member in members {
-        info!("live node: {:#?}", member);
-      }
     }
   });
 

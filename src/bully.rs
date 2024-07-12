@@ -1,5 +1,6 @@
 use std::{
-  borrow::Cow, cmp::Reverse, collections::HashSet, io, net::SocketAddr, sync::Arc, time::Duration,
+  borrow::Cow, cmp::Reverse, collections::HashSet, io, net::SocketAddr, sync::Arc, thread::sleep,
+  time::Duration,
 };
 
 use dashmap::DashMap;
@@ -13,7 +14,6 @@ use tokio::{
   io::{AsyncRead, AsyncWrite},
   net::TcpListener,
   sync::watch,
-  time::timeout,
 };
 use tokio_rustls::TlsAcceptor;
 use tokio_serde_cbor::Codec;
@@ -75,14 +75,36 @@ impl Peer {
     Self { id, transport }
   }
 
-  async fn send(&self, req: Request) -> Result<Response> {
-    match timeout(Duration::from_secs(1), self.transport.send(req.clone())).await {
+  async fn send_best_effort(&self, req: Request) -> Result<Response> {
+    self.send_timeout(req, Duration::from_secs(1)).await
+  }
+
+  async fn send_timeout(&self, req: Request, timeout: Duration) -> Result<Response> {
+    let timeout_result = tokio::time::timeout(timeout, self.transport.send(req)).await;
+    debug!(id = self.id, result = ?timeout_result, "sent request");
+    match timeout_result {
       Ok(Ok(response)) => Ok(response),
       Ok(Err(e)) => Err(e),
       Err(_) => Err(Error::Io(io::Error::new(
         io::ErrorKind::TimedOut,
         "request timed out",
       ))),
+    }
+  }
+
+  async fn send(&self, req: Request) -> Result<Response> {
+    let mut retries = 0;
+    loop {
+      match self.send_best_effort(req.clone()).await {
+        Ok(response) => return Ok(response),
+        Err(e) => {
+          retries += 1;
+          if retries >= 3 {
+            return Err(e);
+          }
+          sleep(Duration::from_millis(500))
+        }
+      }
     }
   }
 }
@@ -126,7 +148,11 @@ async fn manage_state(
             PeerState::Leader(name, id) => {
               if member.id > id {
                 leader.send_replace(PeerState::Down);
-              } else if &this_node.name == &name && this_node.id == id {
+              } else if &this_node.name == &name
+                && this_node.id == id
+                && member.id != id
+                && member.name != name
+              {
                 if let Err(e) = peer
                   .send(Request::Coordinator {
                     node_name: this_node.name.to_string(),
@@ -134,7 +160,7 @@ async fn manage_state(
                   })
                   .await
                 {
-                  error!(name=%member.name, id=%member.id, "failed to send coordinator message: {:?}", e);
+                  error!(name=%member.name, id=%member.id, addr = %member.addr, "failed to send coordinator message: {:?}", e);
                 }
               }
             }
@@ -216,6 +242,8 @@ async fn run_election<'a>(
 async fn broadcast_coordinator<'a>(this_node: &LocalPeer<'a>, state: Arc<DashMap<String, Peer>>) {
   let broadcast_size = if state.is_empty() { 0 } else { state.len() - 1 };
   debug!(
+    id = this_node.id,
+    name = %this_node.name,
     broadcast_size,
     "broadcasting coordinator to all peers ({})", broadcast_size
   );
@@ -311,7 +339,6 @@ async fn handle_requests<'a, S: AsyncRead + AsyncWrite + Unpin>(
         }
       }
       Request::Coordinator { node_name, node_id } => {
-        let _ = sender.send(Response::Done(this_node.name.to_string()));
         debug!(node_id, node_name, "got coordinator message");
         leader_holder.send_modify(|v| {
           let maybe_follower = PeerState::Follower(node_name, node_id);
@@ -319,6 +346,12 @@ async fn handle_requests<'a, S: AsyncRead + AsyncWrite + Unpin>(
             *v = maybe_follower
           }
         });
+        if let Err(e) = sender
+          .send(Response::Done(this_node.name.to_string()))
+          .await
+        {
+          error!("failed to send response: {}", e);
+        }
       }
     }
   }
@@ -768,7 +801,6 @@ mod tests {
 
   #[tokio::test(flavor = "multi_thread")]
   async fn monitors_leader() {
-    console_subscriber::init();
     let this_node = LocalPeer {
       id: 5,
       name: "test".into(),
