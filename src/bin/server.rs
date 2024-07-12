@@ -62,7 +62,10 @@ impl Handler for MonotonicHandler {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-  tracing_subscriber::fmt::init();
+  tracing_subscriber::fmt::fmt()
+    .pretty()
+    .with_env_filter("debug,chitchat::failure_detector=info")
+    .init();
 
   let conf = ulidd::ServerConfig::parse();
 
@@ -88,18 +91,8 @@ async fn main() -> anyhow::Result<()> {
   let handle = spawn_chitchat(chitchat_config, tags, &UdpTransport).await?;
   let cc = handle.chitchat();
 
-  let mut watcher = cc.lock().await.live_nodes_watcher();
-  tokio::spawn(async move {
-    while let Some(members) = watcher.next().await {
-      for member in members {
-        info!("live node: {:#?}", member);
-      }
-    }
-  });
-
   let discovery = ChitchatDiscovery::new(cc.clone());
-
-  let mut leader_tracker = bully::track_leader(conf.clone(), Arc::new(discovery)).await?;
+  let mut leader_tracker = bully::track_leader(conf.clone(), Arc::new(discovery), None).await?;
   tokio::spawn(async move {
     loop {
       if leader_tracker.changed().await.is_err() {
@@ -107,6 +100,15 @@ async fn main() -> anyhow::Result<()> {
       }
       let leader_id = leader_tracker.borrow().clone();
       info!("leader changed: {:?}", leader_id);
+    }
+  });
+
+  let mut watcher = cc.lock().await.live_nodes_watcher();
+  tokio::spawn(async move {
+    while let Some(members) = watcher.next().await {
+      for member in members {
+        info!("live node: {:#?}", member);
+      }
     }
   });
 

@@ -123,6 +123,8 @@ impl From<&ServerConfig> for ChitchatConfig {
       seed_nodes: value.seed.iter().map(|s| s.addr.to_string()).collect(),
       failure_detector_config: chitchat::FailureDetectorConfig {
         dead_node_grace_period: Duration::from_secs(3600), // 1 hour
+        initial_interval: Duration::from_millis(500),
+        max_interval: Duration::from_millis(1500),
         ..Default::default()
       },
       marked_for_deletion_grace_period: 60_000,

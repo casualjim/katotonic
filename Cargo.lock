@@ -8,16 +8,7 @@ version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e4503c46a5c0c7844e948c9a4d6acd9f50cccb4de1c48eb9e291ea17470c678"
 dependencies = [
- "gimli 0.29.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "addr2line"
-version = "0.22.0"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "6e4503c46a5c0c7844e948c9a4d6acd9f50cccb4de1c48eb9e291ea17470c678"
-dependencies = [
- "gimli 0.29.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "gimli",
 ]
 
 [[package]]
@@ -27,40 +18,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f26201604c87b1e01bd3d98f8d5d9a8fcbb815e8cedb41ffccbeb4bf593a35fe"
 
 [[package]]
-name = "adler"
-version = "1.0.2"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "f26201604c87b1e01bd3d98f8d5d9a8fcbb815e8cedb41ffccbeb4bf593a35fe"
-
-[[package]]
-name = "ahash"
-version = "0.8.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e89da841a80418a9b391ebaea17f5c112ffaaa96f621d2c285b5174da76b9011"
-dependencies = [
- "cfg-if 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "getrandom 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
- "once_cell 1.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "version_check",
- "zerocopy",
-]
-
-[[package]]
 name = "aho-corasick"
 version = "1.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e60d3430d3a69478ad0993f19238d2df97c507009a52b3c10addcd7f6bcb916"
 dependencies = [
- "memchr 2.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "aho-corasick"
-version = "1.1.3"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "8e60d3430d3a69478ad0993f19238d2df97c507009a52b3c10addcd7f6bcb916"
-dependencies = [
- "memchr 2.7.4 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "memchr",
 ]
 
 [[package]]
@@ -99,7 +62,7 @@ version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ad186efb764318d35165f1758e7dcef3b10628e26d41a44bc5550652e6804391"
 dependencies = [
- "windows-sys 0.52.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -109,7 +72,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61a38449feb7068f52bb06c12759005cf459ee52bb4adc1d5a7c4322d716fb19"
 dependencies = [
  "anstyle",
- "windows-sys 0.52.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -117,18 +80,6 @@ name = "anyhow"
 version = "1.0.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b3d1d046238990b9cf5bcde22a3fb3584ee5cf65fb2765f454ed428c7a0063da"
-
-[[package]]
-name = "anyhow"
-version = "1.0.86"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "b3d1d046238990b9cf5bcde22a3fb3584ee5cf65fb2765f454ed428c7a0063da"
-
-[[package]]
-name = "ascii"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d92bec98840b8f03a5ff5413de5293bfcd8bf96467cf5452609f939ec6f5de16"
 
 [[package]]
 name = "async-recursion"
@@ -136,31 +87,31 @@ version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3b43422f69d8ff38f95f1b2bb76517c91589a924d1559a0e935d7c8ce0274c11"
 dependencies = [
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 1.0.36 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 2.0.70 (registry+https://github.com/rust-lang/crates.io-index)",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
 name = "async-stream"
 version = "0.3.5"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd56dd203fef61ac097dd65721a419ddccb106b2d2b70ba60a6b529f03961a51"
 dependencies = [
  "async-stream-impl",
- "futures-core 0.3.30 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "pin-project-lite 0.2.14 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "futures-core",
+ "pin-project-lite",
 ]
 
 [[package]]
 name = "async-stream-impl"
 version = "0.3.5"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "16e62a023e7c117e27523144c5d2459f4397fcc3cab0085af8e2224f643a0193"
 dependencies = [
- "proc-macro2 1.0.86 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "quote 1.0.36 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "syn 2.0.70 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -169,38 +120,15 @@ version = "0.1.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e0c28dcc82d7c8ead5cb13beb15405b57b8546e93215673ff8ca0349a028107"
 dependencies = [
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 1.0.36 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 2.0.70 (registry+https://github.com/rust-lang/crates.io-index)",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
-
-[[package]]
-name = "async-trait"
-version = "0.1.81"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "6e0c28dcc82d7c8ead5cb13beb15405b57b8546e93215673ff8ca0349a028107"
-dependencies = [
- "proc-macro2 1.0.86 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "quote 1.0.36 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "syn 2.0.70 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
-]
-
-[[package]]
-name = "atomic-waker"
-version = "1.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
 name = "autocfg"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c4b4d0bd25bd0b74681c0ad21497610ce1b7c91b1022cd21c80c6fbdd9476b0"
-
-[[package]]
-name = "autocfg"
-version = "1.3.0"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "0c4b4d0bd25bd0b74681c0ad21497610ce1b7c91b1022cd21c80c6fbdd9476b0"
 
 [[package]]
@@ -222,124 +150,57 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2927c7af777b460b7ccd95f8b67acd7b4c04ec8896bf0c8e80ba30523cffc057"
 dependencies = [
  "bindgen",
- "cc 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cc",
  "cmake",
  "dunce",
  "fs_extra",
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc",
  "paste",
 ]
 
 [[package]]
 name = "axum"
 version = "0.6.20"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3b829e4e32b91e643de6eafe82b1d90675f5874230191a4ffbc1b336dec4d6bf"
 dependencies = [
- "async-trait 0.1.81 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "axum-core 0.3.4",
- "bitflags 1.3.2 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "bytes 1.6.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "futures-util 0.3.30 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "http 0.2.12",
- "http-body 0.4.6",
- "hyper 0.14.30",
- "itoa 1.0.11 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "matchit 0.7.3 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "memchr 2.7.4 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "mime 0.3.17 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "percent-encoding 2.3.1 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "pin-project-lite 0.2.14 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "rustversion 1.0.17 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "serde 1.0.204 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "sync_wrapper 0.1.2 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tower 0.4.13 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tower-layer 0.3.2 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tower-service 0.3.2 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
-]
-
-[[package]]
-name = "axum"
-version = "0.7.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a6c9af12842a67734c9a2e355436e5d03b22383ed60cf13cd0c18fbfe3dcbcf"
-dependencies = [
- "async-trait 0.1.81 (registry+https://github.com/rust-lang/crates.io-index)",
- "axum-core 0.4.3",
- "bytes 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-util 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "http 1.1.0",
- "http-body 1.0.0",
- "http-body-util",
- "hyper 1.4.1",
- "hyper-util",
- "itoa 1.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "matchit 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "memchr 2.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "mime 0.3.17 (registry+https://github.com/rust-lang/crates.io-index)",
- "percent-encoding 2.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "pin-project-lite 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustversion 1.0.17 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_json 1.0.120 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_path_to_error",
- "serde_urlencoded",
- "sync_wrapper 1.0.1",
- "tokio 1.38.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tower 0.4.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "tower-layer 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "tower-service 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "tracing 0.1.40 (registry+https://github.com/rust-lang/crates.io-index)",
+ "async-trait",
+ "axum-core",
+ "bitflags 1.3.2",
+ "bytes",
+ "futures-util",
+ "http",
+ "http-body",
+ "hyper",
+ "itoa",
+ "matchit",
+ "memchr",
+ "mime",
+ "percent-encoding",
+ "pin-project-lite",
+ "rustversion",
+ "serde",
+ "sync_wrapper",
+ "tower",
+ "tower-layer",
+ "tower-service",
 ]
 
 [[package]]
 name = "axum-core"
 version = "0.3.4"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "759fa577a247914fd3f7f76d62972792636412fbfd634cd452f6a385a74d2d2c"
 dependencies = [
- "async-trait 0.1.81 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "bytes 1.6.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "futures-util 0.3.30 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "http 0.2.12",
- "http-body 0.4.6",
- "mime 0.3.17 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "rustversion 1.0.17 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tower-layer 0.3.2 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tower-service 0.3.2 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
-]
-
-[[package]]
-name = "axum-core"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a15c63fd72d41492dc4f497196f5da1fb04fb7529e631d73630d1b491e47a2e3"
-dependencies = [
- "async-trait 0.1.81 (registry+https://github.com/rust-lang/crates.io-index)",
- "bytes 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-util 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "http 1.1.0",
- "http-body 1.0.0",
- "http-body-util",
- "mime 0.3.17 (registry+https://github.com/rust-lang/crates.io-index)",
- "pin-project-lite 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustversion 1.0.17 (registry+https://github.com/rust-lang/crates.io-index)",
- "sync_wrapper 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "tower-layer 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "tower-service 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "tracing 0.1.40 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "backon"
-version = "0.4.4"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "d67782c3f868daa71d3533538e98a8e13713231969def7536e8039606fc46bf0"
-dependencies = [
- "fastrand 2.1.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "futures-core 0.3.30 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "pin-project 1.1.5 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tokio 1.38.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "async-trait",
+ "bytes",
+ "futures-util",
+ "http",
+ "http-body",
+ "mime",
+ "rustversion",
+ "tower-layer",
+ "tower-service",
 ]
 
 [[package]]
@@ -348,40 +209,19 @@ version = "0.3.73"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5cc23269a4f8976d0a4d2e7109211a419fe30e8d88d677cd60b6bc79c5732e0a"
 dependencies = [
- "addr2line 0.22.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "cc 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "cfg-if 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
- "miniz_oxide 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "object 0.36.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustc-demangle 0.1.24 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "backtrace"
-version = "0.3.73"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "5cc23269a4f8976d0a4d2e7109211a419fe30e8d88d677cd60b6bc79c5732e0a"
-dependencies = [
- "addr2line 0.22.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "cc 1.1.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "cfg-if 1.0.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "libc 0.2.155 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "miniz_oxide 0.7.4 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "object 0.36.1 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "rustc-demangle 0.1.24 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "addr2line",
+ "cc",
+ "cfg-if",
+ "libc",
+ "miniz_oxide",
+ "object",
+ "rustc-demangle",
 ]
 
 [[package]]
 name = "base64"
 version = "0.21.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
-
-[[package]]
-name = "base64"
-version = "0.21.7"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
 
 [[package]]
@@ -399,17 +239,17 @@ dependencies = [
  "bitflags 2.6.0",
  "cexpr",
  "clang-sys",
- "itertools 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "lazy_static 1.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "itertools 0.12.1",
+ "lazy_static",
  "lazycell",
- "log",
+ "log 0.4.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "prettyplease",
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 1.0.36 (registry+https://github.com/rust-lang/crates.io-index)",
- "regex 1.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "proc-macro2",
+ "quote",
+ "regex",
  "rustc-hash",
  "shlex",
- "syn 2.0.70 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn",
  "which",
 ]
 
@@ -421,17 +261,11 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "bitflags"
-version = "1.3.2"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
-
-[[package]]
-name = "bitflags"
 version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b048fb63fd8b5923fc5aa7b340d8e156aec7ec02f0c78fa8a6ddc2613f6f71de"
 dependencies = [
- "serde 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde",
 ]
 
 [[package]]
@@ -452,7 +286,7 @@ checksum = "79296716171880943b8470b5f8d03aa55eb2e645a4874bdbb28adb49162e012c"
 [[package]]
 name = "byteorder"
 version = "1.5.0"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
@@ -460,32 +294,17 @@ name = "bytes"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "514de17de45fdb8dc022b1a7975556c53c86f9f0aa5f534b98977b171857c2c9"
-dependencies = [
- "serde 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "bytes"
-version = "1.6.0"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "514de17de45fdb8dc022b1a7975556c53c86f9f0aa5f534b98977b171857c2c9"
 
 [[package]]
 name = "cc"
-version = "1.1.0"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eaff6f8ce506b9773fa786672d63fc7a191ffea1be33f72bbd4aeacefca9ffc8"
+checksum = "907d8581360765417f8f2e0e7d602733bbed60156b4465b7617243689ef9b83d"
 dependencies = [
  "jobserver",
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc",
  "once_cell 1.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
-
-[[package]]
-name = "cc"
-version = "1.1.0"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "eaff6f8ce506b9773fa786672d63fc7a191ffea1be33f72bbd4aeacefca9ffc8"
 
 [[package]]
 name = "cexpr"
@@ -493,19 +312,13 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6fac387a98bb7c37292057cffc56d62ecb629900026402633ae9160df93a8766"
 dependencies = [
- "nom 7.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nom",
 ]
 
 [[package]]
 name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
-
-[[package]]
-name = "cfg-if"
-version = "1.0.0"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
@@ -514,28 +327,16 @@ version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cb13c7104e3c77027520e984339ab3e805fd19c05c8555cc6338b2a4f455cbfb"
 dependencies = [
- "anyhow 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "async-trait 0.1.81 (registry+https://github.com/rust-lang/crates.io-index)",
- "bytes 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "anyhow",
+ "async-trait",
+ "bytes",
  "itertools 0.10.5",
- "rand 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio 1.38.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio-stream 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
- "tracing 0.1.40 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand",
+ "serde",
+ "tokio",
+ "tokio-stream",
+ "tracing",
 ]
-
-[[package]]
-name = "choice"
-version = "0.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3b71fc821deaf602a933ada5c845d088156d0cdf2ebf43ede390afe93466553"
-
-[[package]]
-name = "chunked_transfer"
-version = "1.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e4de3bc4ea267985becf712dc6d9eed8b04c953b3fcfb339ebc87acd9804901"
 
 [[package]]
 name = "clang-sys"
@@ -544,7 +345,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b023947811758c97c59bf9d1c188fd619ad4718dcaa767947df1cadb14f39f4"
 dependencies = [
  "glob",
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc",
  "libloading",
 ]
 
@@ -577,9 +378,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2bac35c6dafb060fd4d275d9a4ffae97917c13a6327903a8be2153cd964f7085"
 dependencies = [
  "heck 0.5.0",
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 1.0.36 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 2.0.70 (registry+https://github.com/rust-lang/crates.io-index)",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -594,7 +395,7 @@ version = "0.1.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a31c789563b815f77f4250caee12365734369f942439b7defd71e18a48197130"
 dependencies = [
- "cc 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cc",
 ]
 
 [[package]]
@@ -603,7 +404,7 @@ version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "150fd80a270c0671379f388c8204deb6a746bb4eac8a6c03fe2460b2c0127ea0"
 dependencies = [
- "backtrace 0.3.73 (registry+https://github.com/rust-lang/crates.io-index)",
+ "backtrace",
  "termcolor",
 ]
 
@@ -619,16 +420,16 @@ version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7328b20597b53c2454f0b1919720c25c7339051c02b72b7e05409e00b14132be"
 dependencies = [
- "async-trait 0.1.81 (registry+https://github.com/rust-lang/crates.io-index)",
+ "async-trait",
  "convert_case",
  "json5",
- "lazy_static 1.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "nom 7.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static",
+ "nom",
  "pathdiff",
  "ron",
  "rust-ini",
- "serde 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_json 1.0.120 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde",
+ "serde_json",
  "toml",
  "yaml-rust",
 ]
@@ -636,39 +437,39 @@ dependencies = [
 [[package]]
 name = "console-api"
 version = "0.7.0"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a257c22cd7e487dd4a13d413beabc512c5052f0bc048db0da6a84c3d8a6142fd"
 dependencies = [
- "futures-core 0.3.30 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "futures-core",
  "prost",
  "prost-types",
  "tonic",
- "tracing-core 0.1.32 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "tracing-core 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "console-subscriber"
 version = "0.3.0"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "31c4cc54bae66f7d9188996404abdf7fdfa23034ef8e43478c8810828abad758"
 dependencies = [
  "console-api",
  "crossbeam-channel",
- "crossbeam-utils 0.8.20 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "futures-task 0.3.30 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "crossbeam-utils",
+ "futures-task",
  "hdrhistogram",
- "humantime 2.1.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "humantime",
  "prost",
  "prost-types",
- "serde 1.0.204 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "serde_json 1.0.120 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "thread_local 1.1.8 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tokio 1.38.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tokio-stream 0.1.15 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "serde",
+ "serde_json",
+ "thread_local",
+ "tokio",
+ "tokio-stream",
  "tonic",
- "tracing 0.1.40 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tracing-core 0.1.32 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tracing-subscriber 0.3.18 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "tracing",
+ "tracing-core 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -686,7 +487,7 @@ version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9d839f2a20b0aee515dc581a6172f2321f96cab76c1a38a4c584a194955390e"
 dependencies = [
- "getrandom 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "getrandom",
  "once_cell 1.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tiny-keccak",
 ]
@@ -701,58 +502,36 @@ dependencies = [
 ]
 
 [[package]]
-name = "core-foundation"
-version = "0.9.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91e195e091a93c46f7102ec7818a2aa394e1e1771c3ab4825963fa03e45afb8f"
-dependencies = [
- "core-foundation-sys",
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "core-foundation-sys"
-version = "0.8.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06ea2b9bc92be3c2baa9334a323ebca2d6f074ff852cd1d7b11064035cd3868f"
-
-[[package]]
 name = "cpufeatures"
 version = "0.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "53fe5e26ff1b7aef8bca9c6080520cfb8d9333c7568e1829cef191a9723e5504"
 dependencies = [
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc",
 ]
 
 [[package]]
 name = "crc32fast"
 version = "1.4.2"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a97769d94ddab943e4510d138150169a2758b5ef3eb191a9ee688de3e23ef7b3"
 dependencies = [
- "cfg-if 1.0.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "cfg-if",
 ]
 
 [[package]]
 name = "crossbeam-channel"
 version = "0.5.13"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33480d6946193aa8033910124896ca395333cae7e2d1113d1fef6c3272217df2"
 dependencies = [
- "crossbeam-utils 0.8.20 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "crossbeam-utils",
 ]
 
 [[package]]
 name = "crossbeam-utils"
 version = "0.8.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22ec99545bb0ed0ea7bb9b8e1e9122ea386ff8a48c0922e43f36d45ab09e0e80"
-
-[[package]]
-name = "crossbeam-utils"
-version = "0.8.20"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "22ec99545bb0ed0ea7bb9b8e1e9122ea386ff8a48c0922e43f36d45ab09e0e80"
 
 [[package]]
@@ -777,8 +556,8 @@ version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "edb49164822f3ee45b17acd4a208cfc1251410cf0cad9a833234c9890774dd9f"
 dependencies = [
- "quote 1.0.36 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 2.0.70 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -797,12 +576,12 @@ version = "0.20.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95133861a8032aaea082871032f5815eb9e98cef03fa916ab4500513994df9e5"
 dependencies = [
- "fnv 1.0.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fnv",
  "ident_case",
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 1.0.36 (registry+https://github.com/rust-lang/crates.io-index)",
+ "proc-macro2",
+ "quote",
  "strsim",
- "syn 2.0.70 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn",
 ]
 
 [[package]]
@@ -812,21 +591,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d336a2a514f6ccccaa3e09b02d41d35330c07ddf03a62165fcec10bb561c7806"
 dependencies = [
  "darling_core",
- "quote 1.0.36 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 2.0.70 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "dashmap"
-version = "5.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "978747c1d849a7d2ee5e8adc0159961c48fb7e5db2f06af6723b80123bb53856"
-dependencies = [
- "cfg-if 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "hashbrown 0.14.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "lock_api",
- "once_cell 1.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "parking_lot_core",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -835,9 +601,9 @@ version = "6.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "804c8821570c3f8b70230c2ba75ffa5c0f9a4189b9a432b6656c536712acae28"
 dependencies = [
- "cfg-if 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "crossbeam-utils 0.8.20 (registry+https://github.com/rust-lang/crates.io-index)",
- "hashbrown 0.14.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cfg-if",
+ "crossbeam-utils",
+ "hashbrown 0.14.5",
  "lock_api",
  "once_cell 1.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "parking_lot_core",
@@ -881,42 +647,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "60b1af1c220855b6ceac025d3f6ecdd2b7c4894bfe9cd9bda4fbb4bc7c0d4cf0"
 
 [[package]]
-name = "either"
-version = "1.13.0"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "60b1af1c220855b6ceac025d3f6ecdd2b7c4894bfe9cd9bda4fbb4bc7c0d4cf0"
-
-[[package]]
-name = "encoding_rs"
-version = "0.8.34"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b45de904aa0b010bce2ab45264d0631681847fa7b6f2eaa7dab7619943bc4f59"
-dependencies = [
- "cfg-if 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "enum-as-inner"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5ffccbb6966c05b32ef8fbac435df276c4ae4d3dc55a8cd0eb9745e6c12f546a"
 dependencies = [
  "heck 0.4.1",
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 1.0.36 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 2.0.70 (registry+https://github.com/rust-lang/crates.io-index)",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
 name = "equivalent"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
-
-[[package]]
-name = "equivalent"
-version = "1.0.1"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
@@ -925,30 +670,18 @@ version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "534c5cf6194dfab3db3242765c03bbe257cf92f22b38f6bc0c58d59108a820ba"
 dependencies = [
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
- "windows-sys 0.52.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc",
+ "windows-sys 0.52.0",
 ]
-
-[[package]]
-name = "fastrand"
-version = "2.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9fc0510504f03c51ada170672ac806f1f105a88aa97a5281117e1ddc3368e51a"
-
-[[package]]
-name = "fastrand"
-version = "2.1.0"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "9fc0510504f03c51ada170672ac806f1f105a88aa97a5281117e1ddc3368e51a"
 
 [[package]]
 name = "flate2"
 version = "1.0.30"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5f54427cfd1c7829e2a139fcefea601bf088ebca651d2bf53ebc600eac295dae"
 dependencies = [
  "crc32fast",
- "miniz_oxide 0.7.4 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "miniz_oxide",
 ]
 
 [[package]]
@@ -956,27 +689,6 @@ name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
-
-[[package]]
-name = "fnv"
-version = "1.0.7"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
-
-[[package]]
-name = "foreign-types"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6f339eb8adc052cd2ca78910fda869aefa38d22d5cb648e6485e4d3fc06f3b1"
-dependencies = [
- "foreign-types-shared",
-]
-
-[[package]]
-name = "foreign-types-shared"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
 
 [[package]]
 name = "form_urlencoded"
@@ -984,7 +696,7 @@ version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e13624c2627564efccf4934284bdd98cbaa14e79b0b5a141218e507b3a823456"
 dependencies = [
- "percent-encoding 2.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "percent-encoding",
 ]
 
 [[package]]
@@ -999,13 +711,13 @@ version = "0.3.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "645c6916888f6cb6350d2550b80fb63e734897a8498abe35cfb732b6487804b0"
 dependencies = [
- "futures-channel 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-core 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futures-channel",
+ "futures-core",
  "futures-executor",
  "futures-io",
- "futures-sink 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-task 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-util 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futures-sink",
+ "futures-task",
+ "futures-util",
 ]
 
 [[package]]
@@ -1014,29 +726,14 @@ version = "0.3.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eac8f7d7865dcb88bd4373ab671c8cf4508703796caa2b1985a9ca867b3fcb78"
 dependencies = [
- "futures-core 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-sink 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "futures-channel"
-version = "0.3.30"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "eac8f7d7865dcb88bd4373ab671c8cf4508703796caa2b1985a9ca867b3fcb78"
-dependencies = [
- "futures-core 0.3.30 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "futures-core",
+ "futures-sink",
 ]
 
 [[package]]
 name = "futures-core"
 version = "0.3.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dfc6580bb841c5a68e9ef15c77ccc837b40a7504914d52e47b8b0e9bbda25a1d"
-
-[[package]]
-name = "futures-core"
-version = "0.3.30"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "dfc6580bb841c5a68e9ef15c77ccc837b40a7504914d52e47b8b0e9bbda25a1d"
 
 [[package]]
@@ -1045,9 +742,9 @@ version = "0.3.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a576fc72ae164fca6b9db127eaa9a9dda0d61316034f33a0a0d4eda41f02b01d"
 dependencies = [
- "futures-core 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-task 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-util 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futures-core",
+ "futures-task",
+ "futures-util",
 ]
 
 [[package]]
@@ -1062,9 +759,9 @@ version = "0.3.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "87750cf4b7a4c0625b1529e4c543c2182106e4dedc60a2a6455e00d212c489ac"
 dependencies = [
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 1.0.36 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 2.0.70 (registry+https://github.com/rust-lang/crates.io-index)",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -1074,21 +771,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9fb8e00e87438d937621c1c6269e53f536c14d3fbd6a042bb24879e57d474fb5"
 
 [[package]]
-name = "futures-sink"
-version = "0.3.30"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "9fb8e00e87438d937621c1c6269e53f536c14d3fbd6a042bb24879e57d474fb5"
-
-[[package]]
 name = "futures-task"
 version = "0.3.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38d84fa142264698cdce1a9f9172cf383a0c82de1bddcf3092901442c4097004"
-
-[[package]]
-name = "futures-task"
-version = "0.3.30"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "38d84fa142264698cdce1a9f9172cf383a0c82de1bddcf3092901442c4097004"
 
 [[package]]
@@ -1097,28 +782,16 @@ version = "0.3.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d6401deb83407ab3da39eba7e33987a73c3df0c82b4bb5813ee871c19c41d48"
 dependencies = [
- "futures-channel 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-core 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futures-channel",
+ "futures-core",
  "futures-io",
  "futures-macro",
- "futures-sink 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-task 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "memchr 2.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "pin-project-lite 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "pin-utils 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "slab 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "futures-util"
-version = "0.3.30"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "3d6401deb83407ab3da39eba7e33987a73c3df0c82b4bb5813ee871c19c41d48"
-dependencies = [
- "futures-core 0.3.30 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "futures-task 0.3.30 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "pin-project-lite 0.2.14 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "pin-utils 0.1.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "futures-sink",
+ "futures-task",
+ "memchr",
+ "pin-project-lite",
+ "pin-utils",
+ "slab",
 ]
 
 [[package]]
@@ -1137,34 +810,17 @@ version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4567c8db10ae91089c99af84c68c38da3ec2f087c3f82960bcdbf3656b6f4d7"
 dependencies = [
- "cfg-if 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cfg-if",
  "js-sys",
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
- "wasi 0.11.0+wasi-snapshot-preview1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc",
+ "wasi",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "getrandom"
-version = "0.2.15"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "c4567c8db10ae91089c99af84c68c38da3ec2f087c3f82960bcdbf3656b6f4d7"
-dependencies = [
- "cfg-if 1.0.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "libc 0.2.155 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "wasi 0.11.0+wasi-snapshot-preview1 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
 ]
 
 [[package]]
 name = "gimli"
 version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40ecd4077b5ae9fd2e9e169b102c6c330d0605168eb0e8bf79952b256dbefffd"
-
-[[package]]
-name = "gimli"
-version = "0.29.0"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "40ecd4077b5ae9fd2e9e169b102c6c330d0605168eb0e8bf79952b256dbefffd"
 
 [[package]]
@@ -1176,39 +832,20 @@ checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
 [[package]]
 name = "h2"
 version = "0.3.26"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81fe527a889e1532da5c525686d96d4c2e74cdd345badf8dfef9f6b39dd5f5e8"
 dependencies = [
- "bytes 1.6.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "fnv 1.0.7 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "futures-core 0.3.30 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "futures-sink 0.3.30 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "futures-util 0.3.30 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "http 0.2.12",
- "indexmap 2.2.6 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "slab 0.4.9 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tokio 1.38.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tokio-util 0.7.11 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tracing 0.1.40 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
-]
-
-[[package]]
-name = "h2"
-version = "0.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa82e28a107a8cc405f0839610bdc9b15f1e25ec7d696aa5cf173edbcb1486ab"
-dependencies = [
- "atomic-waker",
- "bytes 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "fnv 1.0.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-core 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-sink 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "http 1.1.0",
- "indexmap 2.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "slab 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio 1.38.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio-util 0.7.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "tracing 0.1.40 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bytes",
+ "fnv",
+ "futures-core",
+ "futures-sink",
+ "futures-util",
+ "http",
+ "indexmap 2.2.6",
+ "slab",
+ "tokio",
+ "tokio-util",
+ "tracing",
 ]
 
 [[package]]
@@ -1220,7 +857,7 @@ checksum = "1b43ede17f21864e81be2fa654110bf1e793774238d86ef8555c37e6519c0403"
 [[package]]
 name = "hashbrown"
 version = "0.12.3"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
 
 [[package]]
@@ -1236,21 +873,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
 
 [[package]]
-name = "hashbrown"
-version = "0.14.5"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
-
-[[package]]
 name = "hdrhistogram"
 version = "7.5.4"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "765c9198f173dd59ce26ff9f95ef0aafd0a0fe01fb9d72841bc5066a4c06511d"
 dependencies = [
- "base64 0.21.7 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "base64 0.21.7",
  "byteorder",
  "flate2",
- "nom 7.1.3 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "nom",
  "num-traits",
 ]
 
@@ -1278,7 +909,7 @@ version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3d1354bf6b7235cb4a0576c2619fd4ed18183f689b12b006a0ee7329eeff9a5"
 dependencies = [
- "windows-sys 0.52.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -1287,7 +918,7 @@ version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c731c3e10504cc8ed35cfe2f1db4c9274c3d35fa486e3b31df46f068ef3e867"
 dependencies = [
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc",
  "match_cfg",
  "winapi",
 ]
@@ -1295,57 +926,23 @@ dependencies = [
 [[package]]
 name = "http"
 version = "0.2.12"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "601cbb57e577e2f5ef5be8e7b83f0f63994f25aa94d673e54a92d5c516d101f1"
 dependencies = [
- "bytes 1.6.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "fnv 1.0.7 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "itoa 1.0.11 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
-]
-
-[[package]]
-name = "http"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "21b9ddb458710bc376481b842f5da65cdf31522de232c1ca8146abce2a358258"
-dependencies = [
- "bytes 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "fnv 1.0.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "itoa 1.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bytes",
+ "fnv",
+ "itoa",
 ]
 
 [[package]]
 name = "http-body"
 version = "0.4.6"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ceab25649e9960c0311ea418d17bee82c0dcec1bd053b5f9a66e265a693bed2"
 dependencies = [
- "bytes 1.6.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "http 0.2.12",
- "pin-project-lite 0.2.14 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
-]
-
-[[package]]
-name = "http-body"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1cac85db508abc24a2e48553ba12a996e87244a0395ce011e62b37158745d643"
-dependencies = [
- "bytes 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "http 1.1.0",
-]
-
-[[package]]
-name = "http-body-util"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "793429d76616a256bcb62c2a2ec2bed781c8307e797e2598c50010f2bee2544f"
-dependencies = [
- "bytes 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-util 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "http 1.1.0",
- "http-body 1.0.0",
- "pin-project-lite 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bytes",
+ "http",
+ "pin-project-lite",
 ]
 
 [[package]]
@@ -1355,150 +952,52 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fcc0b4a115bf80b728eb8ea024ad5bd707b615bfed49e0665b6e0f86fd082d9"
 
 [[package]]
-name = "httparse"
-version = "1.9.4"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "0fcc0b4a115bf80b728eb8ea024ad5bd707b615bfed49e0665b6e0f86fd082d9"
-
-[[package]]
 name = "httpdate"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 
 [[package]]
-name = "httpdate"
-version = "1.0.3"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
-
-[[package]]
 name = "humantime"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
-
-[[package]]
-name = "humantime"
-version = "2.1.0"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 
 [[package]]
 name = "hyper"
 version = "0.14.30"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a152ddd61dfaec7273fe8419ab357f33aee0d914c5f4efbf0d96fa749eea5ec9"
 dependencies = [
- "bytes 1.6.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "futures-channel 0.3.30 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "futures-core 0.3.30 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "futures-util 0.3.30 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "h2 0.3.26",
- "http 0.2.12",
- "http-body 0.4.6",
- "httparse 1.9.4 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "httpdate 1.0.3 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "itoa 1.0.11 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "pin-project-lite 0.2.14 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "socket2 0.5.7 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tokio 1.38.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tower-service 0.3.2 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tracing 0.1.40 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "want 0.3.1 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
-]
-
-[[package]]
-name = "hyper"
-version = "1.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50dfd22e0e76d0f662d429a5f80fcaf3855009297eab6a0a9f8543834744ba05"
-dependencies = [
- "bytes 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-channel 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-util 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "h2 0.4.5",
- "http 1.1.0",
- "http-body 1.0.0",
- "httparse 1.9.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "httpdate 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "itoa 1.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "pin-project-lite 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "smallvec",
- "tokio 1.38.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "want 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "hyper-rustls"
-version = "0.27.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ee4be2c948921a1a5320b629c4193916ed787a7f7f293fd3f7f5a6c9de74155"
-dependencies = [
- "futures-util 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "http 1.1.0",
- "hyper 1.4.1",
- "hyper-util",
- "rustls",
- "rustls-pki-types",
- "tokio 1.38.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio-rustls",
- "tower-service 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bytes",
+ "futures-channel",
+ "futures-core",
+ "futures-util",
+ "h2",
+ "http",
+ "http-body",
+ "httparse",
+ "httpdate",
+ "itoa",
+ "pin-project-lite",
+ "socket2",
+ "tokio",
+ "tower-service",
+ "tracing",
+ "want",
 ]
 
 [[package]]
 name = "hyper-timeout"
 version = "0.4.1"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbb958482e8c7be4bc3cf272a766a2b0bf1a6755e7a6ae777f017a31d11b13b1"
 dependencies = [
- "hyper 0.14.30",
- "pin-project-lite 0.2.14 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tokio 1.38.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "hyper",
+ "pin-project-lite",
+ "tokio",
  "tokio-io-timeout",
 ]
-
-[[package]]
-name = "hyper-tls"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70206fc6890eaca9fde8a0bf71caa2ddfc9fe045ac9e5c70df101a7dbde866e0"
-dependencies = [
- "bytes 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "http-body-util",
- "hyper 1.4.1",
- "hyper-util",
- "native-tls",
- "tokio 1.38.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio-native-tls",
- "tower-service 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "hyper-util"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ab92f4f49ee4fb4f997c784b7a2e0fa70050211e0b6a287f898c3c9785ca956"
-dependencies = [
- "bytes 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-channel 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-util 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "http 1.1.0",
- "http-body 1.0.0",
- "hyper 1.4.1",
- "pin-project-lite 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "socket2 0.5.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio 1.38.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tower 0.4.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "tower-service 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "tracing 0.1.40 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "id-set"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9633fadf6346456cf8531119ba4838bc6d82ac4ce84d9852126dd2aa34d49264"
 
 [[package]]
 name = "ident_case"
@@ -1529,10 +1028,10 @@ dependencies = [
 [[package]]
 name = "indexmap"
 version = "1.9.3"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bd070e393353796e801d209ad339e89596eb4c8d430d18ede6a1cced8fafbd99"
 dependencies = [
- "autocfg 1.3.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "autocfg",
  "hashbrown 0.12.3",
 ]
 
@@ -1542,18 +1041,8 @@ version = "2.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "168fb715dda47215e360912c096649d23d58bf392ac62f73919e831745e40f26"
 dependencies = [
- "equivalent 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "hashbrown 0.14.5 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "indexmap"
-version = "2.2.6"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "168fb715dda47215e360912c096649d23d58bf392ac62f73919e831745e40f26"
-dependencies = [
- "equivalent 1.0.1 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "hashbrown 0.14.5 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "equivalent",
+ "hashbrown 0.14.5",
 ]
 
 [[package]]
@@ -1562,10 +1051,10 @@ version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b58db92f96b720de98181bbbe63c831e87005ab460c1bf306eb2622b4707997f"
 dependencies = [
- "socket2 0.5.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "socket2",
  "widestring",
- "windows-sys 0.48.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "winreg 0.50.0",
+ "windows-sys 0.48.0",
+ "winreg",
 ]
 
 [[package]]
@@ -1586,7 +1075,7 @@ version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
 dependencies = [
- "either 1.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "either",
 ]
 
 [[package]]
@@ -1595,28 +1084,13 @@ version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
 dependencies = [
- "either 1.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "itertools"
-version = "0.12.1"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
-dependencies = [
- "either 1.13.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "either",
 ]
 
 [[package]]
 name = "itoa"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
-
-[[package]]
-name = "itoa"
-version = "1.0.11"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
 
 [[package]]
@@ -1625,7 +1099,7 @@ version = "0.1.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2b099aaa34a9751c5bf0878add70444e1ed2dd73f347be99003d4577277de6e"
 dependencies = [
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc",
 ]
 
 [[package]]
@@ -1645,19 +1119,13 @@ checksum = "96b0db21af676c1ce64250b5f40f3ce2cf27e4e47cb91ed91eb6fe9350b430c1"
 dependencies = [
  "pest",
  "pest_derive",
- "serde 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde",
 ]
 
 [[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
-
-[[package]]
-name = "lazy_static"
-version = "1.5.0"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
@@ -1673,19 +1141,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97b3888a4aecf77e811145cadf6eef5901f4782c53886191b2f693f24761847c"
 
 [[package]]
-name = "libc"
-version = "0.2.155"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "97b3888a4aecf77e811145cadf6eef5901f4782c53886191b2f693f24761847c"
-
-[[package]]
 name = "libloading"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e310b3a6b5907f99202fcdb4960ff45b93735d7c7d96b760fcff8db2dc0e103d"
 dependencies = [
- "cfg-if 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "windows-targets 0.52.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cfg-if",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -1706,7 +1168,7 @@ version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07af8b9cdd281b7915f413fa73f29ebd5d55d0d3f0155584dade1ff18cea1b17"
 dependencies = [
- "autocfg 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "autocfg",
  "scopeguard",
 ]
 
@@ -1714,6 +1176,12 @@ dependencies = [
 name = "log"
 version = "0.4.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7a70ba024b9dc04c27ea2f0c0548feb474ec5c54bba33a7f72f873a39d07b24"
+
+[[package]]
+name = "log"
+version = "0.4.22"
+source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "a7a70ba024b9dc04c27ea2f0c0548feb474ec5c54bba33a7f72f873a39d07b24"
 
 [[package]]
@@ -1737,16 +1205,7 @@ version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8263075bb86c5a1b1427b5ae862e8889656f126e9f77c484496e8b47cf5c5558"
 dependencies = [
- "regex-automata 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "matchers"
-version = "0.1.0"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "8263075bb86c5a1b1427b5ae862e8889656f126e9f77c484496e8b47cf5c5558"
-dependencies = [
- "regex-automata 0.1.10 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "regex-automata 0.1.10",
 ]
 
 [[package]]
@@ -1756,21 +1215,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0e7465ac9959cc2b1404e8e2367b43684a6d13790fe23056cc8c6c5a6b7bcb94"
 
 [[package]]
-name = "matchit"
-version = "0.7.3"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "0e7465ac9959cc2b1404e8e2367b43684a6d13790fe23056cc8c6c5a6b7bcb94"
-
-[[package]]
 name = "memchr"
 version = "2.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
-
-[[package]]
-name = "memchr"
-version = "2.7.4"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 
 [[package]]
@@ -1780,21 +1227,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 
 [[package]]
-name = "mime"
-version = "0.3.17"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
-
-[[package]]
 name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
-
-[[package]]
-name = "minimal-lexical"
-version = "0.2.1"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
@@ -1803,16 +1238,7 @@ version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8a240ddb74feaf34a79a7add65a741f3167852fba007066dcac1ca548d89c08"
 dependencies = [
- "adler 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "miniz_oxide"
-version = "0.7.4"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "b8a240ddb74feaf34a79a7add65a741f3167852fba007066dcac1ca548d89c08"
-dependencies = [
- "adler 1.0.2 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "adler",
 ]
 
 [[package]]
@@ -1821,20 +1247,9 @@ version = "0.8.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4a650543ca06a924e8b371db273b2756685faae30f8487da1b56505a8f78b0c"
 dependencies = [
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
- "wasi 0.11.0+wasi-snapshot-preview1 (registry+https://github.com/rust-lang/crates.io-index)",
- "windows-sys 0.48.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "mio"
-version = "0.8.11"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "a4a650543ca06a924e8b371db273b2756685faae30f8487da1b56505a8f78b0c"
-dependencies = [
- "libc 0.2.155 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "wasi 0.11.0+wasi-snapshot-preview1 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "windows-sys 0.48.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "libc",
+ "wasi",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -1861,33 +1276,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "20e0ad1a3f0ee4e54e28430b507e70dce6615d02eb2c1767d206e4ef27a49c21"
 dependencies = [
  "darling",
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 1.0.36 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 2.0.70 (registry+https://github.com/rust-lang/crates.io-index)",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
-
-[[package]]
-name = "native-tls"
-version = "0.2.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8614eb2c83d59d1c8cc974dd3f920198647674a0a035e1af1fa58707e317466"
-dependencies = [
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
- "log",
- "openssl",
- "openssl-probe",
- "openssl-sys",
- "schannel",
- "security-framework",
- "security-framework-sys",
- "tempfile",
-]
-
-[[package]]
-name = "nohash-hasher"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2bf50223579dc7cdcfb3bfcacf7069ff68243f8c363f62ffa99cf000a6b9c451"
 
 [[package]]
 name = "nom"
@@ -1895,18 +1287,8 @@ version = "7.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d273983c5a657a70a3e8f2a01329822f3b8c8172b73826411a55751e404a0a4a"
 dependencies = [
- "memchr 2.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "minimal-lexical 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "nom"
-version = "7.1.3"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "d273983c5a657a70a3e8f2a01329822f3b8c8172b73826411a55751e404a0a4a"
-dependencies = [
- "memchr 2.7.4 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "minimal-lexical 0.2.1 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "memchr",
+ "minimal-lexical",
 ]
 
 [[package]]
@@ -1922,10 +1304,10 @@ dependencies = [
 [[package]]
 name = "num-traits"
 version = "0.2.19"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
 dependencies = [
- "autocfg 1.3.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "autocfg",
 ]
 
 [[package]]
@@ -1935,7 +1317,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4161fcb6d602d4d2081af7c3a45852d875a03dd337a6bfdd6e06407b61342a43"
 dependencies = [
  "hermit-abi",
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc",
 ]
 
 [[package]]
@@ -1944,16 +1326,7 @@ version = "0.36.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "081b846d1d56ddfc18fdf1a922e4f6e07a11768ea1b92dec44e42b72712ccfce"
 dependencies = [
- "memchr 2.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "object"
-version = "0.36.1"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "081b846d1d56ddfc18fdf1a922e4f6e07a11768ea1b92dec44e42b72712ccfce"
-dependencies = [
- "memchr 2.7.4 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "memchr",
 ]
 
 [[package]]
@@ -1967,50 +1340,6 @@ name = "once_cell"
 version = "1.19.0"
 source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
-
-[[package]]
-name = "openssl"
-version = "0.10.64"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95a0481286a310808298130d22dd1fef0fa571e05a8f44ec801801e84b216b1f"
-dependencies = [
- "bitflags 2.6.0",
- "cfg-if 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "foreign-types",
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
- "once_cell 1.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "openssl-macros",
- "openssl-sys",
-]
-
-[[package]]
-name = "openssl-macros"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a948666b637a0f465e8564c73e89d4dde00d72d4d473cc972f390fc3dcee7d9c"
-dependencies = [
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 1.0.36 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 2.0.70 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "openssl-probe"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff011a302c396a5197692431fc1948019154afc178baf7d8e37367442a4601cf"
-
-[[package]]
-name = "openssl-sys"
-version = "0.9.102"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c597637d56fbc83893a35eb0dd04b2b8e7a50c91e64e9493e398b5df4fb45fa2"
-dependencies = [
- "cc 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
- "pkg-config",
- "vcpkg",
-]
 
 [[package]]
 name = "ordered-multimap"
@@ -2044,11 +1373,11 @@ version = "0.9.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e401f977ab385c9e4e3ab30627d6f26d00e2c73eef317493c4ec6d468726cf8"
 dependencies = [
- "cfg-if 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cfg-if",
+ "libc",
  "redox_syscall",
  "smallvec",
- "windows-targets 0.52.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -2070,18 +1399,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 
 [[package]]
-name = "percent-encoding"
-version = "2.3.1"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
-
-[[package]]
 name = "pest"
 version = "2.7.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd53dff83f26735fdc1ca837098ccf133605d794cdae66acfc2bfac3ec809d95"
 dependencies = [
- "memchr 2.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "memchr",
  "thiserror",
  "ucd-trie",
 ]
@@ -2104,9 +1427,9 @@ checksum = "3c93a82e8d145725dcbaf44e5ea887c8a869efdcc28706df2d08c69e17077183"
 dependencies = [
  "pest",
  "pest_meta",
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 1.0.36 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 2.0.70 (registry+https://github.com/rust-lang/crates.io-index)",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -2126,16 +1449,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6bf43b791c5b9e34c3d182969b4abb522f9343702850a2e57f460d00d09b4b3"
 dependencies = [
- "pin-project-internal 1.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "pin-project"
-version = "1.1.5"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "b6bf43b791c5b9e34c3d182969b4abb522f9343702850a2e57f460d00d09b4b3"
-dependencies = [
- "pin-project-internal 1.1.5 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "pin-project-internal",
 ]
 
 [[package]]
@@ -2144,20 +1458,9 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2f38a4412a78282e09a2cf38d195ea5420d15ba0602cb375210efbc877243965"
 dependencies = [
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 1.0.36 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 2.0.70 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "pin-project-internal"
-version = "1.1.5"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "2f38a4412a78282e09a2cf38d195ea5420d15ba0602cb375210efbc877243965"
-dependencies = [
- "proc-macro2 1.0.86 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "quote 1.0.36 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "syn 2.0.70 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -2167,39 +1470,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bda66fc9667c18cb2758a2ac84d1167245054bcf85d5d1aaa6923f45801bdd02"
 
 [[package]]
-name = "pin-project-lite"
-version = "0.2.14"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "bda66fc9667c18cb2758a2ac84d1167245054bcf85d5d1aaa6923f45801bdd02"
-
-[[package]]
 name = "pin-utils"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
-name = "pin-utils"
-version = "0.1.0"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
-
-[[package]]
-name = "pkg-config"
-version = "0.3.30"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d231b230927b5e4ad203db57bbcbee2802f6bce620b1e4a9024a07d94e2907ec"
-
-[[package]]
 name = "ppv-lite86"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
-
-[[package]]
-name = "ppv-lite86"
-version = "0.2.17"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
 
 [[package]]
@@ -2208,8 +1487,8 @@ version = "0.2.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5f12335488a2f3b0a83b14edad48dca9879ce89b2edd10e80237e4e852dd645e"
 dependencies = [
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 2.0.70 (registry+https://github.com/rust-lang/crates.io-index)",
+ "proc-macro2",
+ "syn",
 ]
 
 [[package]]
@@ -2218,45 +1497,36 @@ version = "1.0.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e719e8df665df0d1c8fbfd238015744736151d4445ec0836b8e628aae103b77"
 dependencies = [
- "unicode-ident 1.0.12 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "proc-macro2"
-version = "1.0.86"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "5e719e8df665df0d1c8fbfd238015744736151d4445ec0836b8e628aae103b77"
-dependencies = [
- "unicode-ident 1.0.12 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "unicode-ident",
 ]
 
 [[package]]
 name = "prost"
 version = "0.12.6"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "deb1435c188b76130da55f17a466d252ff7b1418b2ad3e037d127b94e3411f29"
 dependencies = [
- "bytes 1.6.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "bytes",
  "prost-derive",
 ]
 
 [[package]]
 name = "prost-derive"
 version = "0.12.6"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
- "anyhow 1.0.86 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "itertools 0.12.1 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "proc-macro2 1.0.86 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "quote 1.0.36 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "syn 2.0.70 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "anyhow",
+ "itertools 0.12.1",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
 name = "prost-types"
 version = "0.12.6"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9091c90b0a32608e984ff2fa4091273cbdd755d54935c51d520887f4a1dbd5b0"
 dependencies = [
  "prost",
@@ -2274,16 +1544,7 @@ version = "1.0.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fa76aaf39101c457836aec0ce2316dbdc3ab723cdda1c6bd4e6ad4208acaca7"
 dependencies = [
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "quote"
-version = "1.0.36"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "0fa76aaf39101c457836aec0ce2316dbdc3ab723cdda1c6bd4e6ad4208acaca7"
-dependencies = [
- "proc-macro2 1.0.86 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "proc-macro2",
 ]
 
 [[package]]
@@ -2292,20 +1553,9 @@ version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34af8d1a0e25924bc5b7c43c079c942339d8f0a8b57c39049bef581b46327404"
 dependencies = [
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
- "rand_chacha 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "rand_core 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "rand"
-version = "0.8.5"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "34af8d1a0e25924bc5b7c43c079c942339d8f0a8b57c39049bef581b46327404"
-dependencies = [
- "libc 0.2.155 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "rand_chacha 0.3.1 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "rand_core 0.6.4 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "libc",
+ "rand_chacha",
+ "rand_core",
 ]
 
 [[package]]
@@ -2314,18 +1564,8 @@ version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6c10a63a0fa32252be49d21e7709d4d4baf8d231c2dbce1eaa8141b9b127d88"
 dependencies = [
- "ppv-lite86 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
- "rand_core 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "rand_chacha"
-version = "0.3.1"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "e6c10a63a0fa32252be49d21e7709d4d4baf8d231c2dbce1eaa8141b9b127d88"
-dependencies = [
- "ppv-lite86 0.2.17 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "rand_core 0.6.4 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "ppv-lite86",
+ "rand_core",
 ]
 
 [[package]]
@@ -2334,16 +1574,7 @@ version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 dependencies = [
- "getrandom 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "rand_core"
-version = "0.6.4"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
-dependencies = [
- "getrandom 0.2.15 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "getrandom",
 ]
 
 [[package]]
@@ -2361,22 +1592,10 @@ version = "1.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b91213439dad192326a0d7c6ee3955910425f441d7038e0d6933b0aec5c4517f"
 dependencies = [
- "aho-corasick 1.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "memchr 2.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "regex-automata 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "regex-syntax 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "regex"
-version = "1.10.5"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "b91213439dad192326a0d7c6ee3955910425f441d7038e0d6933b0aec5c4517f"
-dependencies = [
- "aho-corasick 1.1.3 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "memchr 2.7.4 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "regex-automata 0.4.7 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "regex-syntax 0.8.4 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "aho-corasick",
+ "memchr",
+ "regex-automata 0.4.7",
+ "regex-syntax 0.8.4",
 ]
 
 [[package]]
@@ -2385,16 +1604,7 @@ version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c230d73fb8d8c1b9c0b3135c5142a8acee3a0558fb8db5cf1cb65f8d7862132"
 dependencies = [
- "regex-syntax 0.6.29 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "regex-automata"
-version = "0.1.10"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "6c230d73fb8d8c1b9c0b3135c5142a8acee3a0558fb8db5cf1cb65f8d7862132"
-dependencies = [
- "regex-syntax 0.6.29 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "regex-syntax 0.6.29",
 ]
 
 [[package]]
@@ -2403,20 +1613,9 @@ version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "38caf58cc5ef2fed281f89292ef23f6365465ed9a41b7a7754eb4e26496c92df"
 dependencies = [
- "aho-corasick 1.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "memchr 2.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "regex-syntax 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "regex-automata"
-version = "0.4.7"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "38caf58cc5ef2fed281f89292ef23f6365465ed9a41b7a7754eb4e26496c92df"
-dependencies = [
- "aho-corasick 1.1.3 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "memchr 2.7.4 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "regex-syntax 0.8.4 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "aho-corasick",
+ "memchr",
+ "regex-syntax 0.8.4",
 ]
 
 [[package]]
@@ -2427,64 +1626,9 @@ checksum = "f162c6dd7b008981e4d40210aca20b4bd0f9b60ca9271061b07f78537722f2e1"
 
 [[package]]
 name = "regex-syntax"
-version = "0.6.29"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "f162c6dd7b008981e4d40210aca20b4bd0f9b60ca9271061b07f78537722f2e1"
-
-[[package]]
-name = "regex-syntax"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a66a03ae7c801facd77a29370b4faec201768915ac14a721ba36f20bc9c209b"
-
-[[package]]
-name = "regex-syntax"
-version = "0.8.4"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "7a66a03ae7c801facd77a29370b4faec201768915ac14a721ba36f20bc9c209b"
-
-[[package]]
-name = "reqwest"
-version = "0.12.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7d6d2a27d57148378eb5e111173f4276ad26340ecc5c49a4a2152167a2d6a37"
-dependencies = [
- "base64 0.22.1",
- "bytes 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "encoding_rs",
- "futures-core 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-util 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "h2 0.4.5",
- "http 1.1.0",
- "http-body 1.0.0",
- "http-body-util",
- "hyper 1.4.1",
- "hyper-rustls",
- "hyper-tls",
- "hyper-util",
- "ipnet",
- "js-sys",
- "log",
- "mime 0.3.17 (registry+https://github.com/rust-lang/crates.io-index)",
- "native-tls",
- "once_cell 1.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "percent-encoding 2.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "pin-project-lite 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustls-pemfile",
- "serde 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_json 1.0.120 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_urlencoded",
- "sync_wrapper 1.0.1",
- "system-configuration",
- "tokio 1.38.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio-native-tls",
- "tower-service 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "url",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
- "winreg 0.52.0",
-]
 
 [[package]]
 name = "resolv-conf"
@@ -2502,13 +1646,13 @@ version = "0.17.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c17fa4cb658e3583423e915b9f3acc01cceaee1860e33d59ebae66adc3a2dc0d"
 dependencies = [
- "cc 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "cfg-if 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "getrandom 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cc",
+ "cfg-if",
+ "getrandom",
+ "libc",
  "spin",
  "untrusted",
- "windows-sys 0.52.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2517,10 +1661,10 @@ version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b91f7eff05f748767f183df4320a63d6936e9c6107d97c9e6bdd9784f4289c94"
 dependencies = [
- "base64 0.21.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "base64 0.21.7",
  "bitflags 2.6.0",
- "serde 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_derive 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde",
+ "serde_derive",
 ]
 
 [[package]]
@@ -2529,7 +1673,7 @@ version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7e2a3bcec1f113553ef1c88aae6c020a369d03d55b58de9869a0908930385091"
 dependencies = [
- "cfg-if 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cfg-if",
  "ordered-multimap",
 ]
 
@@ -2537,12 +1681,6 @@ dependencies = [
 name = "rustc-demangle"
 version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "719b953e2095829ee67db738b3bfa9fa368c94900df327b3f07fe6e794d2fe1f"
-
-[[package]]
-name = "rustc-demangle"
-version = "0.1.24"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "719b953e2095829ee67db738b3bfa9fa368c94900df327b3f07fe6e794d2fe1f"
 
 [[package]]
@@ -2559,9 +1697,9 @@ checksum = "70dc5ec042f7a43c4a73241207cecc9873a06d45debb38b329f8541d85c2730f"
 dependencies = [
  "bitflags 2.6.0",
  "errno",
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2571,7 +1709,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4828ea528154ae444e5a642dbb7d5623354030dc9822b83fd9bb79683c7399d0"
 dependencies = [
  "aws-lc-rs",
- "log",
+ "log 0.4.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "once_cell 1.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustls-pki-types",
  "rustls-webpki",
@@ -2614,31 +1752,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "955d28af4278de8121b7ebeb796b6a45735dc01436d898801014aced2773a3d6"
 
 [[package]]
-name = "rustversion"
-version = "1.0.17"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "955d28af4278de8121b7ebeb796b6a45735dc01436d898801014aced2773a3d6"
-
-[[package]]
 name = "ryu"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
-
-[[package]]
-name = "ryu"
-version = "1.0.18"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
-
-[[package]]
-name = "schannel"
-version = "0.1.23"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fbc91545643bcf3a0bbb6569265615222618bdf33ce4ffbbd13c4bbd4c093534"
-dependencies = [
- "windows-sys 0.52.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "scopeguard"
@@ -2647,44 +1764,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
-name = "security-framework"
-version = "2.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c627723fd09706bacdb5cf41499e95098555af3c3c29d014dc3c458ef6be11c0"
-dependencies = [
- "bitflags 2.6.0",
- "core-foundation",
- "core-foundation-sys",
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
- "security-framework-sys",
-]
-
-[[package]]
-name = "security-framework-sys"
-version = "2.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "317936bbbd05227752583946b9e66d7ce3b489f84e11a94a510b4437fef407d7"
-dependencies = [
- "core-foundation-sys",
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "serde"
 version = "1.0.204"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc76f558e0cbb2a839d37354c575f1dc3fdc6546b5be373ba43d95f231bf7c12"
 dependencies = [
- "serde_derive 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "serde"
-version = "1.0.204"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "bc76f558e0cbb2a839d37354c575f1dc3fdc6546b5be373ba43d95f231bf7c12"
-dependencies = [
- "serde_derive 1.0.204 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "serde_derive",
 ]
 
 [[package]]
@@ -2694,7 +1779,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2bef2ebfde456fb76bbcf9f59315333decc4fda0b2b44b420243c11e0f5ec1f5"
 dependencies = [
  "half",
- "serde 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde",
 ]
 
 [[package]]
@@ -2703,20 +1788,9 @@ version = "1.0.204"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e0cd7e117be63d3c3678776753929474f3b04a43a080c744d6b0ae2a8c28e222"
 dependencies = [
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 1.0.36 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 2.0.70 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "serde_derive"
-version = "1.0.204"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "e0cd7e117be63d3c3678776753929474f3b04a43a080c744d6b0ae2a8c28e222"
-dependencies = [
- "proc-macro2 1.0.86 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "quote 1.0.36 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "syn 2.0.70 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -2725,30 +1799,9 @@ version = "1.0.120"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e0d21c9a8cae1235ad58a00c11cb40d4b1e5c784f1ef2c537876ed6ffd8b7c5"
 dependencies = [
- "itoa 1.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "ryu 1.0.18 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "serde_json"
-version = "1.0.120"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "4e0d21c9a8cae1235ad58a00c11cb40d4b1e5c784f1ef2c537876ed6ffd8b7c5"
-dependencies = [
- "itoa 1.0.11 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "ryu 1.0.18 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "serde 1.0.204 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
-]
-
-[[package]]
-name = "serde_path_to_error"
-version = "0.1.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af99884400da37c88f5e9146b7f1fd0fbcae8f6eec4e9da38b67d05486f814a6"
-dependencies = [
- "itoa 1.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
+ "itoa",
+ "ryu",
+ "serde",
 ]
 
 [[package]]
@@ -2757,19 +1810,7 @@ version = "0.6.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "79e674e01f999af37c49f70a6ede167a8a60b2503e56c5599532a65baa5969a0"
 dependencies = [
- "serde 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "serde_urlencoded"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3491c14715ca2294c4d6a88f15e84739788c1d030eed8c110436aafdaa2f3fd"
-dependencies = [
- "form_urlencoded",
- "itoa 1.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "ryu 1.0.18 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde",
 ]
 
 [[package]]
@@ -2778,7 +1819,7 @@ version = "0.10.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "793db75ad2bcafc3ffa7c68b215fee268f537982cd901d132f89c6343f3a3dc8"
 dependencies = [
- "cfg-if 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cfg-if",
  "cpufeatures",
  "digest",
 ]
@@ -2789,16 +1830,7 @@ version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f40ca3c46823713e0d4209592e8d6e826aa57e928f09752619fc696c499637f6"
 dependencies = [
- "lazy_static 1.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "sharded-slab"
-version = "0.1.7"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "f40ca3c46823713e0d4209592e8d6e826aa57e928f09752619fc696c499637f6"
-dependencies = [
- "lazy_static 1.5.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "lazy_static",
 ]
 
 [[package]]
@@ -2813,7 +1845,7 @@ version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a9e9e0b4211b72e7b8b6e85c807d36c212bdb33ea8587f7569562a84df5465b1"
 dependencies = [
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc",
 ]
 
 [[package]]
@@ -2822,16 +1854,7 @@ version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f92a496fb766b417c996b9c5e57daf2f7ad3b0bebe1ccfca4856390e3d3bb67"
 dependencies = [
- "autocfg 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "slab"
-version = "0.4.9"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "8f92a496fb766b417c996b9c5e57daf2f7ad3b0bebe1ccfca4856390e3d3bb67"
-dependencies = [
- "autocfg 1.3.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "autocfg",
 ]
 
 [[package]]
@@ -2846,18 +1869,8 @@ version = "0.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ce305eb0b4296696835b71df73eb912e0f1ffd2556a501fcede6e0c50349191c"
 dependencies = [
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
- "windows-sys 0.52.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "socket2"
-version = "0.5.7"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "ce305eb0b4296696835b71df73eb912e0f1ffd2556a501fcede6e0c50349191c"
-dependencies = [
- "libc 0.2.155 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "windows-sys 0.52.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "libc",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2865,26 +1878,6 @@ name = "spin"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
-
-[[package]]
-name = "stateright"
-version = "0.30.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ebd37c74ff38ca9e5d370efb7af3c49ecab91cb5644affa23dc54a061d0f3a59"
-dependencies = [
- "ahash",
- "choice",
- "crossbeam-utils 0.8.20 (registry+https://github.com/rust-lang/crates.io-index)",
- "dashmap 5.5.3",
- "id-set",
- "log",
- "nohash-hasher",
- "parking_lot",
- "rand 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_json 1.0.120 (registry+https://github.com/rust-lang/crates.io-index)",
- "tiny_http",
-]
 
 [[package]]
 name = "strsim"
@@ -2904,20 +1897,9 @@ version = "2.0.70"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2f0209b68b3613b093e0ec905354eccaedcfe83b8cb37cbdeae64026c3064c16"
 dependencies = [
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 1.0.36 (registry+https://github.com/rust-lang/crates.io-index)",
- "unicode-ident 1.0.12 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "syn"
-version = "2.0.70"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "2f0209b68b3613b093e0ec905354eccaedcfe83b8cb37cbdeae64026c3064c16"
-dependencies = [
- "proc-macro2 1.0.86 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "quote 1.0.36 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "unicode-ident 1.0.12 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "proc-macro2",
+ "quote",
+ "unicode-ident",
 ]
 
 [[package]]
@@ -2925,51 +1907,6 @@ name = "sync_wrapper"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2047c6ded9c721764247e62cd3b03c09ffc529b2ba5b10ec482ae507a4a70160"
-
-[[package]]
-name = "sync_wrapper"
-version = "0.1.2"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "2047c6ded9c721764247e62cd3b03c09ffc529b2ba5b10ec482ae507a4a70160"
-
-[[package]]
-name = "sync_wrapper"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7065abeca94b6a8a577f9bd45aa0867a2238b74e8eb67cf10d492bc39351394"
-
-[[package]]
-name = "system-configuration"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba3a3adc5c275d719af8cb4272ea1c4a6d668a777f37e115f6d11ddbc1c8e0e7"
-dependencies = [
- "bitflags 1.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-foundation",
- "system-configuration-sys",
-]
-
-[[package]]
-name = "system-configuration-sys"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a75fb188eb626b924683e3b95e3a48e63551fcfb51949de2f06a9d91dbee93c9"
-dependencies = [
- "core-foundation-sys",
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "tempfile"
-version = "3.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85b77fafb263dd9d05cbeac119526425676db3784113aa9295c88498cbf8bff1"
-dependencies = [
- "cfg-if 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "fastrand 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustix",
- "windows-sys 0.52.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "termcolor"
@@ -2982,22 +1919,22 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.61"
+version = "1.0.62"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c546c80d6be4bc6a00c0f01730c08df82eaa7a7a61f11d656526506112cc1709"
+checksum = "f2675633b1499176c2dff06b0856a27976a8f9d436737b4cf4f312d4d91d8bbb"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.61"
+version = "1.0.62"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46c3384250002a6d5af4d114f2845d37b57521033f30d5c3f46c4d70e1197533"
+checksum = "d20468752b09f49e909e55a5d338caa8bedf615594e9d80bc4c565d30faf798c"
 dependencies = [
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 1.0.36 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 2.0.70 (registry+https://github.com/rust-lang/crates.io-index)",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -3006,18 +1943,8 @@ version = "1.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b9ef9bad013ada3808854ceac7b46812a6465ba368859a37e2100283d2d719c"
 dependencies = [
- "cfg-if 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cfg-if",
  "once_cell 1.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "thread_local"
-version = "1.1.8"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "8b9ef9bad013ada3808854ceac7b46812a6465ba368859a37e2100283d2d719c"
-dependencies = [
- "cfg-if 1.0.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "once_cell 1.19.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
 ]
 
 [[package]]
@@ -3027,18 +1954,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2c9d3793400a45f954c52e73d068316d76b6f4e36977e3fcebb13a2721e80237"
 dependencies = [
  "crunchy",
-]
-
-[[package]]
-name = "tiny_http"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "389915df6413a2e74fb181895f933386023c71110878cd0825588928e64cdc82"
-dependencies = [
- "ascii",
- "chunked_transfer",
- "httpdate 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "log",
 ]
 
 [[package]]
@@ -3062,44 +1977,28 @@ version = "1.38.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba4f4a02a7a80d6f274636f0aa95c7e383b912d41fe721a31f29e29698585a4a"
 dependencies = [
- "backtrace 0.3.73 (registry+https://github.com/rust-lang/crates.io-index)",
- "bytes 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.2.155 (registry+https://github.com/rust-lang/crates.io-index)",
- "mio 0.8.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "backtrace",
+ "bytes",
+ "libc",
+ "mio",
  "num_cpus",
  "parking_lot",
- "pin-project-lite 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pin-project-lite",
  "signal-hook-registry",
- "socket2 0.5.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio-macros 2.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "windows-sys 0.48.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "tokio"
-version = "1.38.0"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "ba4f4a02a7a80d6f274636f0aa95c7e383b912d41fe721a31f29e29698585a4a"
-dependencies = [
- "backtrace 0.3.73 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "bytes 1.6.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "libc 0.2.155 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "mio 0.8.11 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "pin-project-lite 0.2.14 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "socket2 0.5.7 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tokio-macros 2.3.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tracing 0.1.40 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "windows-sys 0.48.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "socket2",
+ "tokio-macros",
+ "tracing",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
 name = "tokio-io-timeout"
 version = "1.2.0"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "30b74022ada614a1b4834de765f9bb43877f910cc8ce4be40e89042c9223a8bf"
 dependencies = [
- "pin-project-lite 0.2.14 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tokio 1.38.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "pin-project-lite",
+ "tokio",
 ]
 
 [[package]]
@@ -3108,30 +2007,9 @@ version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5f5ae998a069d4b5aba8ee9dad856af7d520c3699e6159b185c2acd48155d39a"
 dependencies = [
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 1.0.36 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 2.0.70 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "tokio-macros"
-version = "2.3.0"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "5f5ae998a069d4b5aba8ee9dad856af7d520c3699e6159b185c2acd48155d39a"
-dependencies = [
- "proc-macro2 1.0.86 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "quote 1.0.36 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "syn 2.0.70 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
-]
-
-[[package]]
-name = "tokio-native-tls"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbae76ab933c85776efabc971569dd6119c580d8f5d448769dec1764bf796ef2"
-dependencies = [
- "native-tls",
- "tokio 1.38.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -3142,7 +2020,7 @@ checksum = "0c7bc40d0e5a97695bb96e27995cd3a08538541b0a846f65bba7a359f36700d4"
 dependencies = [
  "rustls",
  "rustls-pki-types",
- "tokio 1.38.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tokio",
 ]
 
 [[package]]
@@ -3151,10 +2029,10 @@ version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "82ab9434d1ea23a461c62e4b803cfdddb4453c6e9a4f3adeebb8e3f54c529506"
 dependencies = [
- "bytes 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bytes",
+ "serde",
  "serde_cbor",
- "tokio-util 0.7.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tokio-util",
 ]
 
 [[package]]
@@ -3163,22 +2041,10 @@ version = "0.1.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "267ac89e0bec6e691e5813911606935d77c476ff49024f98abcea3e7b15e37af"
 dependencies = [
- "futures-core 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "pin-project-lite 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio 1.38.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio-util 0.7.11 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "tokio-stream"
-version = "0.1.15"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "267ac89e0bec6e691e5813911606935d77c476ff49024f98abcea3e7b15e37af"
-dependencies = [
- "futures-core 0.3.30 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "pin-project-lite 0.2.14 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tokio 1.38.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tokio-util 0.7.11 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "futures-core",
+ "pin-project-lite",
+ "tokio",
+ "tokio-util",
 ]
 
 [[package]]
@@ -3187,24 +2053,11 @@ version = "0.7.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9cf6b47b3771c49ac75ad09a6162f53ad4b8088b76ac60e8ec1455b31a189fe1"
 dependencies = [
- "bytes 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-core 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-sink 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "pin-project-lite 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio 1.38.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "tokio-util"
-version = "0.7.11"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "9cf6b47b3771c49ac75ad09a6162f53ad4b8088b76ac60e8ec1455b31a189fe1"
-dependencies = [
- "bytes 1.6.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "futures-core 0.3.30 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "futures-sink 0.3.30 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "pin-project-lite 0.2.14 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tokio 1.38.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "bytes",
+ "futures-core",
+ "futures-sink",
+ "pin-project-lite",
+ "tokio",
 ]
 
 [[package]]
@@ -3213,7 +2066,7 @@ version = "0.8.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f49eb2ab21d2f26bd6db7bf383edc527a7ebaee412d17af4d40fdccd442f335"
 dependencies = [
- "serde 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde",
  "serde_spanned",
  "toml_datetime",
  "toml_edit",
@@ -3225,7 +2078,7 @@ version = "0.6.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4badfd56924ae69bcc9039335b2e017639ce3f9b001c393c1b2d1ef846ce2cbf"
 dependencies = [
- "serde 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde",
 ]
 
 [[package]]
@@ -3234,8 +2087,8 @@ version = "0.22.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d59a3a72298453f564e2b111fa896f8d07fabb36f51f06d7e875fc5e0b5a3ef1"
 dependencies = [
- "indexmap 2.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
+ "indexmap 2.2.6",
+ "serde",
  "serde_spanned",
  "toml_datetime",
  "winnow",
@@ -3244,28 +2097,28 @@ dependencies = [
 [[package]]
 name = "tonic"
 version = "0.11.0"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "76c4eb7a4e9ef9d4763600161f12f5070b92a578e1b634db88a6887844c91a13"
 dependencies = [
  "async-stream",
- "async-trait 0.1.81 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "axum 0.6.20",
- "base64 0.21.7 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "bytes 1.6.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "h2 0.3.26",
- "http 0.2.12",
- "http-body 0.4.6",
- "hyper 0.14.30",
+ "async-trait",
+ "axum",
+ "base64 0.21.7",
+ "bytes",
+ "h2",
+ "http",
+ "http-body",
+ "hyper",
  "hyper-timeout",
- "percent-encoding 2.3.1 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "pin-project 1.1.5 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "percent-encoding",
+ "pin-project",
  "prost",
- "tokio 1.38.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tokio-stream 0.1.15 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tower 0.4.13 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tower-layer 0.3.2 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tower-service 0.3.2 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tracing 0.1.40 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "tokio",
+ "tokio-stream",
+ "tower",
+ "tower-layer",
+ "tower-service",
+ "tracing",
 ]
 
 [[package]]
@@ -3274,34 +2127,18 @@ version = "0.4.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8fa9be0de6cf49e536ce1851f987bd21a43b771b09473c3549a6c853db37c1c"
 dependencies = [
- "futures-core 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-util 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "pin-project 1.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "pin-project-lite 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio 1.38.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tower-layer 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "tower-service 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "tracing 0.1.40 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "tower"
-version = "0.4.13"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "b8fa9be0de6cf49e536ce1851f987bd21a43b771b09473c3549a6c853db37c1c"
-dependencies = [
- "futures-core 0.3.30 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "futures-util 0.3.30 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "futures-core",
+ "futures-util",
  "indexmap 1.9.3",
- "pin-project 1.1.5 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "pin-project-lite 0.2.14 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "rand 0.8.5 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "slab 0.4.9 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tokio 1.38.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tokio-util 0.7.11 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tower-layer 0.3.2 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tower-service 0.3.2 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tracing 0.1.40 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "pin-project",
+ "pin-project-lite",
+ "rand",
+ "slab",
+ "tokio",
+ "tokio-util",
+ "tower-layer",
+ "tower-service",
+ "tracing",
 ]
 
 [[package]]
@@ -3311,21 +2148,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c20c8dbed6283a09604c3e69b4b7eeb54e298b8a600d4d5ecb5ad39de609f1d0"
 
 [[package]]
-name = "tower-layer"
-version = "0.3.2"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "c20c8dbed6283a09604c3e69b4b7eeb54e298b8a600d4d5ecb5ad39de609f1d0"
-
-[[package]]
 name = "tower-service"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6bc1c9ce2b5135ac7f93c72918fc37feb872bdc6a5533a8b85eb4b86bfdae52"
-
-[[package]]
-name = "tower-service"
-version = "0.3.2"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "b6bc1c9ce2b5135ac7f93c72918fc37feb872bdc6a5533a8b85eb4b86bfdae52"
 
 [[package]]
@@ -3334,43 +2159,20 @@ version = "0.1.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3523ab5a71916ccf420eebdf5521fcef02141234bbc0b8a49f2fdc4544364ef"
 dependencies = [
- "log",
- "pin-project-lite 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "tracing-attributes 0.1.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pin-project-lite",
+ "tracing-attributes",
  "tracing-core 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
-name = "tracing"
-version = "0.1.40"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "c3523ab5a71916ccf420eebdf5521fcef02141234bbc0b8a49f2fdc4544364ef"
-dependencies = [
- "pin-project-lite 0.2.14 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tracing-attributes 0.1.27 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tracing-core 0.1.32 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
-]
-
-[[package]]
 name = "tracing-attributes"
 version = "0.1.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34704c8d6ebcbc939824180af020566b01a7c01f80641264eba0999f6c2b6be7"
 dependencies = [
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 1.0.36 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 2.0.70 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "tracing-attributes"
-version = "0.1.27"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "34704c8d6ebcbc939824180af020566b01a7c01f80641264eba0999f6c2b6be7"
-dependencies = [
- "proc-macro2 1.0.86 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "quote 1.0.36 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "syn 2.0.70 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -3399,9 +2201,20 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ee855f1f400bd0e5c02d150ae5de3840039a3f54b025156404e34c23c03f47c3"
 dependencies = [
- "log",
+ "log 0.4.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "once_cell 1.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tracing-core 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "tracing-log"
+version = "0.2.0"
+source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
+checksum = "ee855f1f400bd0e5c02d150ae5de3840039a3f54b025156404e34c23c03f47c3"
+dependencies = [
+ "log 0.4.22 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "once_cell 1.19.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "tracing-core 0.1.32 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
 ]
 
 [[package]]
@@ -3410,7 +2223,7 @@ version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc6b213177105856957181934e4920de57730fc69bf42c37ee5bb664d406d9e1"
 dependencies = [
- "serde 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde",
  "tracing-core 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "valuable 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "valuable-serde",
@@ -3422,34 +2235,19 @@ version = "0.3.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ad0f048c97dbd9faa9b7df56362b8ebcaa52adb06b498c050d2f4e32f90a7a8b"
 dependencies = [
- "matchers 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "matchers",
  "nu-ansi-term",
  "once_cell 1.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "regex 1.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "sharded-slab 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regex",
+ "sharded-slab",
  "smallvec",
- "thread_local 1.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "tracing 0.1.40 (registry+https://github.com/rust-lang/crates.io-index)",
+ "thread_local",
+ "tracing",
  "tracing-core 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
- "tracing-log",
+ "tracing-log 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tracing-serde",
  "valuable 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "valuable-serde",
-]
-
-[[package]]
-name = "tracing-subscriber"
-version = "0.3.18"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "ad0f048c97dbd9faa9b7df56362b8ebcaa52adb06b498c050d2f4e32f90a7a8b"
-dependencies = [
- "matchers 0.1.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "once_cell 1.19.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "regex 1.10.5 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "sharded-slab 0.1.7 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "thread_local 1.1.8 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tracing 0.1.40 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tracing-core 0.1.32 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
 ]
 
 [[package]]
@@ -3458,22 +2256,22 @@ version = "0.23.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3119112651c157f4488931a01e586aa459736e9d6046d3bd9105ffb69352d374"
 dependencies = [
- "async-trait 0.1.81 (registry+https://github.com/rust-lang/crates.io-index)",
- "cfg-if 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "async-trait",
+ "cfg-if",
  "data-encoding",
  "enum-as-inner",
- "futures-channel 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futures-channel",
  "futures-io",
- "futures-util 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futures-util",
  "idna 0.4.0",
  "ipnet",
  "once_cell 1.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "rand 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand",
  "smallvec",
  "thiserror",
  "tinyvec",
- "tokio 1.38.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tracing 0.1.40 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tokio",
+ "tracing",
  "url",
 ]
 
@@ -3483,18 +2281,18 @@ version = "0.23.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "10a3e6c3aff1718b3c73e395d1f35202ba2ffa847c6a62eea0db8fb4cfe30be6"
 dependencies = [
- "cfg-if 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-util 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cfg-if",
+ "futures-util",
  "ipconfig",
  "lru-cache",
  "once_cell 1.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "parking_lot",
- "rand 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand",
  "resolv-conf",
  "smallvec",
  "thiserror",
- "tokio 1.38.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tracing 0.1.40 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tokio",
+ "tracing",
  "trust-dns-proto",
 ]
 
@@ -3502,12 +2300,6 @@ dependencies = [
 name = "try-lock"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
-
-[[package]]
-name = "try-lock"
-version = "0.2.5"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
@@ -3528,9 +2320,9 @@ version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34778c17965aa2a08913b57e1f34db9b4a63f5de31768b55bf20d2795f921259"
 dependencies = [
- "getrandom 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
- "rand 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
+ "getrandom",
+ "rand",
+ "serde",
  "web-time",
 ]
 
@@ -3538,40 +2330,34 @@ dependencies = [
 name = "ulidd"
 version = "0.1.0"
 dependencies = [
- "anyhow 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
+ "anyhow",
  "async-stream",
- "async-trait 0.1.81 (registry+https://github.com/rust-lang/crates.io-index)",
- "axum 0.7.5",
- "backon",
- "bytes 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "async-trait",
  "chitchat",
  "clap",
  "color-backtrace",
  "config",
  "console-subscriber",
  "ctor",
- "dashmap 6.0.1",
+ "dashmap",
  "futures",
- "futures-util 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "humantime 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futures-util",
+ "humantime",
  "mry",
- "rand 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "reqwest",
+ "rand",
  "rustls",
  "rustls-pemfile",
- "serde 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde",
  "serde_cbor",
- "serde_json 1.0.120 (registry+https://github.com/rust-lang/crates.io-index)",
- "stateright",
+ "serde_json",
  "thiserror",
- "tokio 1.38.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tokio",
  "tokio-rustls",
  "tokio-serde-cbor",
- "tokio-stream 0.1.15 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tokio-util 0.7.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "tower-service 0.3.2 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "tracing 0.1.40 (registry+https://github.com/rust-lang/crates.io-index)",
- "tracing-subscriber 0.3.18 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tokio-util",
+ "tracing",
+ "tracing-log 0.2.0 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "tracing-subscriber",
  "trust-dns-resolver",
  "ulid",
  "webpki",
@@ -3588,12 +2374,6 @@ checksum = "08f95100a766bf4f8f28f90d77e0a5461bbdb219042e7679bebe79004fed8d75"
 name = "unicode-ident"
 version = "1.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
-
-[[package]]
-name = "unicode-ident"
-version = "1.0.12"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
 
 [[package]]
@@ -3625,7 +2405,7 @@ checksum = "22784dbdf76fdde8af1aeda5622b546b422b6fc585325248a2bf9f5e41e94d6c"
 dependencies = [
  "form_urlencoded",
  "idna 0.5.0",
- "percent-encoding 2.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "percent-encoding",
 ]
 
 [[package]]
@@ -3652,15 +2432,9 @@ version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5285cfff30cdabe26626736a54d989687dd9cab84f51f4048b61d6d0ae8b0907"
 dependencies = [
- "serde 1.0.204 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde",
  "valuable 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
-
-[[package]]
-name = "vcpkg"
-version = "0.2.15"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 
 [[package]]
 name = "version_check"
@@ -3674,28 +2448,13 @@ version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bfa7760aed19e106de2c7c0b581b509f2f25d3dacaf737cb82ac61bc6d760b0e"
 dependencies = [
- "try-lock 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "want"
-version = "0.3.1"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "bfa7760aed19e106de2c7c0b581b509f2f25d3dacaf737cb82ac61bc6d760b0e"
-dependencies = [
- "try-lock 0.2.5 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "try-lock",
 ]
 
 [[package]]
 name = "wasi"
 version = "0.11.0+wasi-snapshot-preview1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c8d87e72b64a3b4db28d11ce29237c246188f4f51057d65a7eab63b7987e423"
-
-[[package]]
-name = "wasi"
-version = "0.11.0+wasi-snapshot-preview1"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "9c8d87e72b64a3b4db28d11ce29237c246188f4f51057d65a7eab63b7987e423"
 
 [[package]]
@@ -3704,7 +2463,7 @@ version = "0.2.92"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4be2531df63900aeb2bca0daaaddec08491ee64ceecbee5076636a3b026795a8"
 dependencies = [
- "cfg-if 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cfg-if",
  "wasm-bindgen-macro",
 ]
 
@@ -3715,24 +2474,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "614d787b966d3989fa7bb98a654e369c762374fd3213d212cfc0251257e747da"
 dependencies = [
  "bumpalo",
- "log",
+ "log 0.4.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "once_cell 1.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 1.0.36 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 2.0.70 (registry+https://github.com/rust-lang/crates.io-index)",
+ "proc-macro2",
+ "quote",
+ "syn",
  "wasm-bindgen-shared",
-]
-
-[[package]]
-name = "wasm-bindgen-futures"
-version = "0.4.42"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76bc14366121efc8dbb487ab05bcc9d346b3b5ec0eaa76e46594cabbe51762c0"
-dependencies = [
- "cfg-if 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "js-sys",
- "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]
@@ -3741,7 +2488,7 @@ version = "0.2.92"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a1f8823de937b71b9460c0c34e25f3da88250760bec0ebac694b49997550d726"
 dependencies = [
- "quote 1.0.36 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quote",
  "wasm-bindgen-macro-support",
 ]
 
@@ -3751,9 +2498,9 @@ version = "0.2.92"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e94f17b526d0a461a191c78ea52bbce64071ed5c04c9ffe424dcb38f74171bb7"
 dependencies = [
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 1.0.36 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 2.0.70 (registry+https://github.com/rust-lang/crates.io-index)",
+ "proc-macro2",
+ "quote",
+ "syn",
  "wasm-bindgen-backend",
  "wasm-bindgen-shared",
 ]
@@ -3763,16 +2510,6 @@ name = "wasm-bindgen-shared"
 version = "0.2.92"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af190c94f2773fdb3729c55b007a722abb5384da03bc0986df4c289bf5567e96"
-
-[[package]]
-name = "web-sys"
-version = "0.3.69"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77afa9a11836342370f4817622a2f0f418b134426d91a82dfb48f532d2ec13ef"
-dependencies = [
- "js-sys",
- "wasm-bindgen",
-]
 
 [[package]]
 name = "web-time"
@@ -3809,7 +2546,7 @@ version = "4.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "87ba24419a2078cd2b0f2ede2691b6c66d8e47836da3b6db8265ebad47afbfc7"
 dependencies = [
- "either 1.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "either",
  "home",
  "once_cell 1.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustix",
@@ -3843,7 +2580,7 @@ version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4d4cc384e1e73b93bafa6fb4f1df8c41695c8a91cf9c4c64358067d15a7b6c6b"
 dependencies = [
- "windows-sys 0.52.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3858,16 +2595,7 @@ version = "0.48.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "677d2418bec65e3338edb076e806bc1ec15693c5d0104683f2efe857f61056a9"
 dependencies = [
- "windows-targets 0.48.5 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "windows-sys"
-version = "0.48.0"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "677d2418bec65e3338edb076e806bc1ec15693c5d0104683f2efe857f61056a9"
-dependencies = [
- "windows-targets 0.48.5 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -3876,16 +2604,7 @@ version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "282be5f36a8ce781fad8c8ae18fa3f9beff57ec1b52cb3de0789201425d9a33d"
 dependencies = [
- "windows-targets 0.52.6 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "windows-sys"
-version = "0.52.0"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "282be5f36a8ce781fad8c8ae18fa3f9beff57ec1b52cb3de0789201425d9a33d"
-dependencies = [
- "windows-targets 0.52.6 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -3894,28 +2613,13 @@ version = "0.48.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9a2fa6e2155d7247be68c096456083145c183cbbbc2764150dda45a87197940c"
 dependencies = [
- "windows_aarch64_gnullvm 0.48.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "windows_aarch64_msvc 0.48.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "windows_i686_gnu 0.48.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "windows_i686_msvc 0.48.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "windows_x86_64_gnu 0.48.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "windows_x86_64_gnullvm 0.48.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "windows_x86_64_msvc 0.48.5 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "windows-targets"
-version = "0.48.5"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "9a2fa6e2155d7247be68c096456083145c183cbbbc2764150dda45a87197940c"
-dependencies = [
- "windows_aarch64_gnullvm 0.48.5 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "windows_aarch64_msvc 0.48.5 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "windows_i686_gnu 0.48.5 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "windows_i686_msvc 0.48.5 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "windows_x86_64_gnu 0.48.5 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "windows_x86_64_gnullvm 0.48.5 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "windows_x86_64_msvc 0.48.5 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "windows_aarch64_gnullvm 0.48.5",
+ "windows_aarch64_msvc 0.48.5",
+ "windows_i686_gnu 0.48.5",
+ "windows_i686_msvc 0.48.5",
+ "windows_x86_64_gnu 0.48.5",
+ "windows_x86_64_gnullvm 0.48.5",
+ "windows_x86_64_msvc 0.48.5",
 ]
 
 [[package]]
@@ -3924,30 +2628,14 @@ version = "0.52.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b724f72796e036ab90c1021d4780d4d3d648aca59e491e6b98e725b84e99973"
 dependencies = [
- "windows_aarch64_gnullvm 0.52.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "windows_aarch64_msvc 0.52.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "windows_i686_gnu 0.52.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "windows_i686_gnullvm 0.52.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "windows_i686_msvc 0.52.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "windows_x86_64_gnu 0.52.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "windows_x86_64_gnullvm 0.52.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "windows_x86_64_msvc 0.52.6 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "windows-targets"
-version = "0.52.6"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "9b724f72796e036ab90c1021d4780d4d3d648aca59e491e6b98e725b84e99973"
-dependencies = [
- "windows_aarch64_gnullvm 0.52.6 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "windows_aarch64_msvc 0.52.6 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "windows_i686_gnu 0.52.6 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "windows_i686_gnullvm 0.52.6 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "windows_i686_msvc 0.52.6 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "windows_x86_64_gnu 0.52.6 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "windows_x86_64_gnullvm 0.52.6 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
- "windows_x86_64_msvc 0.52.6 (sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/)",
+ "windows_aarch64_gnullvm 0.52.6",
+ "windows_aarch64_msvc 0.52.6",
+ "windows_i686_gnu 0.52.6",
+ "windows_i686_gnullvm",
+ "windows_i686_msvc 0.52.6",
+ "windows_x86_64_gnu 0.52.6",
+ "windows_x86_64_gnullvm 0.52.6",
+ "windows_x86_64_msvc 0.52.6",
 ]
 
 [[package]]
@@ -3958,20 +2646,8 @@ checksum = "2b38e32f0abccf9987a4e3079dfb67dcd799fb61361e53e2882c3cbaf0d905d8"
 
 [[package]]
 name = "windows_aarch64_gnullvm"
-version = "0.48.5"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "2b38e32f0abccf9987a4e3079dfb67dcd799fb61361e53e2882c3cbaf0d905d8"
-
-[[package]]
-name = "windows_aarch64_gnullvm"
 version = "0.52.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32a4622180e7a0ec044bb555404c800bc9fd9ec262ec147edd5989ccd0c02cd3"
-
-[[package]]
-name = "windows_aarch64_gnullvm"
-version = "0.52.6"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "32a4622180e7a0ec044bb555404c800bc9fd9ec262ec147edd5989ccd0c02cd3"
 
 [[package]]
@@ -3982,20 +2658,8 @@ checksum = "dc35310971f3b2dbbf3f0690a219f40e2d9afcf64f9ab7cc1be722937c26b4bc"
 
 [[package]]
 name = "windows_aarch64_msvc"
-version = "0.48.5"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "dc35310971f3b2dbbf3f0690a219f40e2d9afcf64f9ab7cc1be722937c26b4bc"
-
-[[package]]
-name = "windows_aarch64_msvc"
 version = "0.52.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09ec2a7bb152e2252b53fa7803150007879548bc709c039df7627cabbd05d469"
-
-[[package]]
-name = "windows_aarch64_msvc"
-version = "0.52.6"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "09ec2a7bb152e2252b53fa7803150007879548bc709c039df7627cabbd05d469"
 
 [[package]]
@@ -4006,32 +2670,14 @@ checksum = "a75915e7def60c94dcef72200b9a8e58e5091744960da64ec734a6c6e9b3743e"
 
 [[package]]
 name = "windows_i686_gnu"
-version = "0.48.5"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "a75915e7def60c94dcef72200b9a8e58e5091744960da64ec734a6c6e9b3743e"
-
-[[package]]
-name = "windows_i686_gnu"
 version = "0.52.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e9b5ad5ab802e97eb8e295ac6720e509ee4c243f69d781394014ebfe8bbfa0b"
-
-[[package]]
-name = "windows_i686_gnu"
-version = "0.52.6"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "8e9b5ad5ab802e97eb8e295ac6720e509ee4c243f69d781394014ebfe8bbfa0b"
 
 [[package]]
 name = "windows_i686_gnullvm"
 version = "0.52.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0eee52d38c090b3caa76c563b86c3a4bd71ef1a819287c19d586d7334ae8ed66"
-
-[[package]]
-name = "windows_i686_gnullvm"
-version = "0.52.6"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "0eee52d38c090b3caa76c563b86c3a4bd71ef1a819287c19d586d7334ae8ed66"
 
 [[package]]
@@ -4042,20 +2688,8 @@ checksum = "8f55c233f70c4b27f66c523580f78f1004e8b5a8b659e05a4eb49d4166cca406"
 
 [[package]]
 name = "windows_i686_msvc"
-version = "0.48.5"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "8f55c233f70c4b27f66c523580f78f1004e8b5a8b659e05a4eb49d4166cca406"
-
-[[package]]
-name = "windows_i686_msvc"
 version = "0.52.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "240948bc05c5e7c6dabba28bf89d89ffce3e303022809e73deaefe4f6ec56c66"
-
-[[package]]
-name = "windows_i686_msvc"
-version = "0.52.6"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "240948bc05c5e7c6dabba28bf89d89ffce3e303022809e73deaefe4f6ec56c66"
 
 [[package]]
@@ -4066,20 +2700,8 @@ checksum = "53d40abd2583d23e4718fddf1ebec84dbff8381c07cae67ff7768bbf19c6718e"
 
 [[package]]
 name = "windows_x86_64_gnu"
-version = "0.48.5"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "53d40abd2583d23e4718fddf1ebec84dbff8381c07cae67ff7768bbf19c6718e"
-
-[[package]]
-name = "windows_x86_64_gnu"
 version = "0.52.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "147a5c80aabfbf0c7d901cb5895d1de30ef2907eb21fbbab29ca94c5b08b1a78"
-
-[[package]]
-name = "windows_x86_64_gnu"
-version = "0.52.6"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "147a5c80aabfbf0c7d901cb5895d1de30ef2907eb21fbbab29ca94c5b08b1a78"
 
 [[package]]
@@ -4090,20 +2712,8 @@ checksum = "0b7b52767868a23d5bab768e390dc5f5c55825b6d30b86c844ff2dc7414044cc"
 
 [[package]]
 name = "windows_x86_64_gnullvm"
-version = "0.48.5"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "0b7b52767868a23d5bab768e390dc5f5c55825b6d30b86c844ff2dc7414044cc"
-
-[[package]]
-name = "windows_x86_64_gnullvm"
 version = "0.52.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24d5b23dc417412679681396f2b49f3de8c1473deb516bd34410872eff51ed0d"
-
-[[package]]
-name = "windows_x86_64_gnullvm"
-version = "0.52.6"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "24d5b23dc417412679681396f2b49f3de8c1473deb516bd34410872eff51ed0d"
 
 [[package]]
@@ -4114,20 +2724,8 @@ checksum = "ed94fce61571a4006852b7389a063ab983c02eb1bb37b47f8272ce92d06d9538"
 
 [[package]]
 name = "windows_x86_64_msvc"
-version = "0.48.5"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
-checksum = "ed94fce61571a4006852b7389a063ab983c02eb1bb37b47f8272ce92d06d9538"
-
-[[package]]
-name = "windows_x86_64_msvc"
 version = "0.52.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
-
-[[package]]
-name = "windows_x86_64_msvc"
-version = "0.52.6"
-source = "sparse+https://artifacts.netflix.com/artifactory/api/cargo/crates-remote/index/"
 checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 
 [[package]]
@@ -4136,7 +2734,7 @@ version = "0.6.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "59b5e5f6c299a3c7890b876a2a587f3115162487e704907d9b6cd29473052ba1"
 dependencies = [
- "memchr 2.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "memchr",
 ]
 
 [[package]]
@@ -4145,18 +2743,8 @@ version = "0.50.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "524e57b2c537c0f9b1e69f1965311ec12182b4122e45035b1508cd24d2adadb1"
 dependencies = [
- "cfg-if 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "windows-sys 0.48.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "winreg"
-version = "0.52.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a277a57398d4bfa075df44f501a17cfdf8542d224f0d36095a2adc7aee4ef0a5"
-dependencies = [
- "cfg-if 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "windows-sys 0.48.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cfg-if",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -4166,26 +2754,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56c1936c4cc7a1c9ab21a1ebb602eb942ba868cbd44a99cb7cdc5892335e1c85"
 dependencies = [
  "linked-hash-map",
-]
-
-[[package]]
-name = "zerocopy"
-version = "0.7.35"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b9b4fd18abc82b8136838da5d50bae7bdea537c574d8dc1a34ed098d6c166f0"
-dependencies = [
- "zerocopy-derive",
-]
-
-[[package]]
-name = "zerocopy-derive"
-version = "0.7.35"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa4f8080344d4671fb4e831a13ad1e68092748387dfc4f55e356242fae12ce3e"
-dependencies = [
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 1.0.36 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 2.0.70 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -4203,7 +2771,7 @@ version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ce36e65b0d2999d2aafac989fb249189a141aee1f53c612c1f37d72631959f69"
 dependencies = [
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 1.0.36 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 2.0.70 (registry+https://github.com/rust-lang/crates.io-index)",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]

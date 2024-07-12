@@ -2,6 +2,7 @@ use std::{borrow::Cow, io, pin::Pin, sync::Arc};
 
 use async_trait::async_trait;
 use futures::{Future, SinkExt as _, StreamExt as _};
+use rustls::pki_types::ServerName;
 use serde::{Deserialize, Serialize};
 use tokio::{
   net::TcpStream,
@@ -10,8 +11,10 @@ use tokio::{
     RwLock,
   },
 };
+use tokio_rustls::TlsConnector;
 use tokio_serde_cbor::Codec;
 use tokio_util::codec::Decoder;
+use tracing::debug;
 
 use crate::{Error, Result};
 
@@ -164,7 +167,9 @@ where
   type Response = O;
 
   async fn send(&self, req: Self::Request) -> Result<Self::Response> {
-    let stream = TcpStream::connect(self.addr.as_ref()).await?;
+    let addr = self.addr.as_ref();
+    debug!(addr, "connecting to server over TCP");
+    let stream = TcpStream::connect(addr).await?;
     let codec = self.codec.clone();
     let (mut sender, mut receiver) = codec.framed(stream).split();
     sender.send(req).await?;
@@ -173,6 +178,78 @@ where
     } else {
       Err(Error::Io(io::Error::new(
         io::ErrorKind::UnexpectedEof,
+        "unexpected EOF",
+      )))
+    }
+  }
+}
+
+pub struct TlsTransport<'a, I, O> {
+  addr: Cow<'a, str>,
+  codec: Codec<O, I>,
+  tls_connector: TlsConnector,
+  server_name: ServerName<'static>,
+}
+
+impl<'a, I, O> TlsTransport<'a, I, O>
+where
+  I: Send + Sync + Serialize + for<'de> Deserialize<'de>,
+  O: Send + Sync + Serialize + for<'de> Deserialize<'de>,
+{
+  pub fn new(
+    addr: Cow<'a, str>,
+    client_config: rustls::ClientConfig,
+    server_name: ServerName<'static>,
+  ) -> Self {
+    Self {
+      addr,
+      codec: Codec::new(),
+      server_name,
+      tls_connector: TlsConnector::from(Arc::new(client_config)),
+    }
+  }
+
+  pub fn with_codec(
+    addr: Cow<'a, str>,
+    client_config: rustls::ClientConfig,
+    server_name: ServerName<'static>,
+    codec: Codec<O, I>,
+  ) -> Self {
+    Self {
+      addr,
+      codec,
+      server_name,
+      tls_connector: TlsConnector::from(Arc::new(client_config)),
+    }
+  }
+}
+
+#[async_trait]
+impl<'a, I, O> Transport for TlsTransport<'a, I, O>
+where
+  I: std::fmt::Debug + Clone + Send + Sync + Serialize + for<'de> Deserialize<'de>,
+  O: std::fmt::Debug + Clone + Send + Sync + Serialize + for<'de> Deserialize<'de>,
+{
+  type Request = I;
+  type Response = O;
+
+  async fn send(&self, req: Self::Request) -> Result<Self::Response> {
+    let addr = self.addr.as_ref();
+    debug!(addr, "connecting to server over TLS");
+    let stream = TcpStream::connect(addr).await?;
+    let stream = self
+      .tls_connector
+      .connect(self.server_name.clone(), stream)
+      .await?;
+    let codec = self.codec.clone();
+    let (mut sender, mut receiver) = codec.framed(stream).split();
+    sender.send(req).await?;
+    if let Some(response) = receiver.next().await {
+      debug!(addr, response=?response, "received response");
+      Ok(response?)
+    } else {
+      Err(Error::Io(io::Error::new(
+        io::ErrorKind::Other,
         "unexpected EOF",
       )))
     }
