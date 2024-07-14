@@ -2,20 +2,14 @@ pub mod bully;
 pub mod client;
 mod config;
 pub mod disco;
-pub mod protocol;
-pub mod server;
+mod idgen;
 pub mod transport;
 use std::io;
 
 pub use config::*;
+pub use idgen::generate_ulid as generate_monotonic_id;
 use rustls::pki_types::InvalidDnsNameError;
 use thiserror::Error;
-use ulid::Ulid;
-
-#[async_trait::async_trait]
-pub trait IdGenerator {
-  async fn next_id(&self) -> Result<Ulid>;
-}
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 

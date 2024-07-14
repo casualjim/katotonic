@@ -11,11 +11,13 @@ async-trait = { version = "0.1" }
 chitchat = "0.7"
 clap = { version = "4.5.8", features = ["derive", "env"] }
 config = "0.14"
+console-subscriber = { version = "0.3.0" }
 
 dashmap = "6"
 
 futures = "0.3"
 futures-util = "0.3"
+futures-rustls = { git = "https://github.com/rustls/futures-rustls", branch = "master" }
 
 humantime = "2"
 
@@ -37,26 +39,66 @@ tracing = "0.1"
 tracing-log = { version = "0.2.0" }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "valuable"] }
 trust-dns-resolver = "0.23"
+tikv-jemallocator = { version = "0.5" }
 
 ulid = { version = "1", features = ["serde"] }
 tokio-util = "0.7"
 webpki = "0.22"
 webpki-roots = "0.26"
+portable-atomic = { version = "1.6.0" }
+lazy_static = { version = "1.5.0" }
+crossbeam = { version = "0.8.4" }
+threadpool = { version = "1.8.1" }
+smol = { version = "2" }
+async-executor = { version = "1.12.0" }
+num_cpus = { version = "1.16.0" }
+futures-lite = { version = "2.3.0" }
+blocking = { version = "1.6.1" }
+smolscale = { version = "0.4.7" }
 
 [dev-dependencies]
 color-backtrace = "0.6"
-console-subscriber = { version = "0.3.0" }
 ctor = "0.2"
 
+
 [[bin]]
-name = "ulidd"
-path = "src/bin/server.rs"
+name = "catotonic"
+path = "src/bin/sync-server.rs"
 bench = false
 test = false
 
+[[bin]]
+name = "katotonic"
+path = "src/bin/async-server.rs"
+bench = false
+test = false
+
+[[bin]]
+name = "kittytonic"
+path = "src/bin/smol-server.rs"
+bench = false
+test = false
 
 [[example]]
 name = "client"
 path = "examples/client.rs"
+bench = false
+test = false
+
+[[example]]
+name = "sync-client"
+path = "examples/sync-client.rs"
+bench = false
+test = false
+
+[[example]]
+name = "async-client"
+path = "examples/async-client.rs"
+bench = false
+test = false
+
+[[example]]
+name = "smol-client"
+path = "examples/smol-client.rs"
 bench = false
 test = false

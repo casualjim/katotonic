@@ -62,7 +62,7 @@ where
   O: Send + Sync + Serialize + for<'de> Deserialize<'de> + 'static,
   H: Handler<I, O> + 'static,
 {
-  use tokio::sync::Mutex;
+  use futures::lock::Mutex;
   use tracing::error;
 
   let (req_tx, req_rx) = tokio::sync::mpsc::channel(1);

@@ -117,6 +117,32 @@ pub enum PeerState {
   Follower(String, u64),
 }
 
+impl PeerState {
+  pub fn is_leader(&self) -> bool {
+    matches!(self, PeerState::Leader(_, _))
+  }
+
+  pub fn is_follower(&self) -> bool {
+    matches!(self, PeerState::Follower(_, _))
+  }
+
+  pub fn is_participant(&self) -> bool {
+    matches!(self, PeerState::Participant(_, _))
+  }
+
+  pub fn is_down(&self) -> bool {
+    matches!(self, PeerState::Down)
+  }
+
+  pub fn leader_id(&self) -> Option<(String, u64)> {
+    match self {
+      PeerState::Leader(name, id) => Some((name.clone(), *id)),
+      PeerState::Follower(name, id) => Some((name.clone(), *id)),
+      _ => None,
+    }
+  }
+}
+
 async fn manage_state(
   state: Arc<DashMap<String, Peer>>,
   disco: Arc<dyn Discovery>,
@@ -485,8 +511,8 @@ mod tests {
     task::{Context, Poll},
   };
 
-  use futures::{ready, stream::BoxStream, Stream};
-  use tokio::sync::{mpsc, Mutex};
+  use futures::{lock::Mutex, ready, stream::BoxStream, Stream};
+  use tokio::sync::mpsc;
   use tokio_util::sync::ReusableBoxFuture;
   use tracing::debug;
   use watch::{error::RecvError, Receiver};
