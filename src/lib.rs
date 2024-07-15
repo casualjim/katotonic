@@ -3,6 +3,7 @@ pub mod client;
 mod config;
 pub mod disco;
 mod idgen;
+pub mod server;
 pub mod transport;
 use std::io;
 
@@ -37,6 +38,13 @@ pub enum Error {
   ConsensusNotAchieved,
   #[error("Invalid server name: {0}")]
   InvalidServerName(#[from] InvalidDnsNameError),
+  #[error("Connection pool initialization failed")]
+  PoolInitializationFailed,
+  #[error("unable to get a connection from the pool")]
+  PoolAcquireConnectionFailed,
+  #[cfg(feature = "smol")]
+  #[error("Smol send error: {0}")]
+  SmolRecvError(#[from] smol::channel::RecvError),
 }
 
 #[cfg(test)]

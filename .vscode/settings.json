@@ -3,6 +3,10 @@
     "**/target": true,
     "**/.git": true,
   },
+  "rust-analyzer.cargo.features": [
+    "blocking",
+    "smol"
+  ],
   "rust-analyzer.linkedProjects": [
     "./Cargo.toml"
   ],

@@ -1,22 +1,17 @@
 use std::{io, sync::Arc};
 
-use async_trait::async_trait;
-use futures::lock::Mutex;
+use futures_rustls::{client::TlsStream, TlsConnector};
 use rustls::{pki_types::ServerName, ClientConfig};
-use tokio::{
-  io::{AsyncReadExt as _, AsyncWriteExt as _},
+use smol::{
+  channel::{bounded, Receiver, Sender},
+  io::{AsyncReadExt, AsyncWriteExt},
+  lock::{Mutex, Semaphore},
   net::TcpStream,
-  sync::{
-    mpsc::{self, Receiver, Sender},
-    Semaphore,
-  },
 };
-use tokio_rustls::{client::TlsStream, TlsConnector};
 use tracing::{error, info, instrument};
 use ulid::Ulid;
 
-use super::AsyncClient;
-use crate::{Error, Result};
+use crate::Result;
 
 #[derive(Clone)]
 pub struct Client {
@@ -26,8 +21,8 @@ pub struct Client {
 impl Client {
   pub async fn new(config: crate::ClientConfig, concurrency: usize) -> Result<Self> {
     let root_store = config.root_store()?;
-    let server_name = config.server_name();
-    let addr = config.addr();
+    let server_name = config.server_name().to_string();
+    let addr = config.addr().to_string();
 
     info!("connecting to server={addr} server_name={server_name}");
     let builder = ClientConfig::builder().with_root_certificates(root_store);
@@ -41,18 +36,17 @@ impl Client {
     let pool = ConnectionPool::new(Arc::new(config), addr, server_name, concurrency).await?;
     Ok(Self { pool })
   }
-}
 
-#[async_trait]
-impl AsyncClient for Client {
   #[instrument(skip(self))]
-  async fn next_id(&self) -> Result<Ulid> {
+  pub async fn next_id(&self) -> Result<Ulid> {
     let mut tls_stream = self.pool.get_connection().await?;
+    let msg = [1u8];
+    tls_stream.write_all(&msg).await?;
 
-    let msg_type = [1u8];
-    tls_stream.write_all(&msg_type).await?;
-
+    // Buffer to hold the 16 bytes read from the stream
     let mut buffer = [0u8; 16];
+
+    // Read 16 bytes from the TLS stream
     tls_stream.read_exact(&mut buffer).await?;
     self.pool.return_connection(tls_stream).await;
 
@@ -70,24 +64,23 @@ struct ConnectionPool {
 impl ConnectionPool {
   async fn new(
     config: Arc<ClientConfig>,
-    addr: &str,
-    server_name: &str,
+    addr: String,
+    server_name: String,
     size: usize,
   ) -> Result<Self> {
-    let (sender, receiver) = mpsc::channel(size);
+    let (sender, receiver) = bounded(size);
 
     let connector = TlsConnector::from(config.clone());
 
     // Initialize the pool with the specified number of connections
     for _ in 0..size {
-      let tcp_stream = TcpStream::connect(addr).await?;
-      let dns_name = ServerName::try_from(server_name.to_string()).unwrap();
+      let tcp_stream = TcpStream::connect(&addr).await?;
+      let dns_name = ServerName::try_from(server_name.clone()).unwrap();
 
       let tls_stream = connector.connect(dns_name, tcp_stream).await?;
-      sender
-        .send(tls_stream)
-        .await
-        .map_err(|_| Error::PoolInitializationFailed)?;
+      if let Err(e) = sender.send(tls_stream).await {
+        error!("Failed to send connection to pool: {}", e);
+      }
     }
 
     Ok(Self {
@@ -100,21 +93,13 @@ impl ConnectionPool {
   #[instrument(skip(self))]
   async fn get_connection(&self) -> Result<TlsStream<TcpStream>> {
     let _permit = self.semaphore.acquire().await;
-    Ok(
-      self
-        .receiver
-        .lock()
-        .await
-        .recv()
-        .await
-        .ok_or(Error::PoolAcquireConnectionFailed)?,
-    )
+    Ok(self.receiver.lock().await.recv().await?)
   }
 
   #[instrument(skip(self, conn))]
   async fn return_connection(&self, conn: TlsStream<TcpStream>) {
     if let Err(e) = self.sender.send(conn).await {
       error!("Failed to return connection to pool: {}", e);
-    };
+    }
   }
 }

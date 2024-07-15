@@ -1,4 +1,4 @@
-module github.com/casualjim/ulidd/ulidc-go
+module github.com/casualjim/ulidd/katotonic
 
 go 1.22.5
 

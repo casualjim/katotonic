@@ -29,7 +29,7 @@ fn main() -> anyhow::Result<()> {
     .init();
 
   let conf = ulidd::ServerConfig::parse();
-  let config = Arc::new(server_tls_config(&conf.cert, &conf.key, conf.ca.as_ref())?);
+  let config = Arc::new(server_tls_config(&conf.cert, &conf.key, Some(&conf.ca))?);
   let listener = TcpListener::bind("127.0.0.1:9000").expect("Failed to bind to address");
 
   let pool = threadpool::Builder::new()

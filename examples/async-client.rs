@@ -5,13 +5,13 @@ use futures::{stream::FuturesOrdered, StreamExt};
 #[cfg(not(target_env = "msvc"))] use tikv_jemallocator::Jemalloc;
 use tokio::sync::mpsc;
 use ulid::Ulid;
-use ulidd::client::Client;
+use ulidd::client::{AsyncClient as _, Client};
 
 #[cfg(not(target_env = "msvc"))]
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
 
-const CONCURRENCY: usize = 100;
+const CONCURRENCY: usize = 50;
 const NUM_IDS: usize = 1_000_000;
 
 #[tokio::main]

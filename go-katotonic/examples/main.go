@@ -1,15 +1,13 @@
 package main
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"sync"
 	"time"
 
+	"github.com/casualjim/ulidd/katotonic"
 	"github.com/oklog/ulid/v2"
 )
 
@@ -23,25 +21,15 @@ func main() {
 	clientCertPath := "../tests/certs/ulidd.client-client.pem"
 	clientKeyPath := "../tests/certs/ulidd.client-client-key.pem"
 
-	caCert, err := os.ReadFile(caCertPath)
+	client, err := katotonic.NewClient(
+		katotonic.WithAddr("localhost:9000"),
+		katotonic.WithMaxConn(numConnections),
+		katotonic.WithCACert(caCertPath),
+		katotonic.WithCert(clientCertPath),
+		katotonic.WithKey(clientKeyPath),
+	)
 	if err != nil {
-		panic(err)
-	}
-
-	caCertPool := x509.NewCertPool()
-	if !caCertPool.AppendCertsFromPEM(caCert) {
-		panic("failed to append CA certificate")
-	}
-
-	clientCert, err := tls.LoadX509KeyPair(clientCertPath, clientKeyPath)
-	if err != nil {
-		panic(fmt.Errorf("failed to load client certificate and key: %w", err))
-	}
-
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{clientCert},
-		RootCAs:      caCertPool,
-		ServerName:   "localhost",
+		log.Fatalf("failed to create client: %v", err)
 	}
 
 	var wg sync.WaitGroup
@@ -52,29 +40,16 @@ func main() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			conn, err := tls.Dial("tcp", "127.0.0.1:9000", tlsConfig)
-			if err != nil {
-				log.Fatalf("failed to dial: %v", err)
-			}
-			defer conn.Close()
 
 			var prev ulid.ULID
 			localULIDs := make([]ulid.ULID, 0, numRequests)
 
 			for j := 0; j < numRequests; j++ {
-				// Send request
-				msg := []byte{1}
-				if _, err := conn.Write(msg); err != nil {
-					log.Fatalf("failed to write to connection: %v", err)
-				}
 
-				// Read response
-				buffer := [16]byte{}
-				if _, err := io.ReadFull(conn, buffer[:]); err != nil {
-					log.Fatalf("failed to read from connection: %v", err)
+				id, err := client.NextId()
+				if err != nil {
+					log.Fatalf("failed to get next ID: %v", err)
 				}
-
-				id := ulid.ULID(buffer)
 				if id.Compare(prev) <= 0 {
 					log.Fatalf("received non-monotonic ID: %s < %s", id, prev)
 				}

@@ -24,7 +24,7 @@ fn main() -> anyhow::Result<()> {
   tracing_subscriber::registry().with(subscriber).init();
 
   let conf = ulidd::ServerConfig::parse();
-  let config = Arc::new(server_tls_config(&conf.cert, &conf.key, conf.ca.as_ref())?);
+  let config = Arc::new(server_tls_config(&conf.cert, &conf.key, Some(&conf.ca))?);
 
   smolscale::block_on(async move {
     let acceptor = TlsAcceptor::from(config);

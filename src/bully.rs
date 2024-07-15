@@ -22,6 +22,7 @@ use tracing::{debug, error, info, warn};
 
 use super::disco::Discovery;
 use crate::{
+  disco::ChitchatDiscovery,
   keypair, root_store, server_tls_config,
   transport::{TcpTransport, TlsTransport, Transport},
   Error, Result, ServerConfig,
@@ -452,7 +453,7 @@ fn tls_transport_factory(conf: &ServerConfig) -> Result<PeerFactory> {
 
 pub async fn track_leader(
   conf: ServerConfig,
-  discovery: Arc<dyn Discovery>,
+  discovery: Arc<ChitchatDiscovery>,
   peer_factory: Option<PeerFactory>,
 ) -> Result<watch::Receiver<PeerState>> {
   let (leader_holder, leader_receiver) = watch::channel(PeerState::Down);

@@ -33,6 +33,9 @@ pub struct ClientConfig {
   pub ca: String,
   #[clap(long, default_value = "localhost:9000")]
   pub addr: String,
+
+  #[clap(long)]
+  pub server_name: Option<String>,
 }
 
 impl ClientConfig {
@@ -56,7 +59,10 @@ impl ClientConfig {
   }
 
   pub fn server_name(&self) -> &str {
-    self.addr.split(':').next().unwrap()
+    self
+      .server_name
+      .as_deref()
+      .unwrap_or_else(|| self.addr.split(':').next().unwrap())
   }
 }
 
@@ -72,8 +78,12 @@ pub struct ServerConfig {
   pub cert: String,
   #[clap(long, default_value = "tests/certs/ulidd.service+3-key.pem")]
   pub key: String,
+  #[clap(long, default_value = "tests/certs/ulidd.client-client-key.pem")]
+  pub client_key: Option<String>,
+  #[clap(long, default_value = "tests/certs/ulidd.client-client.pem")]
+  pub client_cert: Option<String>,
   #[clap(long, default_value = "tests/certs/rootCA.pem")]
-  pub ca: Option<String>,
+  pub ca: String,
   #[clap(long, default_value = "127.0.0.1:9000")]
   pub addr: String,
   #[clap(long, default_value = "false")]
@@ -173,11 +183,7 @@ impl ServerConfig {
   }
 
   pub fn root_store(&self) -> Result<Option<RootCertStore>> {
-    if let Some(ca) = self.ca.as_ref() {
-      root_store(ca).map(Some)
-    } else {
-      Ok(None)
-    }
+    root_store(self.ca.as_str()).map(Some)
   }
 
   pub fn keypair(&self) -> Result<Option<(Vec<CertificateDer<'static>>, PrivateKeyDer<'static>)>> {

@@ -23,6 +23,8 @@ humantime = "2"
 
 mry = "0.8"
 
+portable-atomic = { version = "1.6.0" }
+
 rand = "0.8"
 rustls = "0.23"
 rustls-pemfile = "2"
@@ -32,40 +34,51 @@ serde_cbor = "0.11"
 serde_json = "1"
 
 thiserror = "1"
-tokio = { version = "1", features = ["full"] }
+tikv-jemallocator = { version = "0.6" }
+tokio = { version = "1", features = ["net", "rt", "rt-multi-thread", "sync"] }
 tokio-rustls = "0.26"
 tokio-serde-cbor = "*"
+tokio-util = "0.7"
 tracing = "0.1"
 tracing-log = { version = "0.2.0" }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "valuable"] }
 trust-dns-resolver = "0.23"
-tikv-jemallocator = { version = "0.5" }
 
 ulid = { version = "1", features = ["serde"] }
-tokio-util = "0.7"
+
 webpki = "0.22"
 webpki-roots = "0.26"
-portable-atomic = { version = "1.6.0" }
-lazy_static = { version = "1.5.0" }
-crossbeam = { version = "0.8.4" }
-threadpool = { version = "1.8.1" }
-smol = { version = "2" }
-async-executor = { version = "1.12.0" }
-num_cpus = { version = "1.16.0" }
-futures-lite = { version = "2.3.0" }
-blocking = { version = "1.6.1" }
-smolscale = { version = "0.4.7" }
+
+crossbeam = { version = "0.8.4", optional = true }
+threadpool = { version = "1.8.1", optional = true }
+smol = { version = "2", optional = true }
+async-executor = { version = "1.12.0", optional = true }
+num_cpus = { version = "1.16.0", optional = true }
+futures-lite = { version = "2.3.0", optional = true }
+smolscale = { version = "0.4.7", optional = true }
+
+[features]
+default = []
+smol = [
+  "dep:smol",
+  "dep:async-executor",
+  "dep:num_cpus",
+  "dep:futures-lite",
+  "dep:smolscale",
+]
+blocking = ["dep:crossbeam", "dep:threadpool"]
 
 [dev-dependencies]
 color-backtrace = "0.6"
 ctor = "0.2"
-
+crossbeam = { version = "0.8.4" }
 
 [[bin]]
 name = "catotonic"
 path = "src/bin/sync-server.rs"
 bench = false
 test = false
+required-features = ["blocking"]
 
 [[bin]]
 name = "katotonic"
@@ -78,6 +91,8 @@ name = "kittytonic"
 path = "src/bin/smol-server.rs"
 bench = false
 test = false
+required-features = ["smol"]
+
 
 [[example]]
 name = "client"
@@ -90,6 +105,7 @@ name = "sync-client"
 path = "examples/sync-client.rs"
 bench = false
 test = false
+required-features = ["blocking"]
 
 [[example]]
 name = "async-client"
@@ -102,3 +118,4 @@ name = "smol-client"
 path = "examples/smol-client.rs"
 bench = false
 test = false
+required-features = ["smol"]
