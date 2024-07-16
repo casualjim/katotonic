@@ -5,23 +5,58 @@ import (
 	"crypto/x509"
 	"errors"
 	"io"
-	"net"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/oklog/ulid/v2"
 )
 
 type opts struct {
-	addr      string
-	maxConn   int
+	addr           string
+	maxConn        int
+	connectTimeout time.Duration
+
 	tlsConfig *tls.Config
 
 	caCert     string
 	cert       string
 	key        string
 	serverName string
+}
+
+func (o *opts) TLSConfig() (*tls.Config, error) {
+	var tlsConfig *tls.Config
+	if o.tlsConfig == nil {
+		if o.caCert != "" {
+			caCert, err := os.ReadFile(o.caCert)
+			if err != nil {
+				return nil, err
+			}
+
+			caCertPool := x509.NewCertPool()
+			if !caCertPool.AppendCertsFromPEM(caCert) {
+				return nil, errors.New("failed to append CA certificate")
+			}
+
+			if o.key != "" || o.cert != "" {
+				clientCert, err := tls.LoadX509KeyPair(o.cert, o.key)
+				if err != nil {
+					return nil, err
+				}
+
+				tlsConfig = &tls.Config{
+					Certificates: []tls.Certificate{clientCert},
+					RootCAs:      caCertPool,
+					ServerName:   o.serverName,
+				}
+			}
+		}
+	} else {
+		tlsConfig = &tls.Config{
+			ServerName: o.serverName,
+		}
+	}
+	return tlsConfig, nil
 }
 
 type Option func(*opts)
@@ -68,53 +103,33 @@ func WithServerName(serverName string) Option {
 	}
 }
 
+func WithConnectTimeout(connectTimeout time.Duration) Option {
+	return func(o *opts) {
+		o.connectTimeout = connectTimeout
+	}
+}
+
 type Client struct {
 	pool *connectionPool
 }
 
-func NewClient(options ...Option) (*Client, error) {
+func New(options ...Option) (*Client, error) {
 	o := &opts{
-		addr:    "localhost:9000",
-		maxConn: 50,
+		addr:           "localhost:9000",
+		maxConn:        10,
+		connectTimeout: 5 * time.Second,
 	}
 
 	for _, apply := range options {
 		apply(o)
 	}
 
-	var tlsConfig *tls.Config
-	if o.tlsConfig == nil {
-	} else if o.caCert != "" {
-		caCert, err := os.ReadFile(o.caCert)
-		if err != nil {
-			return nil, err
-		}
-
-		caCertPool := x509.NewCertPool()
-		if !caCertPool.AppendCertsFromPEM(caCert) {
-			return nil, errors.New("failed to append CA certificate")
-		}
-
-		if o.key != "" || o.cert != "" {
-			clientCert, err := tls.LoadX509KeyPair(o.cert, o.key)
-			if err != nil {
-				return nil, err
-			}
-
-			tlsConfig = &tls.Config{
-				Certificates: []tls.Certificate{clientCert},
-				RootCAs:      caCertPool,
-				ServerName:   o.serverName,
-			}
-		} else {
-			tlsConfig = &tls.Config{
-				RootCAs:    caCertPool,
-				ServerName: o.serverName,
-			}
-		}
+	tlsConfig, err := o.TLSConfig()
+	if err != nil {
+		return nil, err
 	}
 
-	pool, err := newConnectionPool(o.addr, o.maxConn, tlsConfig)
+	pool, err := newConnectionPool(o.addr, o.maxConn, tlsConfig, o.connectTimeout, dial)
 	if err != nil {
 		return nil, err
 	}
@@ -130,13 +145,13 @@ func (c *Client) NextId() (ulid.ULID, error) {
 	if err != nil {
 		return ulid.ULID{}, err
 	}
-	defer c.pool.Put(conn)
+	defer c.pool.Put(conn, nil)
 
-	_, err = conn.Write([]byte{1})
+	requestType := []byte{1}
+	_, err = conn.Write(requestType)
 	if err != nil {
 		return ulid.ULID{}, err
 	}
-
 	var buffer [16]byte
 	_, err = io.ReadFull(conn, buffer[:])
 	if err != nil {
@@ -144,59 +159,66 @@ func (c *Client) NextId() (ulid.ULID, error) {
 	}
 
 	return ulid.ULID(buffer), nil
-}
 
-// connectionPool represents a pool of TCP connections.
-type connectionPool struct {
-	mu    sync.Mutex
-	conns chan net.Conn
-}
+	// for i := 0; i < 3; i++ {
+	// 	requestType := []byte{1}
+	// 	_, err = conn.Write(requestType)
+	// 	if err != nil {
+	// 		return ulid.ULID{}, err
+	// 	}
 
-// newConnectionPool initializes a new connection pool.
-func newConnectionPool(addr string, maxConn int, tlsConfig *tls.Config) (*connectionPool, error) {
-	conns := make(chan net.Conn, maxConn)
-	for i := 0; i < maxConn; i++ {
-		var conn net.Conn
-		var err error
-		if tlsConfig != nil {
-			conn, err = tls.DialWithDialer(&net.Dialer{
-				Timeout: 5 * time.Second,
-			}, "tcp", addr, tlsConfig)
-		} else {
-			conn, err = net.DialTimeout("tcp", addr, 5*time.Second)
-		}
+	// 	var responseType [1]byte
+	// 	_, err = io.ReadFull(conn, responseType[:])
+	// 	if err != nil {
+	// 		return ulid.ULID{}, err
+	// 	}
+	// 	switch responseType[0] {
+	// 	case 0:
+	// 		return ulid.ULID{}, errors.New("server error")
+	// 	case 1: // this is a ulid
+	// 		var buffer [16]byte
+	// 		_, err = io.ReadFull(conn, buffer[:])
+	// 		if err != nil {
+	// 			return ulid.ULID{}, err
+	// 		}
+	// 	case 2: // redirect to new leader
+	// 		var addrLen [1]byte
+	// 		_, err = io.ReadFull(conn, addrLen[:])
+	// 		if err != nil {
+	// 			return ulid.ULID{}, err
+	// 		}
 
-		if err != nil {
-			close(conns)
-			return nil, err
-		}
-		conns <- conn
-	}
-	return &connectionPool{
-		conns: conns,
-	}, nil
-}
+	// 		addr := make([]byte, addrLen[0])
+	// 		_, err = io.ReadFull(conn, addr)
+	// 		if err != nil {
+	// 			return ulid.ULID{}, err
+	// 		}
+	// 		conn.Close()
 
-// Get retrieves a connection from the pool or creates a new one if the pool is empty.
-func (p *connectionPool) Get() (net.Conn, error) {
-	return <-p.conns, nil
-}
+	// 		err = c.pool.SwitchAddr(string(addr))
+	// 		if err != nil {
+	// 			return ulid.ULID{}, err
+	// 		}
+	// 		con, err := c.pool.Get()
+	// 		if err != nil {
+	// 			return ulid.ULID{}, err
+	// 		}
+	// 		conn = con
+	// 		continue
+	// 	}
 
-// Put returns a connection to the pool.
-func (p *connectionPool) Put(conn net.Conn) {
-	select {
-	case p.conns <- conn:
-	default:
-		conn.Close() // Close the connection if the pool is full.
-	}
-}
+	// requestType := []byte{1}
+	// _, err = conn.Write(requestType)
+	// if err != nil {
+	// 	return ulid.ULID{}, err
+	// }
+	// var buffer [16]byte
+	// _, err = io.ReadFull(conn, buffer[:])
+	// if err != nil {
+	// 	return ulid.ULID{}, err
+	// }
 
-// Close closes all connections in the pool.
-func (p *connectionPool) Close() {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	close(p.conns)
-	for conn := range p.conns {
-		conn.Close()
-	}
+	// return ulid.ULID(buffer), nil
+	// }
+	// return ulid.ULID{}, errors.New("too many redirects")
 }

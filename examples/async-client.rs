@@ -11,7 +11,7 @@ use ulidd::client::{AsyncClient as _, Client};
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
 
-const CONCURRENCY: usize = 50;
+const CONCURRENCY: usize = 10;
 const NUM_IDS: usize = 1_000_000;
 
 #[tokio::main]

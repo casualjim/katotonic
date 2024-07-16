@@ -77,7 +77,6 @@ impl ConnectionPool {
     let (sender, receiver) = mpsc::channel(size);
 
     let connector = TlsConnector::from(config.clone());
-
     // Initialize the pool with the specified number of connections
     for _ in 0..size {
       let tcp_stream = TcpStream::connect(addr).await?;

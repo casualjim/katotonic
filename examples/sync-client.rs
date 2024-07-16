@@ -14,7 +14,7 @@ use rustls::{pki_types::ServerName, ClientConfig, ClientConnection, StreamOwned}
 use tracing::info;
 use ulid::Ulid;
 
-const CONCURRENCY: usize = 5; // This client doesn't do well with high concurrency rates
+const CONCURRENCY: usize = 10; // This client doesn't do well with high concurrency rates
 const NUM_IDS: usize = 1_000_000;
 
 #[cfg(not(target_env = "msvc"))]

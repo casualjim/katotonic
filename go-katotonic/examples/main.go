@@ -21,7 +21,7 @@ func main() {
 	clientCertPath := "../tests/certs/ulidd.client-client.pem"
 	clientKeyPath := "../tests/certs/ulidd.client-client-key.pem"
 
-	client, err := katotonic.NewClient(
+	client, err := katotonic.New(
 		katotonic.WithAddr("localhost:9000"),
 		katotonic.WithMaxConn(numConnections),
 		katotonic.WithCACert(caCertPath),
