@@ -8,13 +8,13 @@ use std::{
 };
 
 use clap::Parser as _;
-use crossbeam::channel::{self, bounded, Receiver, Sender};
+use kanal::{Receiver, Sender};
 use rustls::{pki_types::ServerName, ClientConfig, ClientConnection, StreamOwned};
 #[cfg(not(target_env = "msvc"))] use tikv_jemallocator::Jemalloc;
 use tracing::info;
 use ulid::Ulid;
 
-const CONCURRENCY: usize = 10; // This client doesn't do well with high concurrency rates
+const CONCURRENCY: usize = 5; // This client doesn't do well with high concurrency rates
 const NUM_IDS: usize = 1_000_000;
 
 #[cfg(not(target_env = "msvc"))]
@@ -44,7 +44,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
   // let id = next_id(&pool)?;
   // println!("Received ID: {}", id);
 
-  let (tx, rx) = channel::bounded(CONCURRENCY * NUM_IDS);
+  let (tx, rx) = kanal::bounded(CONCURRENCY * NUM_IDS);
   let start = Instant::now();
   thread::scope(|s| {
     for _ in 0..CONCURRENCY {
@@ -87,17 +87,44 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn next_id(pool: &ConnectionPool) -> ulidd::Result<Ulid> {
-  let mut tls_stream = pool.get_connection()?;
-  let msg = 1u8.to_be_bytes();
-  tls_stream.write_all(&msg)?;
+  let mut tries = 0;
+  loop {
+    tries += 1;
+    if tries > 3 {
+      return Err(io::Error::new(io::ErrorKind::Other, "too many tries").into());
+    }
+    let mut tls_stream = pool.get_connection()?;
+    let msg = [1u8];
+    tls_stream.write_all(&msg)?;
 
-  // Buffer to hold the 16 bytes read from the stream
-  let mut buffer = [0u8; 16];
+    let mut response_type = [0u8];
+    tls_stream.read_exact(&mut response_type)?;
+    match response_type[0] {
+      1 => {
+        let mut buffer = [0u8; 16];
+        tls_stream.read_exact(&mut buffer)?;
+        pool.return_connection(tls_stream);
+        return Ok(Ulid::from_bytes(buffer));
+      }
+      2 => {
+        let mut response_len = [0u8; 1];
 
-  // Read 16 bytes from the TLS stream
-  tls_stream.read_exact(&mut buffer)?;
-  pool.return_connection(tls_stream);
-  Ok(Ulid::from_bytes(buffer))
+        tls_stream.read_exact(&mut response_len)?;
+        let len = response_len[0] as usize;
+
+        let mut buffer = vec![0u8; len];
+        tls_stream.read_exact(&mut buffer)?;
+
+        // let new_addr = String::from_utf8(buffer).unwrap();
+        // pool.switch_addr(new_addr)?;
+        continue;
+      }
+      _ => {
+        pool.return_connection(tls_stream);
+        continue;
+      }
+    }
+  }
 }
 
 struct ConnectionPool {
@@ -107,7 +134,7 @@ struct ConnectionPool {
 
 impl ConnectionPool {
   fn new(config: Arc<ClientConfig>, addr: &str, server_name: &str, size: usize) -> Self {
-    let (sender, receiver) = bounded(size);
+    let (sender, receiver) = kanal::bounded(size);
 
     // Initialize the pool with the specified number of connections
     for _ in 0..size {

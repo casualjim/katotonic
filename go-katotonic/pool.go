@@ -1,10 +1,14 @@
 package katotonic
 
 import (
+	"context"
 	"crypto/tls"
+	"log/slog"
 	"net"
 	"sync"
 	"time"
+
+	"golang.org/x/sync/semaphore"
 )
 
 type Dialer func(addr string, tlsConfig *tls.Config, connectTimeout time.Duration) (net.Conn, error)
@@ -28,6 +32,7 @@ type connectionPool struct {
 	addr           string
 	tlsConfig      *tls.Config
 	connectTimeout time.Duration
+	sem            *semaphore.Weighted
 }
 
 // newConnectionPool initializes a new connection pool.
@@ -51,11 +56,16 @@ func newConnectionPool(addr string, maxConn int, tlsConfig *tls.Config, connectT
 		maxConn:        maxConn,
 		conns:          conns,
 		dialer:         dialer,
+		sem:            semaphore.NewWeighted(int64(maxConn)),
 	}, nil
 }
 
 // Get retrieves a connection from the pool or creates a new one if the pool is empty.
 func (p *connectionPool) Get() (net.Conn, error) {
+	if err := p.sem.Acquire(context.Background(), 1); err != nil {
+		return nil, err
+	}
+	defer p.sem.Release(1)
 	return <-p.conns, nil
 }
 
@@ -79,6 +89,15 @@ func (p *connectionPool) Put(conn net.Conn, err error) {
 func (p *connectionPool) SwitchAddr(newAddr string) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+	if p.addr == newAddr {
+		return nil
+	}
+	slog.Info("Switching address", slog.String("old", p.addr), slog.String("new", newAddr))
+
+	if err := p.sem.Acquire(context.Background(), int64(p.maxConn)); err != nil {
+		return err
+	}
+	defer p.sem.Release(int64(p.maxConn))
 
 	oldConns := make([]net.Conn, 0, p.maxConn)
 	for {

@@ -31,10 +31,10 @@ pub struct ClientConfig {
   pub key: Option<String>,
   #[clap(long, default_value = "tests/certs/rootCA.pem")]
   pub ca: String,
-  #[clap(long, default_value = "localhost:9000")]
+  #[clap(long, default_value = "127.0.0.1:9000")]
   pub addr: String,
 
-  #[clap(long)]
+  #[clap(long, default_value = "localhost")]
   pub server_name: Option<String>,
 }
 

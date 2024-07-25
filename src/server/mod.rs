@@ -1,9 +1,12 @@
+mod handler;
+#[cfg(feature = "smol")] mod smol;
 mod tokio;
 
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use chitchat::{spawn_chitchat, transport::UdpTransport, ChitchatHandle};
+#[cfg(feature = "smol")] pub use smol::run_server as run_smol_server;
 pub use tokio::run_server;
 use tracing::info;
 

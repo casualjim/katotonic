@@ -45,6 +45,10 @@ pub enum Error {
   #[cfg(feature = "smol")]
   #[error("Smol send error: {0}")]
   SmolRecvError(#[from] smol::channel::RecvError),
+  #[error("Kanal receive error: {0}")]
+  KanalRecv(#[from] kanal::ReceiveError),
+  #[error("Kanal sen error: {0}")]
+  KanalSend(#[from] kanal::SendError),
 }
 
 #[cfg(test)]

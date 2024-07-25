@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"sync"
 	"time"
@@ -11,7 +12,7 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-const numConnections = 50
+const numConnections = 5
 const numRequests = 1_000_000
 
 func main() {
@@ -29,7 +30,8 @@ func main() {
 		katotonic.WithKey(clientKeyPath),
 	)
 	if err != nil {
-		log.Fatalf("failed to create client: %v", err)
+		slog.Error("failed to create client", slog.Any("error", err))
+		os.Exit(1)
 	}
 
 	var wg sync.WaitGroup
@@ -48,10 +50,12 @@ func main() {
 
 				id, err := client.NextId()
 				if err != nil {
-					log.Fatalf("failed to get next ID: %v", err)
+					slog.Error("failed to get next ID", slog.Any("error", err))
+					os.Exit(1)
 				}
 				if id.Compare(prev) <= 0 {
-					log.Fatalf("received non-monotonic ID: %s < %s", id, prev)
+					slog.Error(fmt.Sprintf("received non-monotonic ID: %s < %s", id, prev))
+					os.Exit(1)
 				}
 				prev = id
 
@@ -64,7 +68,7 @@ func main() {
 
 	wg.Wait()
 	close(allULIDs)
-	fmt.Printf("All tasks completed in %v\n", time.Since(start))
+	slog.Info("All tasks completed", slog.Duration("took", time.Since(start)))
 
 	// Collect all ULIDs into a single slice for global verification
 	var combinedULIDs []ulid.ULID
@@ -81,5 +85,5 @@ func main() {
 		ulidSet[id] = struct{}{}
 	}
 
-	fmt.Println("All ULIDs are unique and strictly monotonic")
+	slog.Info("All ULIDs are unique and strictly monotonic")
 }

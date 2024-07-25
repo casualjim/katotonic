@@ -1,18 +1,15 @@
-use std::{io, sync::Arc};
+use std::{io, net::SocketAddr, sync::Arc};
 
 use async_trait::async_trait;
-use futures::lock::Mutex;
+use kanal::{AsyncReceiver, AsyncSender};
 use rustls::{pki_types::ServerName, ClientConfig};
 use tokio::{
   io::{AsyncReadExt as _, AsyncWriteExt as _},
   net::TcpStream,
-  sync::{
-    mpsc::{self, Receiver, Sender},
-    Semaphore,
-  },
+  sync::{RwLock, Semaphore},
 };
 use tokio_rustls::{client::TlsStream, TlsConnector};
-use tracing::{error, info, instrument};
+use tracing::{debug, error, info, instrument};
 use ulid::Ulid;
 
 use super::AsyncClient;
@@ -47,23 +44,56 @@ impl Client {
 impl AsyncClient for Client {
   #[instrument(skip(self))]
   async fn next_id(&self) -> Result<Ulid> {
-    let mut tls_stream = self.pool.get_connection().await?;
+    let mut tries = 0;
+    loop {
+      tries += 1;
+      if tries > 3 {
+        return Err(io::Error::new(io::ErrorKind::Other, "too many tries").into());
+      }
+      let mut tls_stream = self.pool.get_connection().await?;
+      let msg = [1u8];
+      tls_stream.write_all(&msg).await?;
 
-    let msg_type = [1u8];
-    tls_stream.write_all(&msg_type).await?;
+      let mut response_type = [0u8];
+      tls_stream.read_exact(&mut response_type).await?;
+      match response_type[0] {
+        1 => {
+          let mut buffer = [0u8; 16];
+          tls_stream.read_exact(&mut buffer).await?;
+          self.pool.return_connection(tls_stream).await;
+          return Ok(Ulid::from_bytes(buffer));
+        }
+        2 => {
+          let mut response_len = [0u8; 1];
 
-    let mut buffer = [0u8; 16];
-    tls_stream.read_exact(&mut buffer).await?;
-    self.pool.return_connection(tls_stream).await;
+          tls_stream.read_exact(&mut response_len).await?;
+          let len = response_len[0] as usize;
 
-    Ok(Ulid::from_bytes(buffer))
+          let mut buffer = vec![0u8; len];
+          tls_stream.read_exact(&mut buffer).await?;
+
+          self.pool.return_connection(tls_stream).await;
+          let new_addr = String::from_utf8(buffer).unwrap();
+          self.pool.switch_addr(new_addr).await?;
+          continue;
+        }
+        _ => {
+          self.pool.return_connection(tls_stream).await;
+          continue;
+        }
+      }
+    }
   }
 }
 
 #[derive(Clone)]
 struct ConnectionPool {
-  sender: Sender<TlsStream<TcpStream>>,
-  receiver: Arc<Mutex<Receiver<TlsStream<TcpStream>>>>,
+  config: Arc<ClientConfig>,
+  size: usize,
+  server_name: ServerName<'static>,
+  addr: Arc<RwLock<SocketAddr>>,
+  sender: AsyncSender<TlsStream<TcpStream>>,
+  receiver: AsyncReceiver<TlsStream<TcpStream>>,
   semaphore: Arc<Semaphore>,
 }
 
@@ -74,26 +104,38 @@ impl ConnectionPool {
     server_name: &str,
     size: usize,
   ) -> Result<Self> {
-    let (sender, receiver) = mpsc::channel(size);
+    let (sender, receiver) = kanal::bounded_async(size);
 
-    let connector = TlsConnector::from(config.clone());
-    // Initialize the pool with the specified number of connections
+    let dns_name = ServerName::try_from(server_name.to_string()).unwrap();
+    let addr: SocketAddr = addr.parse()?;
+
+    let pool = Self {
+      config,
+      server_name: dns_name,
+      addr: Arc::new(RwLock::new(addr)),
+      sender,
+      receiver,
+      size,
+      semaphore: Arc::new(Semaphore::new(size)),
+    };
+    pool.initialize_connections(size).await?;
+
+    Ok(pool)
+  }
+
+  async fn initialize_connections(&self, size: usize) -> Result<()> {
+    let addr = *self.addr.read().await;
+    let connector = TlsConnector::from(self.config.clone());
     for _ in 0..size {
-      let tcp_stream = TcpStream::connect(addr).await?;
-      let dns_name = ServerName::try_from(server_name.to_string()).unwrap();
+      let tcp_stream = TcpStream::connect(&addr).await?;
+      let dns_name = self.server_name.clone();
 
       let tls_stream = connector.connect(dns_name, tcp_stream).await?;
-      sender
-        .send(tls_stream)
-        .await
-        .map_err(|_| Error::PoolInitializationFailed)?;
+      if let Err(e) = self.sender.send(tls_stream).await {
+        error!("Failed to send connection to pool: {}", e);
+      }
     }
-
-    Ok(Self {
-      sender,
-      receiver: Arc::new(Mutex::new(receiver)),
-      semaphore: Arc::new(Semaphore::new(size)),
-    })
+    Ok(())
   }
 
   #[instrument(skip(self))]
@@ -102,11 +144,9 @@ impl ConnectionPool {
     Ok(
       self
         .receiver
-        .lock()
-        .await
         .recv()
         .await
-        .ok_or(Error::PoolAcquireConnectionFailed)?,
+        .map_err(|_| Error::PoolAcquireConnectionFailed)?,
     )
   }
 
@@ -114,6 +154,40 @@ impl ConnectionPool {
   async fn return_connection(&self, conn: TlsStream<TcpStream>) {
     if let Err(e) = self.sender.send(conn).await {
       error!("Failed to return connection to pool: {}", e);
-    };
+    }
+  }
+
+  #[instrument(skip(self))]
+  async fn switch_addr(&self, new_addr: String) -> Result<()> {
+    let new_addr: SocketAddr = new_addr.parse()?;
+    let mut addr_guard = self.addr.write().await;
+    if *addr_guard == new_addr {
+      return Ok(());
+    }
+
+    info!("Switching address from {} to {}", *addr_guard, new_addr);
+
+    let _permit = self.semaphore.acquire_many(self.size as u32).await.unwrap();
+    // Close existing connections
+    while let Ok(Some(mut conn)) = self.receiver.try_recv() {
+      conn.shutdown().await?;
+    }
+
+    debug!("Previous connections closed");
+
+    // Create new connections
+    let connector = TlsConnector::from(self.config.clone());
+    for _ in 0..self.size {
+      let tcp_stream = TcpStream::connect(&new_addr).await?;
+      let dns_name = self.server_name.clone();
+
+      let tls_stream = connector.connect(dns_name, tcp_stream).await?;
+      if let Err(e) = self.sender.send(tls_stream).await {
+        error!("Failed to send new connection to pool: {}", e);
+      }
+    }
+
+    *addr_guard = new_addr;
+    Ok(())
   }
 }

@@ -145,80 +145,55 @@ func (c *Client) NextId() (ulid.ULID, error) {
 	if err != nil {
 		return ulid.ULID{}, err
 	}
-	defer c.pool.Put(conn, nil)
+	defer func() { c.pool.Put(conn, nil) }()
 
-	requestType := []byte{1}
-	_, err = conn.Write(requestType)
-	if err != nil {
-		return ulid.ULID{}, err
+	for i := 0; i < 3; i++ {
+		requestType := []byte{1}
+		_, err = conn.Write(requestType)
+		if err != nil {
+			return ulid.ULID{}, err
+		}
+
+		var responseType [1]byte
+		_, err = io.ReadFull(conn, responseType[:])
+		if err != nil {
+			return ulid.ULID{}, err
+		}
+		switch responseType[0] {
+		case 0:
+			return ulid.ULID{}, errors.New("server error")
+		case 1: // this is a ulid
+			var buffer [16]byte
+			_, err = io.ReadFull(conn, buffer[:])
+			if err != nil {
+				return ulid.ULID{}, err
+			}
+			return ulid.ULID(buffer), nil
+		case 2: // redirect to new leader
+			var addrLen [1]byte
+			_, err = io.ReadFull(conn, addrLen[:])
+			if err != nil {
+				return ulid.ULID{}, err
+			}
+
+			addr := make([]byte, addrLen[0])
+			_, err = io.ReadFull(conn, addr)
+			if err != nil {
+				return ulid.ULID{}, err
+			}
+
+			c.pool.Put(conn, nil)
+			err = c.pool.SwitchAddr(string(addr))
+			if err != nil {
+				return ulid.ULID{}, err
+			}
+			con, err := c.pool.Get()
+			if err != nil {
+				return ulid.ULID{}, err
+			}
+			conn = con
+			continue
+		}
 	}
-	var buffer [16]byte
-	_, err = io.ReadFull(conn, buffer[:])
-	if err != nil {
-		return ulid.ULID{}, err
-	}
-
-	return ulid.ULID(buffer), nil
-
-	// for i := 0; i < 3; i++ {
-	// 	requestType := []byte{1}
-	// 	_, err = conn.Write(requestType)
-	// 	if err != nil {
-	// 		return ulid.ULID{}, err
-	// 	}
-
-	// 	var responseType [1]byte
-	// 	_, err = io.ReadFull(conn, responseType[:])
-	// 	if err != nil {
-	// 		return ulid.ULID{}, err
-	// 	}
-	// 	switch responseType[0] {
-	// 	case 0:
-	// 		return ulid.ULID{}, errors.New("server error")
-	// 	case 1: // this is a ulid
-	// 		var buffer [16]byte
-	// 		_, err = io.ReadFull(conn, buffer[:])
-	// 		if err != nil {
-	// 			return ulid.ULID{}, err
-	// 		}
-	// 	case 2: // redirect to new leader
-	// 		var addrLen [1]byte
-	// 		_, err = io.ReadFull(conn, addrLen[:])
-	// 		if err != nil {
-	// 			return ulid.ULID{}, err
-	// 		}
-
-	// 		addr := make([]byte, addrLen[0])
-	// 		_, err = io.ReadFull(conn, addr)
-	// 		if err != nil {
-	// 			return ulid.ULID{}, err
-	// 		}
-	// 		conn.Close()
-
-	// 		err = c.pool.SwitchAddr(string(addr))
-	// 		if err != nil {
-	// 			return ulid.ULID{}, err
-	// 		}
-	// 		con, err := c.pool.Get()
-	// 		if err != nil {
-	// 			return ulid.ULID{}, err
-	// 		}
-	// 		conn = con
-	// 		continue
-	// 	}
-
-	// requestType := []byte{1}
-	// _, err = conn.Write(requestType)
-	// if err != nil {
-	// 	return ulid.ULID{}, err
-	// }
-	// var buffer [16]byte
-	// _, err = io.ReadFull(conn, buffer[:])
-	// if err != nil {
-	// 	return ulid.ULID{}, err
-	// }
-
-	// return ulid.ULID(buffer), nil
-	// }
-	// return ulid.ULID{}, errors.New("too many redirects")
+	return ulid.ULID{}, errors.New("too many redirects")
 }

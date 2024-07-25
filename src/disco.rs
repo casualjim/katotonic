@@ -148,6 +148,15 @@ impl ChitchatDiscovery {
       server_name: Some(server_name),
     })
   }
+
+  pub async fn api_addr_for(&self, id: &str, generation: u64) -> Option<String> {
+    let guard = self.chitchat.lock().await;
+    let cid = guard
+      .live_nodes()
+      .find(|cid| cid.node_id == id && cid.generation_id == generation)?;
+    let state = guard.node_state(&cid)?;
+    state.get("api_addr").map(|v| v.to_string())
+  }
 }
 
 impl Debug for ChitchatDiscovery {
