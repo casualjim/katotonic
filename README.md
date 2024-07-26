@@ -23,3 +23,5 @@ The async examples run 50 concurrent clients that are all generating a million I
 
 The sync example runs 5 concurrent threads, once we go over 30 this starts to be much more resource-hungry but does achieve a higher throughput than the async versions when a limited number of threads are working.
 
+Due to differences in how the locks are implemented, the rust components of this project perform a lot better on Linux than on my Macbook Pro M3.
+

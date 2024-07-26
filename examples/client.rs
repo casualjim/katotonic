@@ -1,11 +1,11 @@
 use clap::Parser;
 use futures::{stream::FuturesOrdered, StreamExt};
-#[cfg(not(target_env = "msvc"))] use tikv_jemallocator::Jemalloc;
-use tracing::info;
-use ulidd::{
+use katotonic::{
   client::{AsyncClient as _, Client},
   ClientConfig, Result,
 };
+#[cfg(not(target_env = "msvc"))] use tikv_jemallocator::Jemalloc;
+use tracing::info;
 
 #[cfg(not(target_env = "msvc"))]
 #[global_allocator]

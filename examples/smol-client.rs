@@ -3,10 +3,10 @@ use std::{collections::HashSet, time::Instant};
 use clap::Parser as _;
 use futures::stream::FuturesOrdered;
 use futures_lite::StreamExt;
+use katotonic::client::SmolClient;
 use smol::channel::bounded;
 #[cfg(not(target_env = "msvc"))] use tikv_jemallocator::Jemalloc;
 use ulid::Ulid;
-use ulidd::client::SmolClient;
 
 #[cfg(not(target_env = "msvc"))]
 #[global_allocator]
@@ -17,7 +17,7 @@ const NUM_IDS: usize = 1_000_000;
 
 fn main() -> anyhow::Result<()> {
   tracing_subscriber::fmt::init();
-  let config = ulidd::ClientConfig::parse();
+  let config = katotonic::ClientConfig::parse();
 
   let client = smolscale::block_on(SmolClient::new(config, CONCURRENCY))?;
 

@@ -23,7 +23,7 @@ static GLOBAL: Jemalloc = Jemalloc;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
   tracing_subscriber::fmt::init();
-  let config = ulidd::ClientConfig::parse();
+  let config = katotonic::ClientConfig::parse();
   let root_store = config.root_store()?;
   let server_name = config.server_name();
   let addr = config.addr();
@@ -86,7 +86,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
   Ok(())
 }
 
-fn next_id(pool: &ConnectionPool) -> ulidd::Result<Ulid> {
+fn next_id(pool: &ConnectionPool) -> katotonic::Result<Ulid> {
   let mut tries = 0;
   loop {
     tries += 1;

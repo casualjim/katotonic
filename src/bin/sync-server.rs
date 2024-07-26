@@ -5,11 +5,11 @@ use std::{
 };
 
 use clap::Parser as _;
+use katotonic::server_tls_config;
 use rustls::{ServerConnection, Stream};
 #[cfg(not(target_env = "msvc"))] use tikv_jemallocator::Jemalloc;
 use tracing::error;
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _, Layer as _};
-use ulidd::server_tls_config;
 
 #[cfg(not(target_env = "msvc"))]
 #[global_allocator]
@@ -28,7 +28,7 @@ fn main() -> anyhow::Result<()> {
     .with(console_layer)
     .init();
 
-  let conf = ulidd::ServerConfig::parse();
+  let conf = katotonic::ServerConfig::parse();
   let config = Arc::new(server_tls_config(&conf.cert, &conf.key, Some(&conf.ca))?);
   let listener = TcpListener::bind("127.0.0.1:9000").expect("Failed to bind to address");
 
@@ -77,7 +77,7 @@ fn main() -> anyhow::Result<()> {
 fn handle_client(stream: &mut Stream<ServerConnection, TcpStream>) -> std::io::Result<()> {
   let mut buf = [0; 1];
   stream.read_exact(&mut buf)?;
-  let response = ulidd::generate_monotonic_id().to_bytes();
+  let response = katotonic::generate_monotonic_id().to_bytes();
   stream.write_all(&response)?;
   Ok(())
 }

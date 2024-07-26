@@ -312,6 +312,10 @@ async fn monitor_leader<'a>(
       PeerState::Participant(_, _) => {}
       PeerState::Follower(_, _) => {}
       PeerState::Down => {
+        leader_holder.send_replace(PeerState::Participant(
+          this_node.name.to_string(),
+          this_node.id,
+        ));
         let election_result = run_election(this_node, state.clone()).await;
         if election_result == ElectionResult::Won {
           leader_holder.send_replace(PeerState::Leader(this_node.name.to_string(), this_node.id));

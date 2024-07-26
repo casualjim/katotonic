@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use clap::Parser;
-#[cfg(not(target_env = "msvc"))] use tikv_jemallocator::Jemalloc;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer as _};
-use ulidd::{
+use katotonic::{
   bully,
   server::{run_server, spawn_discovery},
 };
+#[cfg(not(target_env = "msvc"))] use tikv_jemallocator::Jemalloc;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer as _};
 
 #[cfg(not(target_env = "msvc"))]
 #[global_allocator]
@@ -26,7 +26,7 @@ async fn main() -> anyhow::Result<()> {
     .with(console_layer)
     .init();
 
-  let conf = ulidd::ServerConfig::parse();
+  let conf = katotonic::ServerConfig::parse();
 
   let (membership, discovery) = spawn_discovery(conf.clone()).await?;
   let leader_tracker = bully::track_leader(conf.clone(), Arc::clone(&discovery), None).await?;

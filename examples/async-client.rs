@@ -2,10 +2,10 @@ use std::{collections::HashSet, time::Instant};
 
 use clap::Parser as _;
 use futures::{stream::FuturesOrdered, StreamExt};
+use katotonic::client::{AsyncClient as _, Client};
 #[cfg(not(target_env = "msvc"))] use tikv_jemallocator::Jemalloc;
 use tokio::sync::mpsc;
 use ulid::Ulid;
-use ulidd::client::{AsyncClient as _, Client};
 
 #[cfg(not(target_env = "msvc"))]
 #[global_allocator]
@@ -17,7 +17,7 @@ const NUM_IDS: usize = 1_000_000;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
   tracing_subscriber::fmt::init();
-  let config = ulidd::ClientConfig::parse();
+  let config = katotonic::ClientConfig::parse();
 
   let client = Client::new(config, CONCURRENCY).await?;
 
