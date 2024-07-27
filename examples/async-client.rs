@@ -11,7 +11,7 @@ use ulid::Ulid;
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
 
-const CONCURRENCY: usize = 5;
+const CONCURRENCY: usize = 50;
 const NUM_IDS: usize = 1_000_000;
 
 #[tokio::main]

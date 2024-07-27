@@ -3,11 +3,13 @@ package katotonic
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/binary"
 	"errors"
 	"io"
 	"os"
 	"time"
 
+	"github.com/fxamacker/cbor/v2"
 	"github.com/oklog/ulid/v2"
 )
 
@@ -170,20 +172,26 @@ func (c *Client) NextId() (ulid.ULID, error) {
 			}
 			return ulid.ULID(buffer), nil
 		case 2: // redirect to new leader
-			var addrLen [1]byte
-			_, err = io.ReadFull(conn, addrLen[:])
+			addrLen := make([]byte, 4)
+			_, err = io.ReadFull(conn, addrLen)
 			if err != nil {
 				return ulid.ULID{}, err
 			}
 
-			addr := make([]byte, addrLen[0])
+			length := binary.BigEndian.Uint32(addrLen)
+			addr := make([]byte, length)
 			_, err = io.ReadFull(conn, addr)
+			if err != nil {
+				return ulid.ULID{}, err
+			}
+			var response RedirectInfo
+			err = cbor.Unmarshal(addr, &response)
 			if err != nil {
 				return ulid.ULID{}, err
 			}
 
 			c.pool.Put(conn, nil)
-			err = c.pool.SwitchAddr(string(addr))
+			err = c.pool.SwitchAddr(response.Leader)
 			if err != nil {
 				return ulid.ULID{}, err
 			}
@@ -196,4 +204,9 @@ func (c *Client) NextId() (ulid.ULID, error) {
 		}
 	}
 	return ulid.ULID{}, errors.New("too many redirects")
+}
+
+type RedirectInfo struct {
+	Leader    string   `cbor:"leader"`
+	Followers []string `cbor:"followers"`
 }

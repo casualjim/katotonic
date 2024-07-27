@@ -4,19 +4,25 @@
     "**/.git": true,
   },
   "rust-analyzer.cargo.features": [
-    "blocking",
-    "smol"
+    "smol",
+    "blocking"
   ],
   "rust-analyzer.linkedProjects": [
     "./Cargo.toml"
   ],
   "rust-analyzer.runnables.extraArgs": [
-    "--all-features"
+    "--features=smol,blocking",
   ],
   "rust-analyzer.rustfmt.overrideCommand": [
     "rustfmt",
     "+nightly",
     "--edition=2021"
   ],
-  "rust-analyzer.rustfmt.rangeFormatting.enable": true
+  "rust-analyzer.rustfmt.rangeFormatting.enable": true,
+  "rust-analyzer.cargo.extraEnv": {
+    "RUST_LOG": "debug,chitchat::failure_detector=info,smolscale=warn,rustls=warn"
+  },
+  "rust-analyzer.runnables.extraEnv": {
+    "RUST_LOG": "debug,chitchat::failure_detector=info,smolscale=warn,rustls=warn"
+  }
 }

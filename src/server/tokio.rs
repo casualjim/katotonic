@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
-use tokio::{net::TcpListener, sync::watch::Receiver};
+use tokio::net::TcpListener;
 use tokio_rustls::TlsAcceptor;
 use tokio_util::compat::TokioAsyncReadCompatExt;
 use tracing::{error, info};
 
 use super::handler::handle_client;
-use crate::{bully::PeerState, disco::ChitchatDiscovery, server_tls_config};
+use crate::{bully::PeerState, disco::ChitchatDiscovery, server_tls_config, WatchableValue};
 
 pub async fn run_server(
   conf: crate::ServerConfig,
   discovery: Arc<ChitchatDiscovery>,
-  leader_tracker: Receiver<PeerState>,
+  leader_tracker: WatchableValue<PeerState>,
 ) -> anyhow::Result<()> {
   let config = Arc::new(server_tls_config(&conf.cert, &conf.key, Some(&conf.ca))?);
   let acceptor = TlsAcceptor::from(config);
@@ -31,9 +31,9 @@ pub async fn run_server(
         Ok(tls_stream) => {
           let mut tls_stream = tls_stream.compat();
           loop {
-            let leader = leader_tracker.borrow().clone();
-
-            if let Err(e) = handle_client(&mut tls_stream, discovery.clone(), leader).await {
+            if let Err(e) =
+              handle_client(&mut tls_stream, discovery.clone(), leader_tracker.clone()).await
+            {
               match e.kind() {
                 std::io::ErrorKind::UnexpectedEof => {
                   info!("Client from {} disconnected", peer_addr);

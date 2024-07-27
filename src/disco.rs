@@ -157,6 +157,21 @@ impl ChitchatDiscovery {
     let state = guard.node_state(&cid)?;
     state.get("api_addr").map(|v| v.to_string())
   }
+
+  pub async fn app_addrs_without(&self, id: &str) -> Vec<String> {
+    let guard = self.chitchat.lock().await;
+    let mut addrs = vec![];
+    for cid in guard.live_nodes() {
+      if cid.node_id == id {
+        continue;
+      }
+      let maybe_api_addr = guard.node_state(&cid).and_then(|v| v.get("api_addr"));
+      if let Some(api_addr) = maybe_api_addr {
+        addrs.push(api_addr.to_string());
+      }
+    }
+    addrs
+  }
 }
 
 impl Debug for ChitchatDiscovery {

@@ -1,21 +1,22 @@
-use std::sync::Arc;
+use std::{sync::Arc, vec};
 
 use futures::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
-use tracing::instrument;
+use tracing::{error, instrument};
 
-use crate::{bully::PeerState, disco::ChitchatDiscovery, generate_monotonic_id};
+use super::RedirectInfo;
+use crate::{bully::PeerState, disco::ChitchatDiscovery, generate_monotonic_id, WatchableValue};
 
 #[instrument(skip(tls_stream, discovery, leader))]
 pub async fn handle_client<IO: AsyncRead + AsyncWrite + Unpin>(
   tls_stream: &mut IO,
   discovery: Arc<ChitchatDiscovery>,
-  leader: PeerState,
+  leader: WatchableValue<PeerState>,
 ) -> std::io::Result<()> {
   let mut buf = [0; 1];
   tls_stream.read_exact(&mut buf).await?;
 
   loop {
-    match leader {
+    match leader.read() {
       PeerState::Leader(_, _) => {
         let new_id = generate_monotonic_id();
         let response = new_id.to_bytes();
@@ -28,12 +29,26 @@ pub async fn handle_client<IO: AsyncRead + AsyncWrite + Unpin>(
       }
       PeerState::Follower(ref name, generation) => {
         if let Some(leader_node) = discovery.api_addr_for(name, generation).await {
-          let response = leader_node.into_bytes();
-          // message type 2, response length
-          let response_len = &[2, response.len() as u8];
+          let redirect_info = RedirectInfo {
+            leader: leader_node,
+            followers: vec![],
+          };
+          let response_bytes = match serde_cbor::to_vec(&redirect_info) {
+            Ok(bytes) => bytes,
+            Err(e) => {
+              error!("Failed to serialize response: {:?}", e);
+              continue;
+            }
+          };
 
-          tls_stream.write_all(response_len).await?;
-          tls_stream.write_all(&response).await?;
+          let response_len = response_bytes.len() as u32;
+
+          // message type 2
+          tls_stream.write_all(&[2]).await?;
+          // response length
+          tls_stream.write_all(&response_len.to_be_bytes()).await?;
+          // response
+          tls_stream.write_all(&response_bytes).await?;
           break;
         }
         continue;

@@ -5,7 +5,7 @@ use std::{
 };
 
 use clap::Parser as _;
-use katotonic::server_tls_config;
+use katotonic::{bully::PeerState, server_tls_config};
 use rustls::{ServerConnection, Stream};
 #[cfg(not(target_env = "msvc"))] use tikv_jemallocator::Jemalloc;
 use tracing::error;
@@ -74,7 +74,10 @@ fn main() -> anyhow::Result<()> {
   Ok(())
 }
 
-fn handle_client(stream: &mut Stream<ServerConnection, TcpStream>) -> std::io::Result<()> {
+fn handle_client(
+  stream: &mut Stream<ServerConnection, TcpStream>,
+  leader_state: WatchableValue<PeerState>,
+) -> std::io::Result<()> {
   let mut buf = [0; 1];
   stream.read_exact(&mut buf)?;
   let response = katotonic::generate_monotonic_id().to_bytes();

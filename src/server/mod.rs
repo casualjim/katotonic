@@ -1,4 +1,4 @@
-mod handler;
+pub mod handler;
 #[cfg(feature = "smol")] mod smol;
 mod tokio;
 
@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chitchat::{spawn_chitchat, transport::UdpTransport, ChitchatHandle};
+use serde::{Deserialize, Serialize};
 #[cfg(feature = "smol")] pub use smol::run_server as run_smol_server;
 pub use tokio::run_server;
 use tracing::info;
@@ -53,18 +54,8 @@ pub trait Handler: Send + Sync {
   async fn handle(&self, request: &mut Self::Stream) -> Result<()>;
 }
 
-pub struct ForwardToLeader<S: Send + Sync>(pub Box<dyn Handler<Stream = S>>);
-
-#[async_trait]
-impl<S> Handler for ForwardToLeader<S>
-where
-  S: Send + Sync,
-{
-  type Stream = S;
-
-  async fn handle(&self, request: &mut Self::Stream) -> Result<()> {
-    // TODO: forward request to leader
-
-    self.0.handle(request).await
-  }
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RedirectInfo {
+  pub leader: String,
+  pub followers: Vec<String>,
 }

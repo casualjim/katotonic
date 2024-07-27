@@ -4,12 +4,14 @@ mod config;
 pub mod disco;
 mod idgen;
 pub mod server;
+mod state;
 pub mod transport;
 use std::io;
 
 pub use config::*;
 pub use idgen::generate_ulid as generate_monotonic_id;
 use rustls::pki_types::InvalidDnsNameError;
+pub use state::WatchableValue;
 use thiserror::Error;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

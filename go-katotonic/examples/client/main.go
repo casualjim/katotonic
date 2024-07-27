@@ -12,7 +12,7 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-const numConnections = 5
+const numConnections = 50
 const numRequests = 1_000_000
 
 func main() {

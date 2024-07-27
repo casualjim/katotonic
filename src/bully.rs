@@ -13,19 +13,18 @@ use serde::{Deserialize, Serialize};
 use tokio::{
   io::{AsyncRead, AsyncWrite},
   net::TcpListener,
-  sync::watch,
 };
 use tokio_rustls::TlsAcceptor;
 use tokio_serde_cbor::Codec;
 use tokio_util::codec::Decoder;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 
 use super::disco::Discovery;
 use crate::{
   disco::ChitchatDiscovery,
   keypair, root_store, server_tls_config,
   transport::{TcpTransport, TlsTransport, Transport},
-  Error, Result, ServerConfig,
+  Error, Result, ServerConfig, WatchableValue,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -147,7 +146,7 @@ impl PeerState {
 async fn manage_state(
   state: Arc<DashMap<String, Peer>>,
   disco: Arc<dyn Discovery>,
-  leader: watch::Sender<PeerState>,
+  leader: WatchableValue<PeerState>,
   transport_factory: PeerFactory,
 ) {
   let mut watcher = disco.membership_changes().await;
@@ -170,11 +169,11 @@ async fn manage_state(
         if !state.contains_key(&member.name) {
           let peer = transport_factory(member.id, member.addr);
           state.insert(member.name.clone(), peer.clone());
-          let ldr = leader.borrow().clone();
-          match ldr {
+
+          match leader.read() {
             PeerState::Leader(name, id) => {
               if member.id > id {
-                leader.send_replace(PeerState::Down);
+                leader.write(PeerState::Down);
               } else if &this_node.name == &name
                 && this_node.id == id
                 && member.id != id
@@ -193,10 +192,10 @@ async fn manage_state(
             }
             PeerState::Follower(_, id) => {
               if member.id > id {
-                leader.send_replace(PeerState::Down);
+                leader.write(PeerState::Down);
               }
             }
-            _ => {}
+            _ => {} // In the other 2 states we don't need to do anything
           }
         }
       }
@@ -205,11 +204,10 @@ async fn manage_state(
       old_keys.difference(&new_keys).for_each(|key| {
         state.remove(key);
       });
-      let ldr = leader.borrow().clone();
-      match ldr {
+      match leader.read() {
         PeerState::Follower(name, _) | PeerState::Leader(name, _) => {
           if !state.contains_key(&name) {
-            leader.send_replace(PeerState::Down);
+            leader.write(PeerState::Down);
           }
         }
         _ => {}
@@ -255,15 +253,15 @@ async fn run_election<'a>(
       }
     }));
   }
-  if let Ok(result) = try_join_all(requests).await {
-    for res in result {
-      if res == ElectionResult::Lost {
+
+  try_join_all(requests)
+    .await
+    .map_or(ElectionResult::Won, |result| {
+      if result.into_iter().any(|res| res == ElectionResult::Lost) {
         return ElectionResult::Lost;
       }
-    }
-  }
-
-  ElectionResult::Won
+      ElectionResult::Won
+    })
 }
 
 async fn broadcast_coordinator<'a>(this_node: &LocalPeer<'a>, state: Arc<DashMap<String, Peer>>) {
@@ -296,44 +294,60 @@ async fn broadcast_coordinator<'a>(this_node: &LocalPeer<'a>, state: Arc<DashMap
 async fn monitor_leader<'a>(
   this_node: &LocalPeer<'a>,
   state: Arc<DashMap<String, Peer>>,
-  leader_holder: watch::Sender<PeerState>,
+  leader_changes: WatchableValue<PeerState>,
 ) {
-  let mut leader_changes = leader_holder.subscribe();
+  let current = leader_changes.read();
+  debug!(id = this_node.id, name = %this_node.name, ?current, "monitoring leader");
   loop {
-    let leader = leader_changes.borrow_and_update().clone();
+    let leader = leader_changes.read();
     match leader {
       PeerState::Leader(name, id) => {
+        debug!(name, id, "We are the leader");
         if id != this_node.id || name != this_node.name {
           continue;
         }
 
         broadcast_coordinator(this_node, state.clone()).await;
       }
-      PeerState::Participant(_, _) => {}
-      PeerState::Follower(_, _) => {}
+      PeerState::Participant(name, id) => {
+        debug!(name, id, "We are in the middle of an election");
+      }
+      PeerState::Follower(name, id) => {
+        debug!(name, id, "We are a follower");
+      }
       PeerState::Down => {
-        leader_holder.send_replace(PeerState::Participant(
+        debug!("We are down, starting election");
+        leader_changes.write(PeerState::Participant(
           this_node.name.to_string(),
           this_node.id,
         ));
-        let election_result = run_election(this_node, state.clone()).await;
-        if election_result == ElectionResult::Won {
-          leader_holder.send_replace(PeerState::Leader(this_node.name.to_string(), this_node.id));
-        }
+        let (name, id) = (this_node.name.to_string(), this_node.id);
+        tokio::spawn({
+          let this_node = LocalPeer {
+            id,
+            name: Cow::Owned(name),
+          };
+          let leader_changes = leader_changes.clone();
+          let state = state.clone();
+          async move {
+            let election_result = run_election(&this_node, state.clone()).await;
+            if election_result == ElectionResult::Won {
+              leader_changes.write(PeerState::Leader(this_node.name.to_string(), this_node.id));
+              info!("leader changed: {:?}", leader_changes.read());
+            }
+          }
+        });
       }
     }
-    if leader_changes.changed().await.is_err() {
-      warn!("leader changes channel closed");
-      break;
-    }
-    info!("leader changed: {:?}", leader_changes.borrow().clone());
+    leader_changes.wait_for_change_async().await;
+    info!("leader changed: {:?}", leader_changes.read());
   }
 }
 
 async fn handle_requests<'a, S: AsyncRead + AsyncWrite + Unpin>(
   this_node: &LocalPeer<'a>,
   codec: Codec<Request, Response>,
-  leader_holder: watch::Sender<PeerState>,
+  leader_holder: WatchableValue<PeerState>,
   stream: S,
 ) {
   let (mut sender, mut receiver) = codec.framed(stream).split();
@@ -371,12 +385,7 @@ async fn handle_requests<'a, S: AsyncRead + AsyncWrite + Unpin>(
       }
       Request::Coordinator { node_name, node_id } => {
         debug!(node_id, node_name, "got coordinator message");
-        leader_holder.send_modify(|v| {
-          let maybe_follower = PeerState::Follower(node_name, node_id);
-          if v != &maybe_follower {
-            *v = maybe_follower
-          }
-        });
+        leader_holder.write(PeerState::Follower(node_name, node_id));
         if let Err(e) = sender
           .send(Response::Done(this_node.name.to_string()))
           .await
@@ -397,7 +406,7 @@ struct LocalPeer<'a> {
 async fn run_server(
   conf: ServerConfig,
   discovery: Arc<dyn Discovery>,
-  current_leader: watch::Sender<PeerState>,
+  current_leader: WatchableValue<PeerState>,
 ) -> Result<()> {
   let codec = Codec::new();
   let config = Arc::new(server_tls_config(
@@ -425,7 +434,7 @@ async fn run_server(
     let codec = codec.clone();
     tokio::spawn(async move {
       let stream = acceptor.accept(stream).await.unwrap();
-      handle_requests(&this_node, codec, current_leader.clone(), stream).await
+      handle_requests(&this_node, codec, current_leader, stream).await
     });
   }
 }
@@ -459,8 +468,8 @@ pub async fn track_leader(
   conf: ServerConfig,
   discovery: Arc<ChitchatDiscovery>,
   peer_factory: Option<PeerFactory>,
-) -> Result<watch::Receiver<PeerState>> {
-  let (leader_holder, leader_receiver) = watch::channel(PeerState::Down);
+) -> Result<WatchableValue<PeerState>> {
+  let current_leader = WatchableValue::new(PeerState::Down);
 
   let state = Arc::new(DashMap::new());
 
@@ -474,7 +483,7 @@ pub async fn track_leader(
 
   tokio::spawn({
     let discovery = Arc::clone(&discovery);
-    let leader_holder = leader_holder.clone();
+    let leader_holder = current_leader.clone();
     async move {
       run_server(conf, discovery, leader_holder).await.unwrap();
     }
@@ -483,7 +492,7 @@ pub async fn track_leader(
   tokio::spawn({
     let disco = Arc::clone(&discovery);
     let state = Arc::clone(&state);
-    let leader_holder = leader_holder.clone();
+    let leader_holder = current_leader.clone();
     async move {
       manage_state(state, disco, leader_holder, factory).await;
     }
@@ -491,7 +500,7 @@ pub async fn track_leader(
 
   let state_clone = Arc::clone(&state);
   tokio::spawn({
-    let leader_holder = leader_holder.clone();
+    let leader_holder = current_leader.clone();
     async move {
       monitor_leader(
         &LocalPeer {
@@ -499,13 +508,13 @@ pub async fn track_leader(
           name: this_node.name.clone().into(),
         },
         state_clone,
-        leader_holder.clone(),
+        leader_holder,
       )
       .await;
     }
   });
 
-  Ok(leader_receiver)
+  Ok(current_leader)
 }
 
 #[cfg(test)]
@@ -517,10 +526,12 @@ mod tests {
   };
 
   use futures::{lock::Mutex, ready, stream::BoxStream, Stream};
-  use tokio::sync::mpsc;
+  use tokio::sync::{
+    mpsc,
+    watch::{channel, error::RecvError, Receiver, Sender},
+  };
   use tokio_util::sync::ReusableBoxFuture;
   use tracing::debug;
-  use watch::{error::RecvError, Receiver};
 
   use super::*;
   use crate::{
@@ -684,12 +695,12 @@ mod tests {
     );
     let (sd, tx) = StaticDiscovery::new(this_node.clone());
     let disco = Arc::new(sd);
-    let (leader_tx, mut leader_rx) = watch::channel(PeerState::Down);
+    let current_leader = WatchableValue::new(PeerState::Down);
 
     tokio::spawn(manage_state(
       state.clone(),
       disco.clone(),
-      leader_tx.clone(),
+      current_leader.clone(),
       with_transport_factory(move |_, addr| Arc::new(TcpTransport::new(addr.to_string().into()))),
     ));
 
@@ -730,15 +741,16 @@ mod tests {
 
     assert!(!state.contains_key(&new_member3.name));
     let expected = PeerState::Leader(new_member.name.clone(), new_member.id);
-    leader_tx.send(expected.clone()).unwrap();
+    current_leader.write(expected.clone());
+    // leader_tx.send(expected.clone()).unwrap();
 
-    assert_eq!(leader_rx.borrow_and_update().clone(), expected);
+    assert_eq!(current_leader.read(), expected);
 
     // Test leader loss
     tx.send(vec![this_node.clone()]).unwrap();
 
     tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
-    assert_eq!(leader_rx.borrow_and_update().clone(), PeerState::Down);
+    assert_eq!(current_leader.read(), PeerState::Down);
   }
 
   fn counting_client_server(
@@ -792,6 +804,7 @@ mod tests {
     election_count: Arc<std::sync::atomic::AtomicUsize>,
     commit_count: Arc<std::sync::atomic::AtomicUsize>,
   ) -> Arc<dyn Transport<Request = Request, Response = Response>> {
+    debug!(id = this_node.id, "creating transport");
     let name = this_node.name.to_string();
     let id = this_node.id;
 
@@ -881,21 +894,21 @@ mod tests {
       Peer::with_transport(lpeer1.id, trans1),
     );
 
-    let (leader_tx, mut leader_rx) = watch::channel(PeerState::Down);
+    let current_leader = WatchableValue::new(PeerState::Down);
     tokio::spawn({
       let this_node = this_node.clone();
       let state = state.clone();
-      let leader_tx = leader_tx.clone();
+      let leader_tx = current_leader.clone();
       async move {
         monitor_leader(&this_node, state, leader_tx).await;
       }
     });
-    assert!(leader_rx.changed().await.is_ok());
+
     tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
     assert_eq!(election_count.load(std::sync::atomic::Ordering::SeqCst), 0);
     assert_eq!(commit_count.load(std::sync::atomic::Ordering::SeqCst), 1);
     assert_eq!(
-      leader_rx.borrow().clone(),
+      current_leader.read(),
       PeerState::Leader(this_node.name.to_string(), 5)
     );
 
@@ -909,8 +922,7 @@ mod tests {
       Peer::with_transport(lpeer3.id, trans3),
     );
 
-    leader_tx.send_replace(PeerState::Down);
-    assert!(leader_rx.changed().await.is_ok());
+    current_leader.write(PeerState::Down);
     tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
     assert_eq!(election_count.load(std::sync::atomic::Ordering::SeqCst), 2);
     assert_eq!(commit_count.load(std::sync::atomic::Ordering::SeqCst), 1);
@@ -934,13 +946,13 @@ mod tests {
 
   #[derive(Clone, Debug)]
   struct StaticDiscovery {
-    watch: Arc<Mutex<watch::Receiver<Vec<Member>>>>,
+    watch: Arc<Mutex<Receiver<Vec<Member>>>>,
     this_node: Member,
   }
 
   impl StaticDiscovery {
-    pub fn new(this_node: Member) -> (Self, watch::Sender<Vec<Member>>) {
-      let (tx, rx) = watch::channel(vec![this_node.clone()]);
+    pub fn new(this_node: Member) -> (Self, Sender<Vec<Member>>) {
+      let (tx, rx) = channel(vec![this_node.clone()]);
       (
         Self {
           watch: Arc::new(Mutex::new(rx)),
