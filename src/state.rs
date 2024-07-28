@@ -3,12 +3,13 @@ pub use sync::WatchableValue;
 mod sync {
   use std::sync::Arc;
 
-  use parking_lot::{Condvar, Mutex, RwLock, RwLockWriteGuard};
+  use crossbeam::sync::ShardedLock;
+  use parking_lot::{Condvar, Mutex};
   use tokio::sync::Notify;
 
   #[derive(Clone)]
   pub struct WatchableValue<T> {
-    value: Arc<RwLock<T>>,
+    value: Arc<ShardedLock<T>>,
     notify: Arc<(Mutex<()>, Condvar)>,
     async_notify: Arc<Notify>,
   }
@@ -19,18 +20,18 @@ mod sync {
   {
     pub fn new(initial: T) -> Self {
       Self {
-        value: Arc::new(RwLock::new(initial)),
+        value: Arc::new(ShardedLock::new(initial)),
         notify: Arc::new((Mutex::new(()), Condvar::new())),
         async_notify: Arc::new(Notify::new()),
       }
     }
 
     pub fn read(&self) -> T {
-      self.value.read().clone()
+      self.value.read().unwrap().clone()
     }
 
     pub fn write(&self, new_value: T) -> bool {
-      let mut current_value: RwLockWriteGuard<'_, T> = self.value.write();
+      let mut current_value = self.value.write().unwrap();
       if *current_value != new_value {
         *current_value = new_value;
         let (lock, cvar) = &*self.notify;
@@ -46,7 +47,7 @@ mod sync {
     where
       F: FnOnce(&T) -> Option<T>,
     {
-      let mut current_value: RwLockWriteGuard<'_, T> = self.value.write();
+      let mut current_value = self.value.write().unwrap();
       if let Some(new_value) = update(&current_value) {
         if *current_value != new_value {
           *current_value = new_value;

@@ -11,7 +11,7 @@ use smol::{
 use tracing::{error, info, instrument};
 use ulid::Ulid;
 
-use crate::{server::RedirectInfo, Result};
+use crate::{defer, server::RedirectInfo, Result};
 
 #[derive(Clone)]
 pub struct Client {
@@ -156,6 +156,9 @@ impl ConnectionPool {
     }
 
     info!("Switching address from {} to {}", *addr_guard, new_addr);
+    defer! {
+      info!("Switched address to {}", new_addr);
+    }
 
     let mut permits = vec![];
     for _ in 0..self.size {

@@ -1,3 +1,5 @@
+#[macro_use]
+mod defer;
 pub mod bully;
 pub mod client;
 mod config;
@@ -8,6 +10,7 @@ mod state;
 pub mod transport;
 use std::io;
 
+use client::pool::PoolError;
 pub use config::*;
 pub use idgen::generate_ulid as generate_monotonic_id;
 use rustls::pki_types::InvalidDnsNameError;
@@ -49,8 +52,22 @@ pub enum Error {
   SmolRecvError(#[from] smol::channel::RecvError),
   #[error("Kanal receive error: {0}")]
   KanalRecv(#[from] kanal::ReceiveError),
-  #[error("Kanal sen error: {0}")]
+  #[error("Kanal send error: {0}")]
   KanalSend(#[from] kanal::SendError),
+  #[error("Invalid pong reponse")]
+  InvalidPongResponse,
+  #[error("get connection timeout")]
+  PoolGetTimeout,
+}
+
+impl From<PoolError> for Error {
+  fn from(e: PoolError) -> Self {
+    match e {
+      PoolError::GetTimeout => Error::PoolGetTimeout,
+      PoolError::KanalSend(e) => Error::KanalSend(e),
+      PoolError::KanalRecv(e) => Error::KanalRecv(e),
+    }
+  }
 }
 
 #[cfg(test)]
@@ -60,7 +77,7 @@ mod tests {
 
   #[ctor]
   fn init_color_backtrace() {
-    let console_layer = console_subscriber::spawn();
+    // let console_layer = console_subscriber::spawn();
 
     let env_filter = tracing_subscriber::EnvFilter::from_default_env();
     let subscriber = tracing_subscriber::fmt::layer()
@@ -70,7 +87,7 @@ mod tests {
 
     tracing_subscriber::registry()
       .with(subscriber)
-      .with(console_layer)
+      // .with(console_layer)
       .init();
     color_backtrace::install();
   }

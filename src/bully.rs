@@ -1,5 +1,11 @@
 use std::{
-  borrow::Cow, cmp::Reverse, collections::HashSet, io, net::SocketAddr, sync::Arc, thread::sleep,
+  borrow::Cow,
+  cmp::Reverse,
+  collections::HashSet,
+  io,
+  net::SocketAddr,
+  sync::{atomic::AtomicU8, Arc},
+  thread::sleep,
   time::Duration,
 };
 
@@ -29,12 +35,14 @@ use crate::{
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Request {
+  Ping,
   ElectMe(u64),
   Coordinator { node_name: String, node_id: u64 },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Response {
+  Pong,
   NotYou { node_name: String, node_id: u64 },
   ItsYou { node_name: String, node_id: u64 },
   Done(String),
@@ -139,6 +147,45 @@ impl PeerState {
       PeerState::Leader(name, id) => Some((name.clone(), *id)),
       PeerState::Follower(name, id) => Some((name.clone(), *id)),
       _ => None,
+    }
+  }
+}
+
+const HEALTH_FAILED: AtomicU8 = AtomicU8::new(0);
+
+fn reset_health_failures() {
+  HEALTH_FAILED.store(0, std::sync::atomic::Ordering::SeqCst);
+}
+
+fn inc_health_failures() -> u8 {
+  HEALTH_FAILED.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1
+}
+
+async fn health_check_leader(leader: WatchableValue<PeerState>, state: Arc<DashMap<String, Peer>>) {
+  let mut interval = tokio::time::interval(Duration::from_secs(1));
+  loop {
+    interval.tick().await;
+    match leader.read() {
+      PeerState::Follower(ref name, id) => {
+        if let Some(peer) = state.get(name) {
+          if peer.id != id {
+            if inc_health_failures() >= 3 {
+              leader.write(PeerState::Down);
+            }
+            continue;
+          }
+          if let Ok(result) = peer.send_best_effort(Request::Ping).await {
+            reset_health_failures();
+            if result == Response::Pong {
+              continue;
+            }
+          }
+        }
+        if inc_health_failures() >= 3 {
+          leader.write(PeerState::Down);
+        }
+      }
+      _ => {}
     }
   }
 }
@@ -365,6 +412,9 @@ async fn handle_requests<'a, S: AsyncRead + AsyncWrite + Unpin>(
       continue;
     }
     match maybe_error.unwrap() {
+      Request::Ping => {
+        let _ = sender.send(Response::Pong).await;
+      }
       Request::ElectMe(sender_id) => {
         debug!(sender_id, "got election message");
         if sender_id < this_node.id {
@@ -495,6 +545,14 @@ pub async fn track_leader(
     let leader_holder = current_leader.clone();
     async move {
       manage_state(state, disco, leader_holder, factory).await;
+    }
+  });
+
+  tokio::spawn({
+    let leader_holder = current_leader.clone();
+    let state = Arc::clone(&state);
+    async move {
+      health_check_leader(leader_holder, state).await;
     }
   });
 
@@ -761,6 +819,7 @@ mod tests {
       let count = Arc::clone(&count);
       async move {
         match req {
+          Request::Ping => Ok(Response::Pong),
           Request::ElectMe(_) => Ok(Response::NotYou {
             node_id: 1,
             node_name: name.to_string(),
@@ -815,6 +874,7 @@ mod tests {
       let name = name.clone();
       async move {
         match req {
+          Request::Ping => Ok(Response::Pong),
           Request::ElectMe(sender_id) => {
             debug!(id, sender_id, "got election message");
             election_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);

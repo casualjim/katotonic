@@ -1,8 +1,8 @@
-use std::{sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration, u8};
 
 use futures::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::time::sleep;
-use tracing::{error, instrument};
+use tracing::{error, info, instrument};
 
 use super::RedirectInfo;
 use crate::{bully::PeerState, disco::ChitchatDiscovery, generate_monotonic_id, WatchableValue};
@@ -64,6 +64,13 @@ pub async fn handle_client<IO: AsyncRead + AsyncWrite + Unpin>(
         }
       }
     },
+    u8::MAX => {
+      info!("ping request received");
+      // message type 255: ping
+      let response = [u8::MAX];
+      tls_stream.write_all(&response).await?;
+      info!("pong response sent");
+    }
     _ => {
       error!("Unknown message type: {}", buf[0]);
     }

@@ -59,3 +59,9 @@ pub struct RedirectInfo {
   pub leader: String,
   pub followers: Vec<String>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Error {
+  pub code: u16,
+  pub message: String,
+}

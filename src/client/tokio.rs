@@ -9,15 +9,16 @@ use tokio::{
   sync::{RwLock, Semaphore},
 };
 use tokio_rustls::{client::TlsStream, TlsConnector};
-use tracing::{error, info, instrument};
+use tracing::{debug, error, info, instrument};
 use ulid::Ulid;
 
-use super::AsyncClient;
+use super::{pool::Manager, AsyncClient};
 use crate::{server::RedirectInfo, Error, Result};
 
 #[derive(Clone)]
 pub struct Client {
   pool: ConnectionPool,
+  // pool: Pool<ConnectionManager>,
 }
 
 impl Client {
@@ -36,6 +37,9 @@ impl Client {
       None => builder.with_no_client_auth(),
     };
     let pool = ConnectionPool::new(Arc::new(config), addr, server_name, concurrency).await?;
+    // let manager = ConnectionManager::new(addr, Arc::new(config), server_name)?;
+    // let pool = Pool::new(manager);
+    // pool.set_max_open(concurrency as u64);
     Ok(Self { pool })
   }
 }
@@ -51,29 +55,56 @@ impl AsyncClient for Client {
         return Err(io::Error::new(io::ErrorKind::Other, "too many tries").into());
       }
       let mut tls_stream = self.pool.get_connection().await?;
+
       let msg = [1u8];
-      tls_stream.write_all(&msg).await?;
+      if let Err(e) = tls_stream.write_all(&msg).await {
+        error!("Failed to send message: {}", e);
+        self.pool.return_broken_connection(tls_stream).await;
+        continue;
+      }
 
       let mut response_type = [0u8];
-      tls_stream.read_exact(&mut response_type).await?;
+      if let Err(e) = tls_stream.read_exact(&mut response_type).await {
+        error!("Failed to read response type: {}", e);
+        self.pool.return_broken_connection(tls_stream).await;
+        continue;
+      }
       match response_type[0] {
         1 => {
           let mut buffer = [0u8; 16];
-          tls_stream.read_exact(&mut buffer).await?;
+          if let Err(e) = tls_stream.read_exact(&mut buffer).await {
+            error!("Failed to read response: {}", e);
+            self.pool.return_broken_connection(tls_stream).await;
+            continue;
+          }
           self.pool.return_connection(tls_stream).await;
           return Ok(Ulid::from_bytes(buffer));
         }
         2 => {
           let mut response_len = [0u8; 4];
 
-          tls_stream.read_exact(&mut response_len).await?;
+          if let Err(e) = tls_stream.read_exact(&mut response_len).await {
+            error!("Failed to read response length: {}", e);
+            self.pool.return_broken_connection(tls_stream).await;
+            continue;
+          }
           let len = u32::from_be_bytes(response_len) as usize;
 
           let mut buffer = vec![0u8; len];
-          tls_stream.read_exact(&mut buffer).await?;
+          if let Err(e) = tls_stream.read_exact(&mut buffer).await {
+            error!("Failed to read response: {}", e);
+            self.pool.return_broken_connection(tls_stream).await;
+            continue;
+          }
 
-          let redirect_info: RedirectInfo = serde_cbor::from_slice(&buffer)?;
-
+          let redirect_info: RedirectInfo = match serde_cbor::from_slice(&buffer) {
+            Ok(info) => info,
+            Err(e) => {
+              error!("Failed to deserialize response: {:?}", e);
+              self.pool.return_broken_connection(tls_stream).await;
+              continue;
+            }
+          };
           self.pool.return_connection(tls_stream).await;
           self.pool.switch_addr(redirect_info.leader).await?;
           continue;
@@ -89,7 +120,7 @@ impl AsyncClient for Client {
 
 #[derive(Clone)]
 struct ConnectionPool {
-  config: Arc<ClientConfig>,
+  connector: TlsConnector,
   size: usize,
   server_name: ServerName<'static>,
   addr: Arc<RwLock<SocketAddr>>,
@@ -110,8 +141,10 @@ impl ConnectionPool {
     let dns_name = ServerName::try_from(server_name.to_string()).unwrap();
     let addr: SocketAddr = addr.parse()?;
 
+    let connector = TlsConnector::from(config);
+
     let pool = Self {
-      config,
+      connector,
       server_name: dns_name,
       addr: Arc::new(RwLock::new(addr)),
       sender,
@@ -126,12 +159,11 @@ impl ConnectionPool {
 
   async fn initialize_connections(&self, size: usize) -> Result<()> {
     let addr = *self.addr.read().await;
-    let connector = TlsConnector::from(self.config.clone());
     for _ in 0..size {
       let tcp_stream = TcpStream::connect(&addr).await?;
-      let dns_name = self.server_name.clone();
+      let server_name = self.server_name.clone();
 
-      let tls_stream = connector.connect(dns_name, tcp_stream).await?;
+      let tls_stream = self.connector.connect(server_name, tcp_stream).await?;
       if let Err(e) = self.sender.send(tls_stream).await {
         error!("Failed to send connection to pool: {}", e);
       }
@@ -158,6 +190,29 @@ impl ConnectionPool {
     }
   }
 
+  async fn return_broken_connection(&self, mut conn: TlsStream<TcpStream>) {
+    let _ = conn.shutdown().await;
+
+    let tcp_stream = match TcpStream::connect(&*self.addr.read().await).await {
+      Ok(tcp_stream) => tcp_stream,
+      Err(e) => {
+        error!("Failed to reconnect to server: {}", e);
+        return;
+      }
+    };
+    let server_name = self.server_name.clone();
+    let tls_stream = match self.connector.connect(server_name, tcp_stream).await {
+      Ok(tls_stream) => tls_stream,
+      Err(e) => {
+        error!("Failed to reconnect to server: {}", e);
+        return;
+      }
+    };
+    if let Err(e) = self.sender.send(tls_stream).await {
+      error!("Failed to return reconnected connection to pool: {}", e);
+    }
+  }
+
   #[instrument(skip(self))]
   async fn switch_addr(&self, new_addr: String) -> Result<()> {
     let new_addr: SocketAddr = new_addr.parse()?;
@@ -179,7 +234,7 @@ impl ConnectionPool {
     }
 
     // Create new connections
-    let connector = TlsConnector::from(self.config.clone());
+    let connector = self.connector.clone();
     for _ in 0..self.size {
       let tcp_stream = TcpStream::connect(&new_addr).await?;
       let dns_name = self.server_name.clone();
@@ -190,6 +245,73 @@ impl ConnectionPool {
       }
     }
 
+    *addr_guard = new_addr;
+    Ok(())
+  }
+}
+
+struct ConnectionManager {
+  addr: Arc<RwLock<SocketAddr>>,
+  connector: TlsConnector,
+  server_name: ServerName<'static>,
+}
+
+impl ConnectionManager {
+  fn new(addr: &str, config: Arc<ClientConfig>, server_name: &str) -> Result<Self> {
+    let dns_name = ServerName::try_from(server_name.to_string())?;
+    let addr: SocketAddr = addr.parse()?;
+    let connector = TlsConnector::from(config);
+    Ok(Self {
+      addr: Arc::new(RwLock::new(addr)),
+      connector,
+      server_name: dns_name,
+    })
+  }
+}
+
+impl Manager for ConnectionManager {
+  type Connection = TlsStream<TcpStream>;
+
+  type Error = Error;
+
+  async fn connect(&self) -> std::result::Result<Self::Connection, Self::Error> {
+    let addr = *self.addr.read().await;
+    let tcp_stream = TcpStream::connect(&addr).await?;
+    let dns_name = self.server_name.clone();
+    Ok(self.connector.connect(dns_name, tcp_stream).await?)
+  }
+
+  async fn check(&self, conn: &mut Self::Connection) -> std::result::Result<(), Self::Error> {
+    let peer_addr = conn.get_ref().0.peer_addr()?;
+    let addr = *self.addr.read().await;
+    if peer_addr != addr {
+      debug!("Connection to {} is invalid, reconnecting", peer_addr);
+      *conn = self.connect().await?;
+    }
+    conn.write_all(&[u8::MAX; 1]).await?;
+    debug!("Sent ping to {}", peer_addr);
+    let mut pong = [0u8; 1];
+    conn.read_exact(&mut pong).await?;
+    // match timeout(Duration::from_millis(100), conn.read_exact(&mut pong)).await {
+    //   Ok(Ok(_)) => {}
+    //   Ok(Err(e)) => {
+    //     panic!("Error reading pong response: {}", e);
+    //     return Err(e.into());
+    //   }
+    //   Err(_) => {
+    //     panic!("Timeout reading pong response");
+    //     return Err(Error::PoolGetTimeout);
+    //   }
+    // }
+    if pong[0] != u8::MAX {
+      return Err(Error::InvalidPongResponse);
+    }
+    Ok(())
+  }
+
+  async fn switch_addr(&self, addr: &str) -> std::result::Result<(), Self::Error> {
+    let new_addr = addr.parse()?;
+    let mut addr_guard = self.addr.write().await;
     *addr_guard = new_addr;
     Ok(())
   }

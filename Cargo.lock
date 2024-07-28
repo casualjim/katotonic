@@ -1163,7 +1163,8 @@ dependencies = [
 [[package]]
 name = "futures-rustls"
 version = "0.26.0"
-source = "git+https://github.com/rustls/futures-rustls?branch=master#c43a394f5dab433603ff827050ffc1945e21ace4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8f2f12607f92c69b12ed746fabf9ca4f5c482cba46679c1a75b874ed7c26adb"
 dependencies = [
  "futures-io",
  "rustls",

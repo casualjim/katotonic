@@ -3,7 +3,7 @@ use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio_rustls::TlsAcceptor;
 use tokio_util::compat::TokioAsyncReadCompatExt;
-use tracing::{error, info};
+use tracing::{debug, error};
 
 use super::handler::handle_client;
 use crate::{bully::PeerState, disco::ChitchatDiscovery, server_tls_config, WatchableValue};
@@ -36,7 +36,7 @@ pub async fn run_server(
             {
               match e.kind() {
                 std::io::ErrorKind::UnexpectedEof => {
-                  info!("Client from {} disconnected", peer_addr);
+                  debug!("Client from {} disconnected", peer_addr);
                   break;
                 }
                 _ => {
