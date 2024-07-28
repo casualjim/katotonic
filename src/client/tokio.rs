@@ -9,11 +9,11 @@ use tokio::{
   sync::{RwLock, Semaphore},
 };
 use tokio_rustls::{client::TlsStream, TlsConnector};
-use tracing::{debug, error, info, instrument};
+use tracing::{error, info, instrument};
 use ulid::Ulid;
 
 use super::AsyncClient;
-use crate::{Error, Result};
+use crate::{server::RedirectInfo, Error, Result};
 
 #[derive(Clone)]
 pub struct Client {
@@ -64,17 +64,18 @@ impl AsyncClient for Client {
           return Ok(Ulid::from_bytes(buffer));
         }
         2 => {
-          let mut response_len = [0u8; 1];
+          let mut response_len = [0u8; 4];
 
           tls_stream.read_exact(&mut response_len).await?;
-          let len = response_len[0] as usize;
+          let len = u32::from_be_bytes(response_len) as usize;
 
           let mut buffer = vec![0u8; len];
           tls_stream.read_exact(&mut buffer).await?;
 
+          let redirect_info: RedirectInfo = serde_cbor::from_slice(&buffer)?;
+
           self.pool.return_connection(tls_stream).await;
-          let new_addr = String::from_utf8(buffer).unwrap();
-          self.pool.switch_addr(new_addr).await?;
+          self.pool.switch_addr(redirect_info.leader).await?;
           continue;
         }
         _ => {
@@ -169,11 +170,13 @@ impl ConnectionPool {
 
     let _permit = self.semaphore.acquire_many(self.size as u32).await.unwrap();
     // Close existing connections
-    while let Ok(Some(mut conn)) = self.receiver.try_recv() {
-      conn.shutdown().await?;
+    let mut closed_connections = 0;
+    while closed_connections < self.size {
+      if let Ok(mut conn) = self.receiver.recv().await {
+        let _ = conn.shutdown().await;
+        closed_connections += 1;
+      }
     }
-
-    debug!("Previous connections closed");
 
     // Create new connections
     let connector = TlsConnector::from(self.config.clone());
