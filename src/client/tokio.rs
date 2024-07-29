@@ -1,24 +1,29 @@
-use std::{io, net::SocketAddr, sync::Arc};
+use std::{
+  io,
+  net::SocketAddr,
+  pin::Pin,
+  sync::Arc,
+  task::{Context, Poll},
+};
 
 use async_trait::async_trait;
 use kanal::{AsyncReceiver, AsyncSender};
 use rustls::{pki_types::ServerName, ClientConfig};
 use tokio::{
-  io::{AsyncReadExt as _, AsyncWriteExt as _},
+  io::{AsyncRead, AsyncReadExt as _, AsyncWrite, AsyncWriteExt as _, ReadBuf},
   net::TcpStream,
-  sync::{RwLock, Semaphore},
+  sync::{RwLock, Semaphore, SemaphorePermit},
 };
 use tokio_rustls::{client::TlsStream, TlsConnector};
-use tracing::{debug, error, info, instrument};
+use tracing::{error, info, instrument};
 use ulid::Ulid;
 
-use super::{pool::Manager, AsyncClient};
+use super::AsyncClient;
 use crate::{server::RedirectInfo, Error, Result};
 
 #[derive(Clone)]
 pub struct Client {
   pool: ConnectionPool,
-  // pool: Pool<ConnectionManager>,
 }
 
 impl Client {
@@ -37,9 +42,6 @@ impl Client {
       None => builder.with_no_client_auth(),
     };
     let pool = ConnectionPool::new(Arc::new(config), addr, server_name, concurrency).await?;
-    // let manager = ConnectionManager::new(addr, Arc::new(config), server_name)?;
-    // let pool = Pool::new(manager);
-    // pool.set_max_open(concurrency as u64);
     Ok(Self { pool })
   }
 }
@@ -58,61 +60,145 @@ impl AsyncClient for Client {
 
       let msg = [1u8];
       if let Err(e) = tls_stream.write_all(&msg).await {
-        error!("Failed to send message: {}", e);
-        self.pool.return_broken_connection(tls_stream).await;
-        continue;
+        tls_stream.mark_invalid();
+        return Err(e.into());
       }
 
       let mut response_type = [0u8];
       if let Err(e) = tls_stream.read_exact(&mut response_type).await {
-        error!("Failed to read response type: {}", e);
-        self.pool.return_broken_connection(tls_stream).await;
-        continue;
+        tls_stream.mark_invalid();
+        return Err(e.into());
       }
       match response_type[0] {
         1 => {
           let mut buffer = [0u8; 16];
-          if let Err(e) = tls_stream.read_exact(&mut buffer).await {
-            error!("Failed to read response: {}", e);
-            self.pool.return_broken_connection(tls_stream).await;
-            continue;
+          match tls_stream.read_exact(&mut buffer).await {
+            Ok(_) => {
+              return Ok(Ulid::from_bytes(buffer));
+            }
+            Err(e) => {
+              tls_stream.mark_invalid();
+              return Err(e.into());
+            }
           }
-          self.pool.return_connection(tls_stream).await;
-          return Ok(Ulid::from_bytes(buffer));
         }
         2 => {
           let mut response_len = [0u8; 4];
 
           if let Err(e) = tls_stream.read_exact(&mut response_len).await {
             error!("Failed to read response length: {}", e);
-            self.pool.return_broken_connection(tls_stream).await;
-            continue;
+            tls_stream.mark_invalid();
+            return Err(e.into());
           }
           let len = u32::from_be_bytes(response_len) as usize;
 
           let mut buffer = vec![0u8; len];
           if let Err(e) = tls_stream.read_exact(&mut buffer).await {
             error!("Failed to read response: {}", e);
-            self.pool.return_broken_connection(tls_stream).await;
-            continue;
+            tls_stream.mark_invalid();
+            return Err(e.into());
           }
 
           let redirect_info: RedirectInfo = match serde_cbor::from_slice(&buffer) {
             Ok(info) => info,
             Err(e) => {
               error!("Failed to deserialize response: {:?}", e);
-              self.pool.return_broken_connection(tls_stream).await;
-              continue;
+              tls_stream.mark_invalid();
+              return Err(e.into());
             }
           };
-          self.pool.return_connection(tls_stream).await;
+          drop(tls_stream);
           self.pool.switch_addr(redirect_info.leader).await?;
-          continue;
         }
         _ => {
-          self.pool.return_connection(tls_stream).await;
-          continue;
+          error!("Unknown response type: {}", response_type[0]);
         }
+      }
+    }
+  }
+}
+
+struct ConnectionHandle<'a> {
+  tls_stream: Option<TlsStream<TcpStream>>,
+  pool: &'a ConnectionPool,
+  valid: bool,
+  _permit: SemaphorePermit<'a>,
+}
+
+impl<'a> ConnectionHandle<'a> {
+  fn mark_invalid(&mut self) {
+    self.valid = false;
+  }
+}
+
+impl<'a> AsyncRead for ConnectionHandle<'a> {
+  fn poll_read(
+    mut self: Pin<&mut Self>,
+    cx: &mut Context<'_>,
+    buf: &mut ReadBuf<'_>,
+  ) -> Poll<io::Result<()>> {
+    if let Some(ref mut tls_stream) = self.tls_stream {
+      Pin::new(tls_stream).poll_read(cx, buf)
+    } else {
+      Poll::Ready(Err(io::Error::new(
+        io::ErrorKind::Other,
+        "Connection is invalid",
+      )))
+    }
+  }
+}
+
+impl<'a> AsyncWrite for ConnectionHandle<'a> {
+  fn poll_write(
+    mut self: Pin<&mut Self>,
+    cx: &mut Context<'_>,
+    buf: &[u8],
+  ) -> Poll<Result<usize, io::Error>> {
+    if let Some(ref mut tls_stream) = self.tls_stream {
+      Pin::new(tls_stream).poll_write(cx, buf)
+    } else {
+      Poll::Ready(Err(io::Error::new(
+        io::ErrorKind::Other,
+        "Connection is invalid",
+      )))
+    }
+  }
+
+  fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), io::Error>> {
+    if let Some(ref mut tls_stream) = self.tls_stream {
+      Pin::new(tls_stream).poll_flush(cx)
+    } else {
+      Poll::Ready(Err(io::Error::new(
+        io::ErrorKind::Other,
+        "Connection is invalid",
+      )))
+    }
+  }
+
+  fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), io::Error>> {
+    if let Some(ref mut tls_stream) = self.tls_stream {
+      Pin::new(tls_stream).poll_shutdown(cx)
+    } else {
+      Poll::Ready(Err(io::Error::new(
+        io::ErrorKind::Other,
+        "Connection is invalid",
+      )))
+    }
+  }
+}
+
+impl<'a> Drop for ConnectionHandle<'a> {
+  fn drop(&mut self) {
+    if let Some(tls_stream) = self.tls_stream.take() {
+      let pool = self.pool.clone();
+      if self.valid {
+        tokio::spawn(async move {
+          pool.return_connection(tls_stream).await;
+        });
+      } else {
+        tokio::spawn(async move {
+          pool.handle_broken_connection(tls_stream).await;
+        });
       }
     }
   }
@@ -159,28 +245,39 @@ impl ConnectionPool {
 
   async fn initialize_connections(&self, size: usize) -> Result<()> {
     let addr = *self.addr.read().await;
-    for _ in 0..size {
-      let tcp_stream = TcpStream::connect(&addr).await?;
+    let futures = (0..size).map(|_| {
+      let addr = addr.clone();
+      let connector = self.connector.clone();
       let server_name = self.server_name.clone();
-
-      let tls_stream = self.connector.connect(server_name, tcp_stream).await?;
-      if let Err(e) = self.sender.send(tls_stream).await {
-        error!("Failed to send connection to pool: {}", e);
+      async move {
+        let tcp_stream = TcpStream::connect(&addr).await?;
+        let tls_stream = connector.connect(server_name, tcp_stream).await?;
+        self.sender.send(tls_stream).await?;
+        Ok::<(), Error>(())
       }
-    }
+    });
+    futures::future::try_join_all(futures).await?;
     Ok(())
   }
 
   #[instrument(skip(self))]
-  async fn get_connection(&self) -> Result<TlsStream<TcpStream>> {
-    let _permit = self.semaphore.acquire().await;
-    Ok(
-      self
-        .receiver
-        .recv()
-        .await
-        .map_err(|_| Error::PoolAcquireConnectionFailed)?,
-    )
+  async fn get_connection(&self) -> Result<ConnectionHandle> {
+    let _permit = self
+      .semaphore
+      .acquire()
+      .await
+      .map_err(|_| Error::PoolAcquireConnectionFailed)?;
+    let tls_stream = self
+      .receiver
+      .recv()
+      .await
+      .map_err(|_| Error::PoolAcquireConnectionFailed)?;
+    Ok(ConnectionHandle {
+      tls_stream: Some(tls_stream),
+      pool: self,
+      valid: true,
+      _permit,
+    })
   }
 
   #[instrument(skip(self, conn))]
@@ -190,26 +287,36 @@ impl ConnectionPool {
     }
   }
 
-  async fn return_broken_connection(&self, mut conn: TlsStream<TcpStream>) {
-    let _ = conn.shutdown().await;
+  async fn handle_broken_connection(&self, mut conn: TlsStream<TcpStream>) {
+    let (strm, client_conn) = conn.get_mut();
+    let _ = client_conn.send_close_notify();
+    let _ = strm.shutdown().await;
+    self.reconnect().await;
+  }
 
-    let tcp_stream = match TcpStream::connect(&*self.addr.read().await).await {
-      Ok(tcp_stream) => tcp_stream,
-      Err(e) => {
-        error!("Failed to reconnect to server: {}", e);
-        return;
+  async fn reconnect(&self) {
+    loop {
+      let tcp_stream = match TcpStream::connect(&*self.addr.read().await).await {
+        Ok(tcp_stream) => tcp_stream,
+        Err(e) => {
+          error!("Failed to reconnect to server: {}", e);
+          tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+          continue;
+        }
+      };
+      let server_name = self.server_name.clone();
+      let tls_stream = match self.connector.connect(server_name, tcp_stream).await {
+        Ok(tls_stream) => tls_stream,
+        Err(e) => {
+          error!("Failed to reconnect to server: {}", e);
+          tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+          continue;
+        }
+      };
+      if let Err(e) = self.sender.send(tls_stream).await {
+        error!("Failed to return reconnected connection to pool: {}", e);
       }
-    };
-    let server_name = self.server_name.clone();
-    let tls_stream = match self.connector.connect(server_name, tcp_stream).await {
-      Ok(tls_stream) => tls_stream,
-      Err(e) => {
-        error!("Failed to reconnect to server: {}", e);
-        return;
-      }
-    };
-    if let Err(e) = self.sender.send(tls_stream).await {
-      error!("Failed to return reconnected connection to pool: {}", e);
+      break;
     }
   }
 
@@ -227,91 +334,28 @@ impl ConnectionPool {
     // Close existing connections
     let mut closed_connections = 0;
     while closed_connections < self.size {
-      if let Ok(mut conn) = self.receiver.recv().await {
-        let _ = conn.shutdown().await;
+      if let Ok(conn) = self.receiver.recv().await {
+        let (mut strm, mut client_conn) = conn.into_inner();
+        let _ = client_conn.send_close_notify();
+        let _ = strm.shutdown().await;
         closed_connections += 1;
       }
     }
 
     // Create new connections
-    let connector = self.connector.clone();
-    for _ in 0..self.size {
-      let tcp_stream = TcpStream::connect(&new_addr).await?;
-      let dns_name = self.server_name.clone();
-
-      let tls_stream = connector.connect(dns_name, tcp_stream).await?;
-      if let Err(e) = self.sender.send(tls_stream).await {
-        error!("Failed to send new connection to pool: {}", e);
+    let reconnect_futures = (0..self.size).map(|_| {
+      let connector = self.connector.clone();
+      let new_addr = new_addr.clone();
+      let server_name = self.server_name.clone();
+      async move {
+        let tcp_stream = TcpStream::connect(&new_addr).await?;
+        let tls_stream = connector.connect(server_name, tcp_stream).await?;
+        self.sender.send(tls_stream).await?;
+        Ok::<(), Error>(())
       }
-    }
+    });
+    futures::future::try_join_all(reconnect_futures).await?;
 
-    *addr_guard = new_addr;
-    Ok(())
-  }
-}
-
-struct ConnectionManager {
-  addr: Arc<RwLock<SocketAddr>>,
-  connector: TlsConnector,
-  server_name: ServerName<'static>,
-}
-
-impl ConnectionManager {
-  fn new(addr: &str, config: Arc<ClientConfig>, server_name: &str) -> Result<Self> {
-    let dns_name = ServerName::try_from(server_name.to_string())?;
-    let addr: SocketAddr = addr.parse()?;
-    let connector = TlsConnector::from(config);
-    Ok(Self {
-      addr: Arc::new(RwLock::new(addr)),
-      connector,
-      server_name: dns_name,
-    })
-  }
-}
-
-impl Manager for ConnectionManager {
-  type Connection = TlsStream<TcpStream>;
-
-  type Error = Error;
-
-  async fn connect(&self) -> std::result::Result<Self::Connection, Self::Error> {
-    let addr = *self.addr.read().await;
-    let tcp_stream = TcpStream::connect(&addr).await?;
-    let dns_name = self.server_name.clone();
-    Ok(self.connector.connect(dns_name, tcp_stream).await?)
-  }
-
-  async fn check(&self, conn: &mut Self::Connection) -> std::result::Result<(), Self::Error> {
-    let peer_addr = conn.get_ref().0.peer_addr()?;
-    let addr = *self.addr.read().await;
-    if peer_addr != addr {
-      debug!("Connection to {} is invalid, reconnecting", peer_addr);
-      *conn = self.connect().await?;
-    }
-    conn.write_all(&[u8::MAX; 1]).await?;
-    debug!("Sent ping to {}", peer_addr);
-    let mut pong = [0u8; 1];
-    conn.read_exact(&mut pong).await?;
-    // match timeout(Duration::from_millis(100), conn.read_exact(&mut pong)).await {
-    //   Ok(Ok(_)) => {}
-    //   Ok(Err(e)) => {
-    //     panic!("Error reading pong response: {}", e);
-    //     return Err(e.into());
-    //   }
-    //   Err(_) => {
-    //     panic!("Timeout reading pong response");
-    //     return Err(Error::PoolGetTimeout);
-    //   }
-    // }
-    if pong[0] != u8::MAX {
-      return Err(Error::InvalidPongResponse);
-    }
-    Ok(())
-  }
-
-  async fn switch_addr(&self, addr: &str) -> std::result::Result<(), Self::Error> {
-    let new_addr = addr.parse()?;
-    let mut addr_guard = self.addr.write().await;
     *addr_guard = new_addr;
     Ok(())
   }

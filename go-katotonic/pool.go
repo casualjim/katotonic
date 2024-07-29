@@ -62,15 +62,20 @@ func newConnectionPool(addr string, maxConn int, tlsConfig *tls.Config, connectT
 
 // Get retrieves a connection from the pool or creates a new one if the pool is empty.
 func (p *connectionPool) Get() (net.Conn, error) {
+	slog.Debug("Acquiring connection")
+	defer slog.Debug("Connection acquired")
 	if err := p.sem.Acquire(context.Background(), 1); err != nil {
 		return nil, err
 	}
-	defer p.sem.Release(1)
 	return <-p.conns, nil
 }
 
 // Put returns a connection to the pool.
 func (p *connectionPool) Put(conn net.Conn, err error) {
+	slog.Debug("Releasing connection")
+	defer slog.Debug("Connection released")
+	defer p.sem.Release(1)
+
 	if err != nil {
 		if conn != nil {
 			conn.Close()
@@ -98,18 +103,15 @@ func (p *connectionPool) SwitchAddr(newAddr string) error {
 		return err
 	}
 	defer p.sem.Release(int64(p.maxConn))
+	slog.Debug("All permits acquired")
 
 	oldConns := make([]net.Conn, 0, p.maxConn)
-	for {
-		select {
-		case conn := <-p.conns:
-			oldConns = append(oldConns, conn)
-		default:
-			goto RECONNECT
-		}
+	for i := 0; i < p.maxConn; i++ {
+		conn := <-p.conns
+		oldConns = append(oldConns, conn)
 	}
+	slog.Debug("All connections acquired")
 
-RECONNECT:
 	p.addr = newAddr
 	for _, oldConn := range oldConns {
 		oldConn.Close()
@@ -123,6 +125,7 @@ RECONNECT:
 		}
 		p.conns <- newConn
 	}
+	slog.Debug("All connections re-established", slog.String("newAddr", p.addr))
 
 	return nil
 }

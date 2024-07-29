@@ -11,7 +11,7 @@ use smol::{
 use tracing::{error, info, instrument};
 use ulid::Ulid;
 
-use crate::{defer, server::RedirectInfo, Result};
+use crate::{server::RedirectInfo, Result};
 
 #[derive(Clone)]
 pub struct Client {

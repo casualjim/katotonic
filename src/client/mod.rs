@@ -1,4 +1,3 @@
-pub(crate) mod pool;
 #[cfg(feature = "smol")] mod smol;
 mod tokio;
 

@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"log/slog"
 	"os"
 	"time"
 
@@ -143,38 +144,50 @@ func (c *Client) Close() {
 }
 
 func (c *Client) NextId() (ulid.ULID, error) {
-	conn, err := c.pool.Get()
-	if err != nil {
-		return ulid.ULID{}, err
-	}
-	defer func() { c.pool.Put(conn, nil) }()
 
 	for i := 0; i < 3; i++ {
-		requestType := []byte{1}
-		_, err = conn.Write(requestType)
+
+		conn, err := c.pool.Get()
 		if err != nil {
+			c.pool.Put(conn, err)
 			return ulid.ULID{}, err
 		}
 
+		requestType := []byte{1}
+		_, err = conn.Write(requestType)
+		if err != nil {
+			slog.Error("failed to write request type", slog.Any("error", err))
+			c.pool.Put(conn, err)
+			return ulid.ULID{}, err
+		}
 		var responseType [1]byte
 		_, err = io.ReadFull(conn, responseType[:])
 		if err != nil {
+			slog.Error("failed to read response type", slog.Any("error", err))
+			c.pool.Put(conn, err)
 			return ulid.ULID{}, err
 		}
 		switch responseType[0] {
 		case 0:
+			slog.Error("server error")
+			c.pool.Put(conn, err)
 			return ulid.ULID{}, errors.New("server error")
 		case 1: // this is a ulid
 			var buffer [16]byte
 			_, err = io.ReadFull(conn, buffer[:])
 			if err != nil {
+				slog.Error("failed to read ulid", slog.Any("error", err))
+				c.pool.Put(conn, err)
 				return ulid.ULID{}, err
 			}
+			c.pool.Put(conn, nil)
 			return ulid.ULID(buffer), nil
 		case 2: // redirect to new leader
 			addrLen := make([]byte, 4)
 			_, err = io.ReadFull(conn, addrLen)
 			if err != nil {
+				slog.Error("failed to read address length", slog.Any("error", err))
+				c.pool.Put(conn, err)
 				return ulid.ULID{}, err
 			}
 
@@ -182,28 +195,30 @@ func (c *Client) NextId() (ulid.ULID, error) {
 			addr := make([]byte, length)
 			_, err = io.ReadFull(conn, addr)
 			if err != nil {
+				slog.Error("failed to read response bytes", slog.Any("error", err))
+				c.pool.Put(conn, err)
 				return ulid.ULID{}, err
 			}
 			var response RedirectInfo
 			err = cbor.Unmarshal(addr, &response)
 			if err != nil {
+				slog.Error("failed to unmarshal redirect info", slog.Any("error", err))
+				c.pool.Put(conn, err)
 				return ulid.ULID{}, err
 			}
 
 			c.pool.Put(conn, nil)
 			err = c.pool.SwitchAddr(response.Leader)
 			if err != nil {
+				slog.Error("failed to switch address", slog.Any("error", err))
 				return ulid.ULID{}, err
 			}
-			con, err := c.pool.Get()
-			if err != nil {
-				return ulid.ULID{}, err
-			}
-			conn = con
-			continue
+		default:
+			slog.Error("unknown response type")
+			c.pool.Put(conn, nil)
 		}
 	}
-	return ulid.ULID{}, errors.New("too many redirects")
+	return ulid.ULID{}, errors.New("too many retries")
 }
 
 type RedirectInfo struct {

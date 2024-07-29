@@ -1,22 +1,28 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"log"
 	"log/slog"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/casualjim/ulidd/katotonic"
+	"github.com/charmbracelet/log"
 	"github.com/oklog/ulid/v2"
 )
+
+func init() {
+	slog.SetDefault(slog.New(log.NewWithOptions(os.Stderr, log.Options{
+		Level: log.InfoLevel,
+	})))
+}
 
 const numConnections = 50
 const numRequests = 1_000_000
 
 func main() {
-	log.SetOutput(os.Stdout)
 
 	caCertPath := "../tests/certs/rootCA.pem"
 	clientCertPath := "../tests/certs/ulidd.client-client.pem"
@@ -47,7 +53,11 @@ func main() {
 			localULIDs := make([]ulid.ULID, 0, numRequests)
 
 			for j := 0; j < numRequests; j++ {
-
+				if slog.Default().Enabled(context.TODO(), slog.LevelDebug) {
+					slog.Debug("Requesting next ID")
+				} else if j%100_000 == 0 {
+					slog.Info("Requesting next ID", slog.Int("request", j))
+				}
 				id, err := client.NextId()
 				if err != nil {
 					slog.Error("failed to get next ID", slog.Any("error", err))
@@ -60,6 +70,7 @@ func main() {
 				prev = id
 
 				localULIDs = append(localULIDs, id)
+				slog.Debug("Received ID", slog.Any("id", id))
 			}
 
 			allULIDs <- localULIDs

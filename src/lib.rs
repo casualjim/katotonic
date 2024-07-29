@@ -1,3 +1,4 @@
+#[cfg(feature = "blocking")] pub mod blocking;
 #[macro_use]
 mod defer;
 pub mod bully;
@@ -10,7 +11,6 @@ mod state;
 pub mod transport;
 use std::io;
 
-use client::pool::PoolError;
 pub use config::*;
 pub use idgen::generate_ulid as generate_monotonic_id;
 use rustls::pki_types::InvalidDnsNameError;
@@ -56,18 +56,6 @@ pub enum Error {
   KanalSend(#[from] kanal::SendError),
   #[error("Invalid pong reponse")]
   InvalidPongResponse,
-  #[error("get connection timeout")]
-  PoolGetTimeout,
-}
-
-impl From<PoolError> for Error {
-  fn from(e: PoolError) -> Self {
-    match e {
-      PoolError::GetTimeout => Error::PoolGetTimeout,
-      PoolError::KanalSend(e) => Error::KanalSend(e),
-      PoolError::KanalRecv(e) => Error::KanalRecv(e),
-    }
-  }
 }
 
 #[cfg(test)]
