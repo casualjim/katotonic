@@ -7,6 +7,7 @@ use std::{
 use async_trait::async_trait;
 use chitchat::Chitchat;
 use futures::{stream::BoxStream, StreamExt as _};
+use rand::seq::IteratorRandom as _;
 use rustls::pki_types::ServerName;
 use tokio::sync::{Mutex, MutexGuard, RwLock};
 use trust_dns_resolver::{
@@ -18,6 +19,39 @@ use crate::{
   client::{self, AsyncClient},
   ClientConfig, Error, Result, ServerConfig,
 };
+
+pub async fn parse_socket_addr(addr: &str) -> Result<SocketAddr> {
+  match addr.parse() {
+    Ok(addr) => Ok(addr),
+    Err(e) => match addr.rsplit_once(':') {
+      Some((name, port)) => {
+        let port = match port.parse() {
+          Ok(port) => port,
+          Err(_) => return Err(e.into()),
+        };
+        let addrs = resolve_dns(name).await?;
+        let mut rng = rand::thread_rng();
+        let res = addrs
+          .iter()
+          .filter(|v| matches!(v, IpAddr::V6(_)))
+          .choose(&mut rng)
+          .map(|ip| SocketAddr::new(*ip, port))
+          .or_else(|| {
+            addrs
+              .iter()
+              .filter(|v| matches!(v, IpAddr::V4(_)))
+              .choose(&mut rng)
+              .map(|ip| SocketAddr::new(*ip, port))
+          });
+        match res {
+          Some(addr) => Ok(addr),
+          None => Err(e.into()),
+        }
+      }
+      None => Err(e.into()),
+    },
+  }
+}
 
 pub async fn resolve_dns(name: &str) -> Result<Vec<IpAddr>> {
   let resolver = AsyncResolver::tokio_from_system_conf()?;
@@ -295,5 +329,23 @@ impl Discovery for ChitchatDiscovery {
       addr: cid.gossip_advertise_addr,
       server_name: state.and_then(|sn| ServerName::try_from(sn).ok()),
     })
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use std::{net::Ipv6Addr, str::FromStr};
+
+  use super::*;
+
+  #[tokio::test]
+  async fn test_parse_socket_addr() {
+    let addr = "google.com:443";
+    let res = parse_socket_addr(addr).await;
+    assert!(res.is_ok());
+    let addr = res.unwrap();
+    let expected = Ipv6Addr::from_str("2607:f8b0:4007:813::200e").unwrap();
+    assert_eq!(addr.ip(), expected);
+    assert_eq!(addr.port(), 443);
   }
 }

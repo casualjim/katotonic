@@ -80,7 +80,17 @@ func (p *connectionPool) Put(conn net.Conn, err error) {
 		if conn != nil {
 			conn.Close()
 		}
-		return
+
+		for {
+			newConn, err := p.dialer(p.addr, p.tlsConfig.Clone(), p.connectTimeout)
+			if err != nil {
+				time.Sleep(100 * time.Millisecond)
+				continue
+			}
+
+			conn = newConn
+			break
+		}
 	}
 
 	select {

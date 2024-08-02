@@ -28,7 +28,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
   let config = katotonic::ClientConfig::parse();
   let root_store = config.root_store()?;
   let server_name = config.server_name();
-  let addr = config.addr();
+  let addr = config.addr()?;
 
   info!("connecting to server={addr} server_name={server_name}");
   let builder = ClientConfig::builder().with_root_certificates(root_store);
@@ -172,7 +172,7 @@ struct ConnectionPool {
 }
 
 impl ConnectionPool {
-  fn new(config: Arc<ClientConfig>, addr: &str, server_name: &str, size: usize) -> Self {
+  fn new(config: Arc<ClientConfig>, addr: SocketAddr, server_name: &str, size: usize) -> Self {
     let (sender, receiver) = kanal::bounded(size);
 
     // Initialize the pool with the specified number of connections
@@ -194,7 +194,7 @@ impl ConnectionPool {
       config,
       size,
       server_name,
-      addr: Arc::new(RwLock::new(addr.parse().expect("Failed to parse address"))),
+      addr: Arc::new(RwLock::new(addr)),
       sender,
       receiver,
       semaphore,

@@ -6,7 +6,7 @@
 use std::{
   fs::File,
   io::{self, BufReader},
-  net::SocketAddr,
+  net::{SocketAddr, ToSocketAddrs},
   path::Path,
   sync::Arc,
   time::{self, Duration},
@@ -31,7 +31,7 @@ pub struct ClientConfig {
   pub key: Option<String>,
   #[clap(long, default_value = "tests/certs/rootCA.pem")]
   pub ca: String,
-  #[clap(long, default_value = "127.0.0.1:9000")]
+  #[clap(long, default_value = "localhost:9000")]
   pub addr: String,
 
   #[clap(long, default_value = "localhost")]
@@ -54,15 +54,24 @@ impl ClientConfig {
     }
   }
 
-  pub fn addr(&self) -> &str {
-    &self.addr
+  pub fn addr(&self) -> Result<SocketAddr> {
+    Ok(
+      self
+        .addr
+        .to_socket_addrs()?
+        .next()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid address"))?,
+    )
   }
 
   pub fn server_name(&self) -> &str {
     self
       .server_name
       .as_deref()
-      .unwrap_or_else(|| self.addr.split(':').next().unwrap())
+      .unwrap_or_else(|| match self.addr.parse::<SocketAddr>() {
+        Err(_) => self.addr.rsplit_once(':').unwrap().0,
+        Ok(_) => panic!("Invalid server name"),
+      })
   }
 }
 
@@ -101,7 +110,7 @@ pub struct ServerConfig {
   #[clap(long, default_value = "tests/certs/rootCA.pem")]
   pub cluster_ca: String,
   #[clap(long, default_value = "127.0.0.1:9100")]
-  pub cluster_addr: Option<SocketAddr>,
+  pub cluster_addr: Option<String>,
   #[clap(long, default_value = "default")]
   pub cluster_id: String,
   #[clap(long)]
@@ -115,7 +124,7 @@ pub struct ServerConfig {
 
 impl From<&ServerConfig> for ChitchatConfig {
   fn from(value: &ServerConfig) -> Self {
-    let gossip_addr = value.cluster_addr.unwrap();
+    let gossip_addr = value.cluster_addr().unwrap().unwrap();
     let mut rng = rand::thread_rng();
     let node_id = value
       .node_id
@@ -191,22 +200,43 @@ impl ServerConfig {
   }
 
   pub fn addr(&self) -> Result<SocketAddr> {
-    Ok(self.addr.parse()?)
+    Ok(
+      self
+        .addr
+        .to_socket_addrs()?
+        .next()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid address"))?,
+    )
   }
 
   pub fn server_name(&self) -> &str {
-    self.addr.split(':').next().unwrap()
+    match self.addr.parse::<SocketAddr>() {
+      Err(_) => self
+        .addr
+        .rsplit_once(':')
+        .map(|(name, _)| name)
+        .expect("Invalid server name"),
+      Ok(_) => panic!("Invalid server name"),
+    }
   }
 
   pub fn cluster_addr(&self) -> Result<Option<SocketAddr>> {
-    Ok(self.cluster_addr)
+    Ok(
+      self
+        .cluster_addr
+        .as_deref()
+        .and_then(|addr| addr.to_socket_addrs().unwrap().next()),
+    )
   }
 
   pub fn cluster_server_name(&self) -> Option<String> {
     self
       .cluster_addr
-      .as_ref()
-      .map(|v| v.to_string().split(':').next().unwrap().to_string())
+      .clone()
+      .and_then(|addr| match addr.parse::<SocketAddr>() {
+        Err(_) => addr.rsplit_once(':').map(|(name, _)| name.to_string()),
+        Ok(_) => None,
+      })
   }
 }
 

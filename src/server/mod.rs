@@ -33,6 +33,7 @@ pub async fn spawn_discovery(
       "cluster_addr".to_string(),
       conf
         .cluster_addr
+        .as_ref()
         .map(|v| v.to_string())
         .unwrap_or("".to_string()),
     ),

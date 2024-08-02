@@ -22,7 +22,7 @@ impl Client {
   pub async fn new(config: crate::ClientConfig, concurrency: usize) -> Result<Self> {
     let root_store = config.root_store()?;
     let server_name = config.server_name().to_string();
-    let addr = config.addr().to_string();
+    let addr = config.addr()?;
 
     info!("connecting to server={addr} server_name={server_name}");
     let builder = ClientConfig::builder().with_root_certificates(root_store);
@@ -96,14 +96,13 @@ struct ConnectionPool {
 impl ConnectionPool {
   async fn new(
     config: Arc<ClientConfig>,
-    addr: String,
+    addr: SocketAddr,
     server_name: String,
     size: usize,
   ) -> Result<Self> {
     let (sender, receiver) = kanal::bounded_async(size);
 
     let dns_name = ServerName::try_from(server_name.clone()).unwrap();
-    let addr: SocketAddr = addr.parse()?;
 
     let pool = Self {
       config,

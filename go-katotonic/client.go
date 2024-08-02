@@ -28,8 +28,12 @@ type opts struct {
 }
 
 func (o *opts) TLSConfig() (*tls.Config, error) {
+	if o.tlsConfig != nil {
+		return o.tlsConfig, nil
+	}
+
 	var tlsConfig *tls.Config
-	if o.tlsConfig == nil {
+	if o.caCert != "" || o.cert != "" || o.key != "" {
 		if o.caCert != "" {
 			caCert, err := os.ReadFile(o.caCert)
 			if err != nil {
