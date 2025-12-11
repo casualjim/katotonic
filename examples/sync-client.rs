@@ -201,7 +201,7 @@ impl ConnectionPool {
     }
   }
 
-  pub fn get_connection(&self) -> Result<ConnectionHandle> {
+  pub fn get_connection(&self) -> Result<ConnectionHandle<'_>> {
     let _permit = self.semaphore.acquire();
 
     let tls_stream = self

@@ -75,7 +75,7 @@ where
       while let Some(req) = rx.lock().await.recv().await {
         match handle.handle(req).await {
           Ok(resp) => {
-            if let Err(_) = resp_tx.send(resp).await {
+            if resp_tx.send(resp).await.is_err() {
               break;
             }
           }
@@ -117,7 +117,7 @@ where
   type Response = O;
 
   async fn send(&self, msg: Self::Request) -> Result<Self::Response> {
-    if let Err(_) = self.sender.send(msg).await {
+    if self.sender.send(msg).await.is_err() {
       return Err(Error::Io(io::Error::new(
         io::ErrorKind::UnexpectedEof,
         "unexpected EOF",
@@ -248,10 +248,7 @@ where
       debug!(addr, response=?response, "received response");
       Ok(response?)
     } else {
-      Err(Error::Io(io::Error::new(
-        io::ErrorKind::Other,
-        "unexpected EOF",
-      )))
+      Err(Error::Io(io::Error::other("unexpected EOF")))
     }
   }
 }

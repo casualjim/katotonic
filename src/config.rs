@@ -125,17 +125,17 @@ pub struct ServerConfig {
 impl From<&ServerConfig> for ChitchatConfig {
   fn from(value: &ServerConfig) -> Self {
     let gossip_addr = value.cluster_addr().unwrap().unwrap();
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let node_id = value
       .node_id
       .clone()
       .unwrap_or_else(|| Ulid::new().to_string());
 
-    let generation = rng.gen_range(1_000..65_000);
+    let generation = rng.random_range(1_000..65_000);
     // let generation = 0;
     let chitchat_id = ChitchatId::new(node_id, generation, gossip_addr);
     ChitchatConfig {
-      chitchat_id: chitchat_id,
+      chitchat_id,
       cluster_id: value.cluster_id.clone(),
       gossip_interval: value.gossip_interval,
       listen_addr: gossip_addr,
@@ -146,7 +146,9 @@ impl From<&ServerConfig> for ChitchatConfig {
         max_interval: Duration::from_millis(1500),
         ..Default::default()
       },
-      marked_for_deletion_grace_period: 60_000,
+      marked_for_deletion_grace_period: Duration::from_millis(60_000),
+      catchup_callback: None,
+      extra_liveness_predicate: None,
     }
   }
 }
@@ -266,7 +268,7 @@ pub fn root_store<P: AsRef<Path>>(ca: P) -> Result<RootCertStore> {
   let mut reader = BufReader::new(file);
   let cert_chain = rustls_pemfile::certs(&mut reader).collect::<Result<Vec<_>, _>>()?;
   let mut root_store = RootCertStore::empty();
-  root_store.add_parsable_certificates(cert_chain.into_iter());
+  root_store.add_parsable_certificates(cert_chain);
   Ok(root_store)
 }
 

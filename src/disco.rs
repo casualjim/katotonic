@@ -10,6 +10,7 @@ use futures::{stream::BoxStream, StreamExt as _};
 use rand::seq::IteratorRandom as _;
 use rustls::pki_types::ServerName;
 use tokio::sync::{Mutex, MutexGuard, RwLock};
+use tokio_stream::wrappers::WatchStream;
 use trust_dns_resolver::{
   proto::rr::rdata::{A, AAAA},
   AsyncResolver,
@@ -30,7 +31,7 @@ pub async fn parse_socket_addr(addr: &str) -> Result<SocketAddr> {
           Err(_) => return Err(e.into()),
         };
         let addrs = resolve_dns(name).await?;
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let res = addrs
           .iter()
           .filter(|v| matches!(v, IpAddr::V6(_)))
@@ -131,8 +132,11 @@ impl AsyncClientFactory for TokioClientFactory {
 pub struct ChitchatDiscovery {
   chitchat: Arc<Mutex<Chitchat>>,
   conf: ServerConfig,
-  current_client: Arc<RwLock<Option<(String, Arc<dyn AsyncClient + Send + Sync>)>>>,
+  current_client: CachedClientSlot,
 }
+
+type CachedClient = (String, Arc<dyn AsyncClient + Send + Sync>);
+type CachedClientSlot = Arc<RwLock<Option<CachedClient>>>;
 
 #[async_trait]
 impl ApiClientFactory for ChitchatDiscovery {
@@ -146,7 +150,7 @@ impl ApiClientFactory for ChitchatDiscovery {
     let guard = self.current_client.read().await;
     if let Some((ref current_id, ref client)) = *guard {
       if current_id == &id.0 {
-        return Ok(Arc::clone(&client));
+        return Ok(Arc::clone(client));
       }
     }
     drop(guard);
@@ -170,7 +174,7 @@ impl ApiClientFactory for ChitchatDiscovery {
 impl ChitchatDiscovery {
   fn api_client_config_for(&self, guard: &MutexGuard<Chitchat>, id: &str) -> Option<ClientConfig> {
     let cid = guard.live_nodes().find(|cid| cid.node_id == id)?;
-    let state = guard.node_state(&cid)?;
+    let state = guard.node_state(cid)?;
     let addr = state.get("api_addr")?.to_string();
     let server_name = state.get("api_server_name")?.to_string();
 
@@ -188,7 +192,7 @@ impl ChitchatDiscovery {
     let cid = guard
       .live_nodes()
       .find(|cid| cid.node_id == id && cid.generation_id == generation)?;
-    let state = guard.node_state(&cid)?;
+    let state = guard.node_state(cid)?;
     state.get("api_addr").map(|v| v.to_string())
   }
 
@@ -199,7 +203,7 @@ impl ChitchatDiscovery {
       if cid.node_id == id {
         continue;
       }
-      let maybe_api_addr = guard.node_state(&cid).and_then(|v| v.get("api_addr"));
+      let maybe_api_addr = guard.node_state(cid).and_then(|v| v.get("api_addr"));
       if let Some(api_addr) = maybe_api_addr {
         addrs.push(api_addr.to_string());
       }
@@ -255,7 +259,7 @@ impl ChitchatDiscovery {
     let guard = self.chitchat.lock().await;
 
     let cid = guard.live_nodes().find(|cid| cid.node_id == id.as_ref())?;
-    let state = guard.node_state(&cid)?;
+    let state = guard.node_state(cid)?;
     let server_name = state.get("cluster_server_name")?.to_string();
     Some(Member {
       name: cid.node_id.clone(),
@@ -294,7 +298,8 @@ impl Discovery for ChitchatDiscovery {
   async fn membership_changes(&self) -> BoxStream<'static, Result<Vec<Member>>> {
     let watcher = self.chitchat.lock().await.live_nodes_watcher();
 
-    Box::pin(watcher.map(|peers| {
+    let stream = WatchStream::new(watcher);
+    Box::pin(stream.map(|peers| {
       Ok(
         peers
           .iter()
@@ -334,18 +339,16 @@ impl Discovery for ChitchatDiscovery {
 
 #[cfg(test)]
 mod tests {
-  use std::{net::Ipv6Addr, str::FromStr};
-
   use super::*;
 
   #[tokio::test]
   async fn test_parse_socket_addr() {
     let addr = "google.com:443";
+    let resolved = resolve_dns("google.com").await.unwrap();
     let res = parse_socket_addr(addr).await;
     assert!(res.is_ok());
     let addr = res.unwrap();
-    let expected = Ipv6Addr::from_str("2607:f8b0:4007:813::200e").unwrap();
-    assert_eq!(addr.ip(), expected);
     assert_eq!(addr.port(), 443);
+    assert!(resolved.contains(&addr.ip()));
   }
 }

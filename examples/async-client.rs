@@ -54,7 +54,7 @@ async fn main() -> anyhow::Result<()> {
   drop(tx); // Close the sending side of the channel
 
   // Wait for all tasks to complete
-  while let Some(_) = tasks.next().await {}
+  while tasks.next().await.is_some() {}
   println!("All tasks completed in {:?}", start.elapsed());
 
   let mut all_ulids = Vec::new();
@@ -65,7 +65,7 @@ async fn main() -> anyhow::Result<()> {
   // Ensure all ULIDs across all threads are unique
   let mut ulid_set = HashSet::new();
   for ulid in &all_ulids {
-    ulid_set.insert(ulid.clone());
+    ulid_set.insert(*ulid);
   }
   assert_eq!(ulid_set.len(), all_ulids.len());
 

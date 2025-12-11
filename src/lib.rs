@@ -1,4 +1,7 @@
-#[cfg(feature = "blocking")] pub mod blocking;
+#[cfg(feature = "blocking")]
+pub mod blocking;
+
+#[cfg(feature = "smol")]
 #[macro_use]
 mod defer;
 pub mod bully;

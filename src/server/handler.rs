@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration, u8};
+use std::{sync::Arc, time::Duration};
 
 use futures::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::time::sleep;

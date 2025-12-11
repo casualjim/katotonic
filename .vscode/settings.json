@@ -24,5 +24,8 @@
   },
   "rust-analyzer.runnables.extraEnv": {
     "RUST_LOG": "debug,chitchat::failure_detector=info,smolscale=warn,rustls=warn"
+  },
+  "debug.javascript.defaultRuntimeExecutable": {
+    "pwa-node": "/home/ivan/.local/share/mise/shims/node"
   }
 }

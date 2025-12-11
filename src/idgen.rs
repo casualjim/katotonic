@@ -94,7 +94,7 @@ mod tests {
           // Generate ULIDs in each thread
           for _ in 0..ulid_count {
             let ulid = generate_ulid();
-            local_ulid_set.insert(ulid.clone());
+            local_ulid_set.insert(ulid);
             local_ulids.push(ulid);
           }
 
@@ -122,7 +122,7 @@ mod tests {
     // Ensure all ULIDs across all threads are unique
     let mut ulid_set = HashSet::new();
     for ulid in &all_ulids {
-      ulid_set.insert(ulid.clone());
+      ulid_set.insert(*ulid);
     }
     assert_eq!(ulid_set.len(), all_ulids.len());
   }

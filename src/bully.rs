@@ -151,7 +151,7 @@ impl PeerState {
   }
 }
 
-const HEALTH_FAILED: AtomicU8 = AtomicU8::new(0);
+static HEALTH_FAILED: AtomicU8 = AtomicU8::new(0);
 
 fn reset_health_failures() {
   HEALTH_FAILED.store(0, std::sync::atomic::Ordering::SeqCst);
@@ -165,27 +165,24 @@ async fn health_check_leader(leader: WatchableValue<PeerState>, state: Arc<DashM
   let mut interval = tokio::time::interval(Duration::from_secs(1));
   loop {
     interval.tick().await;
-    match leader.read() {
-      PeerState::Follower(ref name, id) => {
-        if let Some(peer) = state.get(name) {
-          if peer.id != id {
-            if inc_health_failures() >= 3 {
-              leader.write(PeerState::Down);
-            }
+    if let PeerState::Follower(ref name, id) = leader.read() {
+      if let Some(peer) = state.get(name) {
+        if peer.id != id {
+          if inc_health_failures() >= 3 {
+            leader.write(PeerState::Down);
+          }
+          continue;
+        }
+        if let Ok(result) = peer.send_best_effort(Request::Ping).await {
+          reset_health_failures();
+          if result == Response::Pong {
             continue;
           }
-          if let Ok(result) = peer.send_best_effort(Request::Ping).await {
-            reset_health_failures();
-            if result == Response::Pong {
-              continue;
-            }
-          }
-        }
-        if inc_health_failures() >= 3 {
-          leader.write(PeerState::Down);
         }
       }
-      _ => {}
+      if inc_health_failures() >= 3 {
+        leader.write(PeerState::Down);
+      }
     }
   }
 }
@@ -221,7 +218,7 @@ async fn manage_state(
             PeerState::Leader(name, id) => {
               if member.id > id {
                 leader.write(PeerState::Down);
-              } else if &this_node.name == &name
+              } else if this_node.name == name
                 && this_node.id == id
                 && member.id != id
                 && member.name != name
@@ -664,7 +661,7 @@ mod tests {
     let transport = ChannelTransport::new(resp_tx, req_rx);
 
     tokio::spawn(async move {
-      while let Some(_) = resp_rx.recv().await {
+      while resp_rx.recv().await.is_some() {
         req_tx.send(Response::Done("".to_string())).await.unwrap();
       }
     });

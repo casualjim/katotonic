@@ -54,7 +54,7 @@ impl AsyncClient for Client {
     loop {
       tries += 1;
       if tries > 3 {
-        return Err(io::Error::new(io::ErrorKind::Other, "too many tries").into());
+        return Err(io::Error::other("too many tries").into());
       }
       let mut tls_stream = self.pool.get_connection().await?;
 
@@ -140,10 +140,7 @@ impl<'a> AsyncRead for ConnectionHandle<'a> {
     if let Some(ref mut tls_stream) = self.tls_stream {
       Pin::new(tls_stream).poll_read(cx, buf)
     } else {
-      Poll::Ready(Err(io::Error::new(
-        io::ErrorKind::Other,
-        "Connection is invalid",
-      )))
+      Poll::Ready(Err(io::Error::other("Connection is invalid")))
     }
   }
 }
@@ -157,10 +154,7 @@ impl<'a> AsyncWrite for ConnectionHandle<'a> {
     if let Some(ref mut tls_stream) = self.tls_stream {
       Pin::new(tls_stream).poll_write(cx, buf)
     } else {
-      Poll::Ready(Err(io::Error::new(
-        io::ErrorKind::Other,
-        "Connection is invalid",
-      )))
+      Poll::Ready(Err(io::Error::other("Connection is invalid")))
     }
   }
 
@@ -168,10 +162,7 @@ impl<'a> AsyncWrite for ConnectionHandle<'a> {
     if let Some(ref mut tls_stream) = self.tls_stream {
       Pin::new(tls_stream).poll_flush(cx)
     } else {
-      Poll::Ready(Err(io::Error::new(
-        io::ErrorKind::Other,
-        "Connection is invalid",
-      )))
+      Poll::Ready(Err(io::Error::other("Connection is invalid")))
     }
   }
 
@@ -179,10 +170,7 @@ impl<'a> AsyncWrite for ConnectionHandle<'a> {
     if let Some(ref mut tls_stream) = self.tls_stream {
       Pin::new(tls_stream).poll_shutdown(cx)
     } else {
-      Poll::Ready(Err(io::Error::new(
-        io::ErrorKind::Other,
-        "Connection is invalid",
-      )))
+      Poll::Ready(Err(io::Error::other("Connection is invalid")))
     }
   }
 }
@@ -245,11 +233,11 @@ impl ConnectionPool {
   async fn initialize_connections(&self, size: usize) -> Result<()> {
     let addr = *self.addr.read().await;
     let futures = (0..size).map(|_| {
-      let addr = addr.clone();
+      let connect_addr = addr;
       let connector = self.connector.clone();
       let server_name = self.server_name.clone();
       async move {
-        let tcp_stream = TcpStream::connect(&addr).await?;
+        let tcp_stream = TcpStream::connect(&connect_addr).await?;
         let tls_stream = connector.connect(server_name, tcp_stream).await?;
         self.sender.send(tls_stream).await?;
         Ok::<(), Error>(())
@@ -260,7 +248,7 @@ impl ConnectionPool {
   }
 
   #[instrument(skip(self))]
-  async fn get_connection(&self) -> Result<ConnectionHandle> {
+  async fn get_connection(&self) -> Result<ConnectionHandle<'_>> {
     let _permit = self
       .semaphore
       .acquire()
@@ -288,7 +276,7 @@ impl ConnectionPool {
 
   async fn handle_broken_connection(&self, mut conn: TlsStream<TcpStream>) {
     let (strm, client_conn) = conn.get_mut();
-    let _ = client_conn.send_close_notify();
+    client_conn.send_close_notify();
     let _ = strm.shutdown().await;
     self.reconnect().await;
   }
@@ -335,7 +323,7 @@ impl ConnectionPool {
     while closed_connections < self.size {
       if let Ok(conn) = self.receiver.recv().await {
         let (mut strm, mut client_conn) = conn.into_inner();
-        let _ = client_conn.send_close_notify();
+        client_conn.send_close_notify();
         let _ = strm.shutdown().await;
         closed_connections += 1;
       }
@@ -344,10 +332,10 @@ impl ConnectionPool {
     // Create new connections
     let reconnect_futures = (0..self.size).map(|_| {
       let connector = self.connector.clone();
-      let new_addr = new_addr.clone();
+      let connect_addr = new_addr;
       let server_name = self.server_name.clone();
       async move {
-        let tcp_stream = TcpStream::connect(&new_addr).await?;
+        let tcp_stream = TcpStream::connect(&connect_addr).await?;
         let tls_stream = connector.connect(server_name, tcp_stream).await?;
         self.sender.send(tls_stream).await?;
         Ok::<(), Error>(())
