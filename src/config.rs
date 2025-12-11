@@ -19,9 +19,10 @@ use rustls::{
   pki_types::{CertificateDer, PrivateKeyDer},
   RootCertStore,
 };
+use rustls_pki_types::pem::PemObject;
 use ulid::Ulid;
 
-use crate::{Error, Result};
+use crate::Result;
 
 #[derive(Parser)]
 pub struct ClientConfig {
@@ -247,26 +248,25 @@ pub fn keypair<P: AsRef<Path>>(
   key: P,
 ) -> Result<(Vec<CertificateDer<'static>>, PrivateKeyDer<'static>)> {
   let cert_file = File::open(cert)?;
-  let mut cert_reader = BufReader::new(cert_file);
-  let certs = rustls_pemfile::certs(&mut cert_reader).collect::<Result<Vec<_>, _>>()?;
+  let cert_reader = BufReader::new(cert_file);
+  let certs = CertificateDer::pem_reader_iter(cert_reader)
+    .map(|r| r.map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e)))
+    .collect::<std::result::Result<Vec<_>, _>>()?;
 
   let key_file = File::open(key)?;
-  let mut key_reader = BufReader::new(key_file);
-
-  if let Some(key) = rustls_pemfile::private_key(&mut key_reader)? {
-    Ok((certs, key))
-  } else {
-    Err(Error::Io(io::Error::new(
-      io::ErrorKind::InvalidInput,
-      "No private key found",
-    )))
-  }
+  let key_reader = BufReader::new(key_file);
+  let key = PrivateKeyDer::from_pem_reader(key_reader).map_err(|e| {
+    io::Error::new(io::ErrorKind::InvalidInput, format!("invalid private key PEM: {e}"))
+  })?;
+  Ok((certs, key))
 }
 
 pub fn root_store<P: AsRef<Path>>(ca: P) -> Result<RootCertStore> {
   let file = File::open(ca)?;
-  let mut reader = BufReader::new(file);
-  let cert_chain = rustls_pemfile::certs(&mut reader).collect::<Result<Vec<_>, _>>()?;
+  let reader = BufReader::new(file);
+  let cert_chain = CertificateDer::pem_reader_iter(reader)
+    .map(|r| r.map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e)))
+    .collect::<std::result::Result<Vec<_>, _>>()?;
   let mut root_store = RootCertStore::empty();
   root_store.add_parsable_certificates(cert_chain);
   Ok(root_store)

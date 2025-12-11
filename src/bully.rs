@@ -21,7 +21,6 @@ use tokio::{
   net::TcpListener,
 };
 use tokio_rustls::TlsAcceptor;
-use tokio_serde_cbor::Codec;
 use tokio_util::codec::Decoder;
 use tracing::{debug, error, info};
 
@@ -32,6 +31,7 @@ use crate::{
   transport::{TcpTransport, TlsTransport, Transport},
   Error, Result, ServerConfig, WatchableValue,
 };
+use crate::cbor_codec::Codec;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Request {
@@ -398,7 +398,7 @@ async fn handle_requests<'a, S: AsyncRead + AsyncWrite + Unpin>(
   while let Some(maybe_error) = receiver.next().await {
     if let Err(e) = maybe_error {
       match e {
-        tokio_serde_cbor::Error::Io(ref e) => {
+        Error::Io(ref e) => {
           if e.kind() != io::ErrorKind::UnexpectedEof {
             error!("failed to decode request: io error: {}", e);
           }

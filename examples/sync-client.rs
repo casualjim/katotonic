@@ -143,7 +143,8 @@ fn next_id(pool: &ConnectionPool) -> katotonic::Result<Ulid> {
           return Err(e.into());
         }
 
-        let redirect_info: katotonic::server::RedirectInfo = match serde_cbor::from_slice(&buffer) {
+        let redirect_info: katotonic::server::RedirectInfo =
+          match katotonic::cbor::from_slice(&buffer) {
           Ok(info) => info,
           Err(e) => {
             error!("Failed to deserialize response: {:?}", e);

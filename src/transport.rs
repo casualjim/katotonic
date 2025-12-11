@@ -12,11 +12,11 @@ use tokio::{
   },
 };
 use tokio_rustls::TlsConnector;
-use tokio_serde_cbor::Codec;
 use tokio_util::codec::Decoder;
 use tracing::debug;
 
 use crate::{Error, Result};
+use crate::cbor_codec::Codec;
 
 pub trait Handler<I, O>: Send + Sync
 where
@@ -256,9 +256,9 @@ where
 #[cfg(test)]
 mod tests {
   use tokio::sync::oneshot;
-  use tokio_serde_cbor::Codec;
 
   use super::*;
+  use crate::cbor_codec::Codec;
 
   #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
   struct TestRequest {

@@ -67,7 +67,7 @@ impl Client {
           let mut buffer = vec![0u8; len];
           tls_stream.read_exact(&mut buffer).await?;
 
-          let redirect_info: RedirectInfo = serde_cbor::from_slice(&buffer)?;
+          let redirect_info: RedirectInfo = crate::cbor::from_slice(&buffer)?;
 
           self.pool.return_connection(tls_stream).await;
           self.pool.switch_addr(redirect_info.leader).await?;

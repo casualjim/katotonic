@@ -99,7 +99,7 @@ impl AsyncClient for Client {
             return Err(e.into());
           }
 
-          let redirect_info: RedirectInfo = match serde_cbor::from_slice(&buffer) {
+          let redirect_info: RedirectInfo = match crate::cbor::from_slice(&buffer) {
             Ok(info) => info,
             Err(e) => {
               error!("Failed to deserialize response: {:?}", e);

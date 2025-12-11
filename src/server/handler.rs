@@ -5,7 +5,7 @@ use tokio::time::sleep;
 use tracing::{error, info, instrument};
 
 use super::RedirectInfo;
-use crate::{bully::PeerState, disco::ChitchatDiscovery, generate_monotonic_id, WatchableValue};
+use crate::{bully::PeerState, cbor, disco::ChitchatDiscovery, generate_monotonic_id, WatchableValue};
 
 #[instrument(skip(tls_stream, discovery, leader))]
 pub async fn handle_client<IO: AsyncRead + AsyncWrite + Unpin>(
@@ -35,7 +35,7 @@ pub async fn handle_client<IO: AsyncRead + AsyncWrite + Unpin>(
               leader: leader_node,
               followers: discovery.app_addrs_without(name).await,
             };
-            let response_bytes = match serde_cbor::to_vec(&redirect_info) {
+            let response_bytes = match cbor::to_vec(&redirect_info) {
               Ok(bytes) => bytes,
               Err(e) => {
                 error!("Failed to serialize response: {:?}", e);

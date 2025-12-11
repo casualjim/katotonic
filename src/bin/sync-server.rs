@@ -8,6 +8,7 @@ use chitchat::ChitchatHandle;
 use clap::Parser as _;
 use katotonic::{
   bully::{self, PeerState},
+  cbor,
   disco::ChitchatDiscovery,
   server::{spawn_discovery, RedirectInfo},
   server_tls_config, WatchableValue,
@@ -112,7 +113,7 @@ fn handle_client(
         }
         PeerState::Follower(ref name, generation) => {
           if let Some(redirect_info) = discovery.redirect_info(name, generation) {
-            let response_bytes = match serde_cbor::to_vec(&redirect_info) {
+            let response_bytes = match cbor::to_vec(&redirect_info) {
               Ok(bytes) => bytes,
               Err(e) => {
                 error!("Failed to serialize response: {:?}", e);

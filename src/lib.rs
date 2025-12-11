@@ -6,6 +6,8 @@ pub mod blocking;
 mod defer;
 pub mod bully;
 pub mod client;
+pub mod cbor;
+pub mod cbor_codec;
 mod config;
 pub mod disco;
 mod idgen;
@@ -28,10 +30,8 @@ pub enum Error {
   Io(#[from] io::Error),
   #[error("TLS error: {0}")]
   Tls(#[from] rustls::Error),
-  #[error("Serde error: {0}")]
-  Serde(#[from] serde_cbor::Error),
-  #[error("Serde error: {0}")]
-  SerdeCbor(#[from] tokio_serde_cbor::Error),
+  #[error("CBOR error: {0}")]
+  Cbor(#[from] cbor::CborError),
   #[error("Unexpected response: {0}")]
   UnexpectedResponse(String),
   #[error("parse: {0}")]
