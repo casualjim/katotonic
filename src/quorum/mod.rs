@@ -1,3 +1,5 @@
+pub mod config;
+pub mod cluster;
 pub mod election;
 pub mod lease;
 pub mod reserve;

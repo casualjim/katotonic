@@ -9,14 +9,15 @@ use futures::future::join_all;
 use tokio::time::{sleep, timeout};
 use tracing::{debug, info, warn};
 
-use super::{election, rpc::QuorumPeer, LeaderState, QuorumRequest, QuorumResponse, QuorumService};
+use super::{
+  config::JointQuorum, election, rpc::QuorumPeer, LeaderState, QuorumRequest, QuorumResponse,
+  QuorumService,
+};
 use crate::{
   disco::{Discovery, Member},
   Result, ServerConfig, WatchableValue,
 };
 
-const LEASE_RENEW_INTERVAL: Duration = Duration::from_millis(300);
-const LEASE_DURATION: Duration = Duration::from_millis(1000);
 const LEASE_RPC_TIMEOUT: Duration = Duration::from_millis(750);
 
 #[derive(Debug, Default, Clone)]
@@ -77,6 +78,8 @@ async fn leader_lease_loop(
   service: &QuorumService,
   term: u64,
 ) -> Result<()> {
+  let lease_duration = Duration::from_millis(conf.lease_duration_ms.max(1));
+  let renew_interval = Duration::from_millis(conf.renew_interval_ms.max(1));
   let mut lease_valid = false;
   let mut lease_until_ms = 0u64;
 
@@ -89,16 +92,21 @@ async fn leader_lease_loop(
     }
 
     let now = now_ms();
-    let proposed_until_ms = now.saturating_add(LEASE_DURATION.as_millis() as u64);
+    let proposed_until_ms = now.saturating_add(lease_duration.as_millis() as u64);
 
     let this_node = discovery.myself().await?;
     let members = discovery.members().await?;
+    let state = service.get_state().await;
+    let local_config_version = state.config_version;
+    let quorum_cfg = JointQuorum::new(local_config_version, &members);
+    let joint_majority = quorum_cfg.joint_majority();
+    let old_majority = quorum_cfg.old_majority();
+
     let peers = members
       .into_iter()
       .filter(|m| m.name != this_node.name)
       .collect::<Vec<_>>();
 
-    let majority = (peers.len() + 2).div_ceil(2);
     let leader_id = this_node.name.clone();
 
     let client_config = election::cluster_client_config(conf)?;
@@ -108,26 +116,35 @@ async fn leader_lease_loop(
       let server_name = election::server_name_for(&peer);
       let peer_client = QuorumPeer::new_tls(addr, client_config.clone(), server_name);
       let leader_id = leader_id.clone();
+      let is_old = quorum_cfg.is_old(&peer.name);
       tasks.push(tokio::spawn(async move {
-        timeout(
-          LEASE_RPC_TIMEOUT,
-          peer_client.send(QuorumRequest::LeaseRenew {
-            term,
-            leader_id,
-            lease_until_ms: proposed_until_ms,
-          }),
+        (
+          is_old,
+          timeout(
+            LEASE_RPC_TIMEOUT,
+            peer_client.send(QuorumRequest::LeaseRenew {
+              term,
+              leader_id,
+              lease_until_ms: proposed_until_ms,
+            }),
+          )
+          .await,
         )
-        .await
       }));
     }
 
     let mut yes = 1usize; // self-ack
+    let mut old_yes = if quorum_cfg.is_old(&this_node.name) {
+      1usize
+    } else {
+      0usize
+    };
     let mut highest_seen_term = term;
-    let mut max_hw = service.get_state().await.high_watermark;
+    let mut max_hw = state.high_watermark;
 
     for res in join_all(tasks).await {
       match res {
-        Ok(Ok(Ok(response))) => match response {
+        Ok((is_old, Ok(Ok(response)))) => match response {
           QuorumResponse::LeaseAck {
             term: ack_term,
             high_watermark,
@@ -135,6 +152,9 @@ async fn leader_lease_loop(
             highest_seen_term = highest_seen_term.max(ack_term);
             if ack_term == term {
               yes += 1;
+              if is_old {
+                old_yes += 1;
+              }
               max_hw = max_hw.max(high_watermark);
             }
           }
@@ -159,10 +179,10 @@ async fn leader_lease_loop(
             debug!(?other, "unexpected quorum response during lease renew");
           }
         },
-        Ok(Ok(Err(e))) => {
+        Ok((_is_old, Ok(Err(e)))) => {
           debug!("lease renew request failed: {e}");
         }
-        Ok(Err(_elapsed)) => {
+        Ok((_is_old, Err(_elapsed))) => {
           debug!("lease renew request timed out");
         }
         Err(join_err) => {
@@ -182,7 +202,10 @@ async fn leader_lease_loop(
       return Ok(());
     }
 
-    if yes >= majority {
+    let has_joint_majority = yes >= joint_majority;
+    let has_old_majority = !quorum_cfg.is_joint() || old_yes >= old_majority;
+
+    if has_joint_majority && has_old_majority {
       lease_valid = true;
       lease_until_ms = proposed_until_ms;
       if matches!(
@@ -197,7 +220,10 @@ async fn leader_lease_loop(
       info!(
         term,
         yes,
-        majority,
+        joint_majority,
+        old_yes,
+        old_majority,
+        joint = quorum_cfg.is_joint(),
         lease_until_ms,
         max_hw,
         "lease renewed"
@@ -207,7 +233,10 @@ async fn leader_lease_loop(
         warn!(
           term,
           yes,
-          majority,
+          joint_majority,
+          old_yes,
+          old_majority,
+          joint = quorum_cfg.is_joint(),
           lease_until_ms,
           "lease expired without majority; stepping down"
         );
@@ -217,7 +246,10 @@ async fn leader_lease_loop(
       warn!(
         term,
         yes,
-        majority,
+        joint_majority,
+        old_yes,
+        old_majority,
+        joint = quorum_cfg.is_joint(),
         lease_until_ms,
         "lease renew failed; keeping previous lease"
       );
@@ -237,13 +269,16 @@ async fn leader_lease_loop(
       warn!(
         term,
         yes,
-        majority,
+        joint_majority,
+        old_yes,
+        old_majority,
+        joint = quorum_cfg.is_joint(),
         lease_until_ms,
         "failed to acquire majority lease"
       );
     }
 
-    sleep(LEASE_RENEW_INTERVAL).await;
+    sleep(renew_interval).await;
   }
 }
 

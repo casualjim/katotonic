@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"github.com/fxamacker/cbor/v2"
@@ -118,6 +119,7 @@ func WithConnectTimeout(connectTimeout time.Duration) Option {
 
 type Client struct {
 	pool *connectionPool
+	highestTermSeen atomic.Uint64
 }
 
 func New(options ...Option) (*Client, error) {
@@ -211,21 +213,34 @@ func (c *Client) NextId() (uuid.UUID, error) {
 				return uuid.Nil, err
 			}
 
-			c.pool.Put(conn, nil)
-			err = c.pool.SwitchAddr(response.Leader)
-			if err != nil {
-				slog.Error("failed to switch address", slog.Any("error", err))
-				return uuid.Nil, err
+				c.pool.Put(conn, nil)
+
+				highest := c.highestTermSeen.Load()
+				if response.Term >= highest {
+					if response.Term > highest {
+						c.highestTermSeen.Store(response.Term)
+					}
+					err = c.pool.SwitchAddr(response.Leader)
+					if err != nil {
+						slog.Error("failed to switch address", slog.Any("error", err))
+						return uuid.Nil, err
+					}
+				} else {
+					slog.Info("ignoring stale redirect",
+						slog.Uint64("redirect_term", response.Term),
+						slog.Uint64("highest_term_seen", highest),
+					)
+				}
+			default:
+				slog.Error("unknown response type")
+				c.pool.Put(conn, nil)
 			}
-		default:
-			slog.Error("unknown response type")
-			c.pool.Put(conn, nil)
-		}
 	}
 	return uuid.Nil, errors.New("too many retries")
 }
 
 type RedirectInfo struct {
+	Term      uint64   `cbor:"term"`
 	Leader    string   `cbor:"leader"`
 	Followers []string `cbor:"followers"`
 }

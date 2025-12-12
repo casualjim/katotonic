@@ -3,7 +3,6 @@ use std::sync::Arc;
 use async_compat::CompatExt;
 use clap::Parser;
 use katotonic::{
-  bully,
   server::{run_smol_server, spawn_discovery},
 };
 #[cfg(not(target_env = "msvc"))]
@@ -38,16 +37,7 @@ fn main() -> anyhow::Result<()> {
       katotonic::quorum::track_leader(conf.clone(), Arc::clone(&discovery))
         .compat()
         .await?;
-    let bully_leader = bully::track_leader(
-      conf.clone(),
-      Arc::clone(&discovery),
-      None,
-      Some(quorum_service.clone()),
-    )
-    .compat()
-    .await?;
-
-    run_smol_server(conf, discovery, quorum_leader, quorum_service, bully_leader).await?;
+    run_smol_server(conf, discovery, quorum_leader, quorum_service).await?;
     membership.shutdown().compat().await?;
     Ok(())
   })

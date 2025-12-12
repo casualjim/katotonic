@@ -66,6 +66,14 @@ impl QuorumService {
   pub async fn handle(&self, request: QuorumRequest) -> QuorumResponse {
     match request {
       QuorumRequest::Ping => QuorumResponse::Pong,
+      QuorumRequest::CatchupRequest => {
+        let guard = self.state.lock().await;
+        QuorumResponse::CatchupResponse {
+          term: guard.current_term.max(guard.voted_term),
+          high_watermark: guard.high_watermark,
+          config_version: guard.config_version,
+        }
+      }
       QuorumRequest::VoteRequest {
         proposed_term,
         candidate_id,
@@ -235,10 +243,6 @@ impl QuorumService {
           high_watermark: guard.high_watermark,
         }
       }
-      other => QuorumResponse::Error {
-        code: 501,
-        message: format!("quorum request not implemented: {other:?}"),
-      },
     }
   }
 
@@ -270,6 +274,47 @@ impl QuorumService {
     guard.advance_high_watermark(high_watermark)?;
     guard.persist(&self.state_path)?;
     Ok(())
+  }
+
+  pub async fn install_catchup(
+    &self,
+    term: u64,
+    high_watermark: u64,
+    config_version: u64,
+  ) -> Result<()> {
+    let mut guard = self.state.lock().await;
+    let mut changed = false;
+
+    if term > guard.current_term {
+      guard.set_current_term(term)?;
+      changed = true;
+    }
+    if term > guard.voted_term {
+      guard.set_voted_term(term)?;
+      changed = true;
+    }
+    if high_watermark > guard.high_watermark {
+      guard.advance_high_watermark(high_watermark)?;
+      changed = true;
+    }
+    if config_version > guard.config_version {
+      guard.set_config_version(config_version)?;
+      changed = true;
+    }
+
+    if changed {
+      guard.persist(&self.state_path)?;
+    }
+    Ok(())
+  }
+
+  pub async fn set_config_version_to(&self, new_version: u64) -> Result<bool> {
+    let mut guard = self.state.lock().await;
+    let changed = guard.set_config_version(new_version)?;
+    if changed {
+      guard.persist(&self.state_path)?;
+    }
+    Ok(changed)
   }
 
   pub async fn observe_higher_voted_term(&self, term: u64) -> Result<()> {

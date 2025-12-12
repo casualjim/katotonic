@@ -9,7 +9,7 @@
     - `sync-server.rs` (`catotonic`, feature `blocking`).
     - `smol-server.rs` (`kittytonic`, feature `smol`).
   - `src/server/` and `src/client/` implement TLS protocol, redirects, and pooling.
-  - `src/bully.rs`, `src/disco.rs`, `src/idgen.rs` are the election, discovery, and ULID core.
+  - `src/bully.rs`, `src/disco.rs`, `src/idgen.rs` are the election, discovery, and ID core.
 - `examples/` provides load/usage clients (async/sync/smol).
 - `go-katotonic/` is a compatible Go client library.
 - `tests/certs/` holds dev/test TLS certs (do not use in production).
@@ -45,5 +45,4 @@
 ## Security & Configuration Tips
 
 - Override default cert/key/CA paths in production; defaults point to `tests/certs/`.
-- Ensure clock sync if relying on ULID timestamp semantics.
-
+- Ensure clock sync if your deployment depends on wall‑clock semantics; Katotonic IDs do not.

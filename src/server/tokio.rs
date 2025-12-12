@@ -7,8 +7,8 @@ use tracing::{debug, error};
 
 use super::handler::handle_client;
 use crate::{
-  bully::PeerState, disco::ChitchatDiscovery, quorum::LeaderState, quorum::QuorumService,
-  server_tls_config, ServerConfig, WatchableValue,
+  disco::ChitchatDiscovery, quorum::LeaderState, quorum::QuorumService, server_tls_config,
+  ServerConfig, WatchableValue,
 };
 
 pub async fn run_server(
@@ -16,7 +16,6 @@ pub async fn run_server(
   discovery: Arc<ChitchatDiscovery>,
   quorum_leader_tracker: WatchableValue<LeaderState>,
   quorum_service: Arc<QuorumService>,
-  bully_leader_tracker: WatchableValue<PeerState>,
 ) -> anyhow::Result<()> {
   let config = Arc::new(server_tls_config(&conf.cert, &conf.key, Some(&conf.ca))?);
   let acceptor = TlsAcceptor::from(config);
@@ -32,7 +31,6 @@ pub async fn run_server(
     let discovery = Arc::clone(&discovery);
     let quorum_leader_tracker = quorum_leader_tracker.clone();
     let quorum_service = Arc::clone(&quorum_service);
-    let bully_leader_tracker = bully_leader_tracker.clone();
     let conf_arc = Arc::clone(&conf_arc);
 
     tokio::spawn(async move {
@@ -45,7 +43,6 @@ pub async fn run_server(
               discovery.clone(),
               quorum_leader_tracker.clone(),
               quorum_service.clone(),
-              bully_leader_tracker.clone(),
               conf_arc.clone(),
             )
             .await

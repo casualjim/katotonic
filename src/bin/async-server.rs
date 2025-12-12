@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use clap::Parser;
 use katotonic::{
-  bully,
   server::{run_server, spawn_discovery},
 };
 #[cfg(not(target_env = "msvc"))] use tikv_jemallocator::Jemalloc;
@@ -40,15 +39,8 @@ async fn main() -> anyhow::Result<()> {
   let (membership, discovery) = spawn_discovery(conf.clone()).await?;
   let (quorum_leader, quorum_service) =
     katotonic::quorum::track_leader(conf.clone(), Arc::clone(&discovery)).await?;
-  let bully_leader = bully::track_leader(
-    conf.clone(),
-    Arc::clone(&discovery),
-    None,
-    Some(quorum_service.clone()),
-  )
-  .await?;
 
-  run_server(conf, discovery, quorum_leader, quorum_service, bully_leader).await?;
+  run_server(conf, discovery, quorum_leader, quorum_service).await?;
 
   membership.shutdown().await?;
   Ok(())

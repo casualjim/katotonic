@@ -1,4 +1,5 @@
 use std::{io, net::SocketAddr, sync::Arc};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use futures_rustls::{client::TlsStream, TlsConnector};
 use kanal::{AsyncReceiver, AsyncSender};
@@ -15,6 +16,7 @@ use crate::{server::RedirectInfo, KatotonicId, Result};
 #[derive(Clone)]
 pub struct Client {
   pool: ConnectionPool,
+  highest_term_seen: Arc<AtomicU64>,
 }
 
 impl Client {
@@ -33,7 +35,10 @@ impl Client {
       None => builder.with_no_client_auth(),
     };
     let pool = ConnectionPool::new(Arc::new(config), addr, server_name, concurrency).await?;
-    Ok(Self { pool })
+    Ok(Self {
+      pool,
+      highest_term_seen: Arc::new(AtomicU64::new(0)),
+    })
   }
 
   #[instrument(skip(self))]
@@ -68,8 +73,23 @@ impl Client {
 
           let redirect_info: RedirectInfo = crate::cbor::from_slice(&buffer)?;
 
-          self.pool.return_connection(tls_stream).await;
-          self.pool.switch_addr(redirect_info.leader).await?;
+          let redirect_term = redirect_info.term;
+          let highest = self.highest_term_seen.load(Ordering::Relaxed);
+          if redirect_term >= highest {
+            if redirect_term > highest {
+              self
+                .highest_term_seen
+                .store(redirect_term, Ordering::Relaxed);
+            }
+            self.pool.return_connection(tls_stream).await;
+            self.pool.switch_addr(redirect_info.leader).await?;
+          } else {
+            info!(
+              "Ignoring redirect to stale term={} (highest={})",
+              redirect_term, highest
+            );
+            self.pool.return_connection(tls_stream).await;
+          }
           continue;
         }
         _ => {

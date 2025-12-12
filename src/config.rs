@@ -25,9 +25,9 @@ use crate::Result;
 
 #[derive(Parser)]
 pub struct ClientConfig {
-  #[clap(long, default_value = "tests/certs/ulidd.client-client.pem")]
+  #[clap(long, default_value = "tests/certs/katotonic.client-client.pem")]
   pub cert: Option<String>,
-  #[clap(long, default_value = "tests/certs/ulidd.client-client-key.pem")]
+  #[clap(long, default_value = "tests/certs/katotonic.client-client-key.pem")]
   pub key: Option<String>,
   #[clap(long, default_value = "tests/certs/rootCA.pem")]
   pub ca: String,
@@ -83,13 +83,13 @@ pub struct SeedNode {
 
 #[derive(Parser, Debug, Clone)]
 pub struct ServerConfig {
-  #[clap(long, default_value = "tests/certs/ulidd.service+3.pem")]
+  #[clap(long, default_value = "tests/certs/katotonic.service+3.pem")]
   pub cert: String,
-  #[clap(long, default_value = "tests/certs/ulidd.service+3-key.pem")]
+  #[clap(long, default_value = "tests/certs/katotonic.service+3-key.pem")]
   pub key: String,
-  #[clap(long, default_value = "tests/certs/ulidd.client-client-key.pem")]
+  #[clap(long, default_value = "tests/certs/katotonic.client-client-key.pem")]
   pub client_key: Option<String>,
-  #[clap(long, default_value = "tests/certs/ulidd.client-client.pem")]
+  #[clap(long, default_value = "tests/certs/katotonic.client-client.pem")]
   pub client_cert: Option<String>,
   #[clap(long, default_value = "tests/certs/rootCA.pem")]
   pub ca: String,
@@ -99,13 +99,13 @@ pub struct ServerConfig {
   pub bootstrap: bool,
   #[clap(long, value_parser = parse_seed_node, value_delimiter = ',')]
   pub seed: Vec<SeedNode>,
-  #[clap(long, default_value = "tests/certs/ulidd.service+3.pem")]
+  #[clap(long, default_value = "tests/certs/katotonic.service+3.pem")]
   pub cluster_cert: String,
-  #[clap(long, default_value = "tests/certs/ulidd.service+3-key.pem")]
+  #[clap(long, default_value = "tests/certs/katotonic.service+3-key.pem")]
   pub cluster_key: String,
-  #[clap(long, default_value = "tests/certs/ulidd.client-client-key.pem")]
+  #[clap(long, default_value = "tests/certs/katotonic.client-client-key.pem")]
   pub cluster_client_key: Option<String>,
-  #[clap(long, default_value = "tests/certs/ulidd.client-client.pem")]
+  #[clap(long, default_value = "tests/certs/katotonic.client-client.pem")]
   pub cluster_client_cert: Option<String>,
   #[clap(long, default_value = "tests/certs/rootCA.pem")]
   pub cluster_ca: String,
@@ -121,6 +121,18 @@ pub struct ServerConfig {
 
   #[clap(long, default_value_t = 100_000)]
   pub block_size: u64,
+
+  #[clap(long, default_value_t = 1000)]
+  pub lease_duration_ms: u64,
+
+  #[clap(long, default_value_t = 250)]
+  pub renew_interval_ms: u64,
+
+  #[clap(long, default_value_t = 800)]
+  pub election_timeout_min_ms: u64,
+
+  #[clap(long, default_value_t = 1500)]
+  pub election_timeout_max_ms: u64,
 
   #[clap(long, default_value = "500ms", value_parser = humantime::parse_duration)]
   pub gossip_interval: time::Duration,

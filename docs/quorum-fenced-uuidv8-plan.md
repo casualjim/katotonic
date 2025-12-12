@@ -7,17 +7,24 @@ This plan is the concrete work breakdown for shipping quorum‑fenced sequencing
 ## Implementation Status (as of 2025‑12‑12)
 
 Completed in this repo:
-- Milestone 0 (Rust + docs): UUIDv8 formal format, Rust helpers, monotonic generator, tests, and examples migrated. Go client migration still pending.
+- Milestone 0 (Rust + Go + docs): UUIDv8 formal format, helpers, monotonic generator, tests, and examples migrated across Rust and Go.
 - Milestone 1: Durable per‑node quorum summary (`current_term`, `voted_term`, `high_watermark`, `config_version`) with atomic persist + fsync, and server startup wiring.
-- Milestone 2: Quorum RPC types and cluster‑port TLS transport. Cluster listener multiplexes Bully + Quorum messages.
-- Milestone 3 (core election): `LeaderState` added, quorum election loop implemented, and serving gated on quorum leader state (Bully retained for redirects only).
+- Milestone 2: Quorum RPC types and cluster‑port TLS transport. Quorum cluster listener runs independently.
+- Milestone 3 (core election): `LeaderState` added, quorum election loop implemented, and serving gated on quorum leader state.
+- Milestone 4 (lease fencing): leader lease renewal loop, follower lease rules, and serving gated on majority lease.
+- Milestone 5 (block reservation): quorum block reservation round, hot‑path block issuance, and serving integrated with reservation.
+- Milestone 6 (term‑aware redirects): redirects carry quorum term; Rust and Go clients ignore stale‑term redirects.
+- Milestone 7 (joint quorum reconfiguration): `config_version` tags surfaced via Chitchat/Discovery, joint‑quorum rules enforced, Catchup RPC wired, and leader‑side config commit/bump implemented.
+- Milestone 8 (cleanup): Bully removed from serving decisions, legacy ID remnants purged, and docs/tuning updated.
 
 Key learnings/decisions:
 - Persisted quorum state is a tiny leadership/ordering summary, written on elections/leases/block reservations; **no disk I/O on the per‑ID hot path**.
 - Persistence is required for safety under crash‑recovery + partitions; diskless variants require relaxing guarantees or changing the failure model.
-- Lease fencing (M4) and block reservation (M5) are the next safety/perf steps; currently `lease_valid` is optimistic until M4 lands.
+- Lease fencing (M4) and block reservation (M5) are implemented; IDs are served only with a valid majority lease and are issued from reserved blocks.
+- Joint‑quorum gating is driven by `config_version` tags; when a higher version appears, quorum operations require majorities of both old and joint sets until catchup converges.
+- `cargo test` and `go test ./...` pass as of 2025‑12‑12.
 
-## Milestone 0 — Formal UUIDv8 ID Format + Remove ULID Everywhere
+## Milestone 0 — Formal UUIDv8 ID Format + Remove Legacy IDs Everywhere
 
 ### M0.1 Write the ID spec doc
 - [x] Add `docs/id-format-uuidv8.md`.
@@ -27,9 +34,9 @@ Key learnings/decisions:
   - [x] Fixed bits: version bits (48–51) = `1000`, variant (64–65) = `10`.
   - [x] `term` uses 48 bits, `seq` uses 74 bits.
   - [x] Lexicographic order on raw 16 bytes == global order.
-  - [x] No wall‑clock or ULID semantics; IDs are opaque.
-  - [x] Backward compatibility policy: ULID removed; mixed clusters unsupported.
-- [x] Link this doc from `docs/quorum-fenced-sequencer.md` (replace ULID language).
+  - [x] No wall‑clock or legacy time‑based semantics; IDs are opaque.
+  - [x] Backward compatibility policy: legacy IDs removed; mixed clusters unsupported.
+- [x] Link this doc from `docs/quorum-fenced-sequencer.md` (replace legacy language).
 
 **Acceptance**
 - Spec is clear enough to reimplement in Rust/Go without guessing.
@@ -58,8 +65,8 @@ Key learnings/decisions:
 
 ---
 
-### M0.3 Replace `src/idgen.rs` ULID generator
-- [x] Remove `ulid::Ulid` usage and timestamp logic.
+### M0.3 Replace `src/idgen.rs` legacy generator
+- [x] Remove legacy ID crate usage and timestamp logic.
 - [x] Introduce a temporary local monotonic generator:
   - [x] `static PREVIOUS_SEQ: AtomicU64`
   - [x] `pub fn generate_monotonic_id(term: u64) -> KatotonicId`
@@ -69,7 +76,7 @@ Key learnings/decisions:
   - [x] Reexport the new generator with same public name.
 
 **Acceptance**
-- Crate compiles without ULID types in public API.
+- Crate compiles without legacy ID types in public API.
 
 ---
 
@@ -84,13 +91,13 @@ Key learnings/decisions:
 
 ---
 
-### M0.5 Update Rust examples from ULID to UUID
+### M0.5 Update Rust examples from legacy IDs to UUID
 - [x] Files:
   - [x] `examples/async-client.rs`
   - [x] `examples/sync-client.rs`
   - [x] `examples/smol-client.rs`
   - [x] `examples/client.rs`
-- [x] Replace ULID imports/formatting with UUIDv8.
+- [x] Replace legacy imports/formatting with UUIDv8.
 - [x] Ordering checks compare raw bytes.
 
 **Acceptance**
@@ -99,16 +106,16 @@ Key learnings/decisions:
 ---
 
 ### M0.6 Update Go client library to UUIDv8
-- [ ] Remove ULID dependency from `go-katotonic/go.mod`.
-- [ ] Switch to UUID library that supports v8 (e.g., `github.com/google/uuid`).
-- [ ] Update API:
-  - [ ] `NextId() (uuid.UUID, error)` in `go-katotonic/api.go`.
-  - [ ] Update `go-katotonic/client.go` accordingly.
-- [ ] Add helpers mirroring Rust:
-  - [ ] `EncodeV8(term uint64, seqHi uint64, seqLo uint64) uuid.UUID`
-  - [ ] `DecodeV8(id uuid.UUID) (term uint64, seqHi uint64, seqLo uint64)`
-  - [ ] (Public API remains opaque; helpers are for debug/tests.)
-- [ ] Update Go example `go-katotonic/examples/client/main.go`.
+- [x] Remove legacy dependency from `go-katotonic/go.mod`.
+- [x] Switch to UUID library that supports v8 (e.g., `github.com/google/uuid`).
+- [x] Update API:
+  - [x] `NextId() (uuid.UUID, error)` in `go-katotonic/api.go`.
+  - [x] Update `go-katotonic/client.go` accordingly.
+- [x] Add helpers mirroring Rust:
+  - [x] `EncodeV8(term uint64, seqHi uint64, seqLo uint64) uuid.UUID`
+  - [x] `DecodeV8(id uuid.UUID) (term uint64, seqHi uint64, seqLo uint64)`
+  - [x] (Public API remains opaque; helpers are for debug/tests.)
+- [x] Update Go example `go-katotonic/examples/client/main.go`.
 
 **Acceptance**
 - Go example builds and validates bytewise monotonicity.
@@ -182,7 +189,7 @@ Key learnings/decisions:
 - [ ] Use Chitchat liveness to trigger elections:
   - [x] Suspect/dead leader (triggered when leader disappears from membership stream)
   - [ ] Join requiring reconfig
-  - [ ] Lease loss (from M4)
+  - [x] Lease loss (from M4)
 - [x] Drive transitions in server runtime (`src/server/tokio.rs`, `src/server/smol.rs`, blocking server).
 
 **Acceptance**
@@ -210,9 +217,9 @@ Key learnings/decisions:
 ## Milestone 4 — Lease Renewal / Fencing
 
 ### M4.1 Implement leader lease loop
-- [ ] Add `src/quorum/lease.rs`.
-- [ ] Leader sends `LeaseRenew` periodically and tracks majority acks.
-- [ ] Maintain `lease_valid` flag in LeaderState.
+- [x] Add `src/quorum/lease.rs`.
+- [x] Leader sends `LeaseRenew` periodically and tracks majority acks.
+- [x] Maintain `lease_valid` flag in LeaderState.
 
 **Acceptance**
 - Lease validity is only true with majority ack and unexpired lease.
@@ -220,11 +227,11 @@ Key learnings/decisions:
 ---
 
 ### M4.2 Implement follower lease rules
-- [ ] On LeaseRenew:
-  - [ ] Nack if `term < voted_term`.
-  - [ ] If `term > current_term`, persist current_term/voted_term.
-  - [ ] Ensure no dual‑leader ack for same term.
-- [ ] Return LeaseAck/LeaseNack.
+- [x] On LeaseRenew:
+  - [x] Nack if `term < voted_term`.
+  - [x] If `term > current_term`, persist current_term/voted_term.
+  - [x] Ensure no dual‑leader ack for same term.
+- [x] Return LeaseAck/LeaseNack.
 
 **Acceptance**
 - Minority partition leaders cannot keep a lease.
@@ -232,9 +239,9 @@ Key learnings/decisions:
 ---
 
 ### M4.3 Gate serving on lease
-- [ ] Update `src/server/handler.rs`:
-  - [ ] Serve IDs only if `LeaderState::Leader{lease_valid:true}`.
-  - [ ] Otherwise redirect/hold.
+- [x] Update `src/server/handler.rs`:
+  - [x] Serve IDs only if `LeaderState::Leader{lease_valid:true}`.
+  - [x] Otherwise redirect/hold.
 
 **Acceptance**
 - No IDs served without a valid majority lease.
@@ -244,12 +251,12 @@ Key learnings/decisions:
 ## Milestone 5 — Block Reservation + Hot Path
 
 ### M5.1 Add block state to idgen
-- [ ] Extend `src/idgen.rs`:
-  - [ ] Track current term.
-  - [ ] Track reserved block `[start_seq, end_seq]`.
-  - [ ] `next_seq` atomic counter.
-- [ ] Issue by atomic increment within block.
-- [ ] Encode using `encode_v8`.
+- [x] Extend `src/idgen.rs`:
+  - [x] Track current term.
+  - [x] Track reserved block `[start_seq, end_seq]`.
+  - [x] `next_seq` atomic counter.
+- [x] Issue by atomic increment within block.
+- [x] Encode using `encode_v8`.
 
 **Acceptance**
 - Per‑process monotonicity with zero allocations on hot path.
@@ -257,12 +264,12 @@ Key learnings/decisions:
 ---
 
 ### M5.2 Implement ReserveBlock quorum round
-- [ ] Add `src/quorum/reserve.rs`:
-  - [ ] Leader selects next block from HW.
-  - [ ] Followers persist HW=max(HW,end).
-  - [ ] Majority ack installs block on leader.
-- [ ] Add config entry:
-  - [ ] `block_size`
+- [x] Add `src/quorum/reserve.rs`:
+  - [x] Leader selects next block from HW.
+  - [x] Followers persist HW=max(HW,end).
+  - [x] Majority ack installs block on leader.
+- [x] Add config entry:
+  - [x] `block_size`
 
 **Acceptance**
 - Blocks never overlap, and leader always starts above majority HW after failover.
@@ -270,21 +277,21 @@ Key learnings/decisions:
 ---
 
 ### M5.3 Integrate reserve into serving
-- [ ] In `src/server/handler.rs`:
-  - [ ] Reserve new block when exhausted before returning an ID.
+- [x] In `src/server/handler.rs`:
+  - [x] Reserve new block when exhausted before returning an ID.
 
 **Acceptance**
-- Throughput matches old ULID path aside from reservation intervals.
+- Throughput matches old legacy path aside from reservation intervals.
 
 ---
 
 ## Milestone 6 — Term‑Aware Redirects
 
 ### M6.1 Extend RedirectInfo with term
-- [ ] Update struct in `src/server/mod.rs`.
-- [ ] Update all serializers/deserializers:
-  - [ ] Rust clients `src/client/tokio.rs`, `src/client/smol.rs`
-  - [ ] Go client redirect parsing.
+- [x] Update struct in `src/server/mod.rs`.
+- [x] Update all serializers/deserializers:
+  - [x] Rust clients `src/client/tokio.rs`, `src/client/smol.rs`
+  - [x] Go client redirect parsing.
 
 **Acceptance**
 - Redirects carry term end‑to‑end.
@@ -292,11 +299,11 @@ Key learnings/decisions:
 ---
 
 ### M6.2 Client term cache
-- [ ] Rust clients:
-  - [ ] Track `highest_term_seen`.
-  - [ ] Ignore redirects to older terms.
-- [ ] Go client:
-  - [ ] Same logic.
+- [x] Rust clients:
+  - [x] Track `highest_term_seen`.
+  - [x] Ignore redirects to older terms.
+- [x] Go client:
+  - [x] Same logic.
 
 **Acceptance**
 - Clients converge on newest leader without oscillation.
@@ -306,8 +313,8 @@ Key learnings/decisions:
 ## Milestone 7 — Joint Quorum Reconfiguration
 
 ### M7.1 Surface config_version in Chitchat
-- [ ] Add `config_version` tag in `src/server/mod.rs::spawn_discovery`.
-- [ ] Update `src/disco.rs` to expose membership/config versions.
+- [x] Add `config_version` tag in `src/server/mod.rs::spawn_discovery`.
+- [x] Update `src/disco.rs` to expose membership/config versions.
 
 **Acceptance**
 - All nodes report consistent config_version via discovery.
@@ -315,9 +322,9 @@ Key learnings/decisions:
 ---
 
 ### M7.2 Implement joint quorum rules
-- [ ] Add `src/quorum/config.rs`:
-  - [ ] Compute `C_old`, `C_joint`, `C_new`.
-  - [ ] For 3‑node default: require 2 acks and ≥1 from old set until catchup complete.
+- [x] Add `src/quorum/config.rs`:
+  - [x] Compute old vs joint sets from `config_version` tags.
+  - [x] Require joint‑majority and old‑majority for elections, leases, and reservations until catchup converges.
 
 **Acceptance**
 - No disjoint majorities during rolling replace.
@@ -325,43 +332,46 @@ Key learnings/decisions:
 ---
 
 ### M7.3 Catchup RPC for joiners
-- [ ] Implement CatchupRequest/Response:
-  - [ ] Leader sends current term/HW/config_version.
-  - [ ] Joiner persists before voting/acking.
-- [ ] Wire join flow into runtime.
+- [x] Implement CatchupRequest/Response:
+  - [x] Leader sends current term/HW/config_version.
+  - [x] Joiner persists before voting/acking (`install_catchup`).
+- [x] Wire catchup and joint‑quorum triggers into membership monitor.
 
 **Acceptance**
 - Joiner never participates with stale term or HW.
+
+**Notes**
+- [x] Leader‑side config commit/bump of `config_version` and re‑tagging self in Chitchat.
 
 ---
 
 ## Milestone 8 — Remove Bully Safety + Cleanup
 
 ### M8.1 Remove Bully from serving decisions
-- [ ] Bully no longer controls leader in API path.
-- [ ] Keep Bully only if still useful as a bootstrap trigger; otherwise delete.
+- [x] Bully no longer controls leader in API path.
+- [x] Bully retained only as an optional legacy/diagnostic module (not wired into binaries).
 
 **Acceptance**
 - Safety relies solely on quorum election/lease.
 
 ---
 
-### M8.2 Delete ULID remnants
-- [ ] Remove ULID deps and types from:
-  - [ ] `src/config.rs`
-  - [ ] `src/client/*`
-  - [ ] Go lib
-  - [ ] Examples
-- [ ] Update any docs still referencing ULID.
+### M8.2 Delete legacy ID remnants
+- [x] Remove legacy ID deps and types from:
+  - [x] `src/config.rs`
+  - [x] `src/client/*`
+  - [x] Go lib
+  - [x] Examples
+- [x] Update any docs still referencing legacy IDs.
 
 **Acceptance**
-- No ULID references in `rg ULID|ulid`.
+- No legacy ID references in repo search.
 
 ---
 
 ### M8.3 Final docs + perf notes
-- [ ] Update `docs/quorum-fenced-sequencer.md` to be UUIDv8‑first.
-- [ ] Add block/lease tuning section.
+- [x] Update `docs/quorum-fenced-sequencer.md` to be UUIDv8‑first.
+- [x] Add block/lease tuning section.
 
 **Acceptance**
 - Docs match implementation and defaults.
@@ -369,12 +379,12 @@ Key learnings/decisions:
 ---
 
 ## Cross‑Cutting Configuration Defaults
-- [ ] Add to `ServerConfig` in `src/config.rs`:
-  - [ ] `state_path`
-  - [ ] `lease_duration_ms` (default 1000)
-  - [ ] `renew_interval_ms` (default 250)
-  - [ ] `election_timeout_ms` randomized (default 800–1500)
-  - [ ] `block_size` (default 100_000)
+- [x] Add to `ServerConfig` in `src/config.rs`:
+  - [x] `state_path`
+  - [x] `lease_duration_ms` (default 1000)
+  - [x] `renew_interval_ms` (default 250)
+  - [x] `election_timeout_min_ms` / `election_timeout_max_ms` randomized (defaults 800–1500)
+  - [x] `block_size` (default 100_000)
 - [ ] Add client retry knobs if needed.
 
 ---
@@ -382,11 +392,11 @@ Key learnings/decisions:
 ## Test Plan
 
 ### Unit tests
-- [ ] `src/id.rs`: encode/decode, fixed bits, ordering.
-- [ ] `src/idgen.rs`: monotonicity, uniqueness, concurrency, block boundaries.
-- [ ] `src/quorum/state.rs`: persistence and invariants.
-- [ ] `src/quorum/election.rs`: vote rules and term monotonicity.
-- [ ] `src/quorum/lease.rs`: lease ack rules.
+- [x] `src/id.rs`: encode/decode, fixed bits, ordering.
+- [x] `src/idgen.rs`: monotonicity, uniqueness, concurrency, block boundaries.
+- [x] `src/quorum/state.rs`: persistence and invariants.
+- [x] `src/quorum/election.rs`: vote rules and term monotonicity.
+- [x] `src/quorum/lease.rs`: lease ack rules.
 - [ ] `src/quorum/reserve.rs`: HW advancement and overlap prevention.
 
 ### Integration tests

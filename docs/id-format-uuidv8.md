@@ -6,7 +6,7 @@ Katotonic IDs are RFC 4122 UUIDs, **version 8** (custom). They are opaque, 16‑
 
 - A single, formal on‑wire and stored ID format.
 - Total ordering by raw byte lexicographic comparison.
-- No reliance on wall‑clock time or ULID semantics.
+- No reliance on wall‑clock time or legacy time‑based semantics.
 
 ## High‑Level Definition
 
@@ -16,7 +16,7 @@ Katotonic IDs are RFC 4122 UUIDs, **version 8** (custom). They are opaque, 16‑
   - `term` — 48 bits (election epoch).
   - `seq` — 74 bits (monotonic counter within term).
 - **Ordering:** lexicographic order of the raw 16 UUID bytes equals lexicographic order of `(term, seq)`.
-- **Backwards compatibility:** ULID is removed; mixed ULID/UUID clusters are unsupported.
+- **Backwards compatibility:** legacy IDs are removed; mixed legacy/UUID clusters are unsupported.
 
 ## Bit Layout
 
@@ -75,4 +75,3 @@ Given an ID:
 ## Comparison Caveat (Important)
 
 Some platforms/libraries (notably those exposing GUID field ordering) compare UUIDs by re‑ordering fields rather than raw bytes. Katotonic ordering **requires comparing the raw 16 bytes in network order**. Clients and storage systems must not use GUID field‑reordered comparisons.
-

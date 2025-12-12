@@ -5,6 +5,7 @@ use std::{
   sync::Arc,
   task::{Context, Poll},
 };
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use async_trait::async_trait;
 use kanal::{AsyncReceiver, AsyncSender};
@@ -23,6 +24,7 @@ use crate::{server::RedirectInfo, Error, KatotonicId, Result};
 #[derive(Clone)]
 pub struct Client {
   pool: ConnectionPool,
+  highest_term_seen: Arc<AtomicU64>,
 }
 
 impl Client {
@@ -41,7 +43,10 @@ impl Client {
       None => builder.with_no_client_auth(),
     };
     let pool = ConnectionPool::new(Arc::new(config), addr, server_name, concurrency).await?;
-    Ok(Self { pool })
+    Ok(Self {
+      pool,
+      highest_term_seen: Arc::new(AtomicU64::new(0)),
+    })
   }
 }
 
@@ -106,8 +111,23 @@ impl AsyncClient for Client {
               return Err(e.into());
             }
           };
-          drop(tls_stream);
-          self.pool.switch_addr(redirect_info.leader).await?;
+          let redirect_term = redirect_info.term;
+          let highest = self.highest_term_seen.load(Ordering::Relaxed);
+          if redirect_term >= highest {
+            if redirect_term > highest {
+              self
+                .highest_term_seen
+                .store(redirect_term, Ordering::Relaxed);
+            }
+            drop(tls_stream);
+            self.pool.switch_addr(redirect_info.leader).await?;
+          } else {
+            info!(
+              "Ignoring redirect to stale term={} (highest={})",
+              redirect_term, highest
+            );
+            drop(tls_stream);
+          }
         }
         _ => {
           error!("Unknown response type: {}", response_type[0]);

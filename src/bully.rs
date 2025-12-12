@@ -805,12 +805,13 @@ mod tests {
   #[tokio::test]
   async fn manages_state() {
     let state = Arc::new(DashMap::new());
-    let this_node = Member {
-      name: "test".to_string(),
-      id: 1,
-      addr: "127.0.0.1:9001".parse().unwrap(),
-      server_name: None,
-    };
+	    let this_node = Member {
+	      name: "test".to_string(),
+	      id: 1,
+	      addr: "127.0.0.1:9001".parse().unwrap(),
+	      server_name: None,
+	      config_version: 0,
+	    };
 
     let this_node_transport =
       channel_server_client(|_: Request| async move { Ok(Response::Done("".to_string())) });
@@ -834,18 +835,20 @@ mod tests {
     assert!(state.contains_key(&this_node.name));
 
     // Test member addition
-    let new_member = Member {
-      name: "new_member".to_string(),
-      id: 2,
-      addr: "127.0.0.1:9002".parse().unwrap(),
-      server_name: None,
-    };
-    let new_member3 = Member {
-      name: "new_member3".to_string(),
-      id: 3,
-      addr: "127.0.0.1:9003".parse().unwrap(),
-      server_name: None,
-    };
+	    let new_member = Member {
+	      name: "new_member".to_string(),
+	      id: 2,
+	      addr: "127.0.0.1:9002".parse().unwrap(),
+	      server_name: None,
+	      config_version: 0,
+	    };
+	    let new_member3 = Member {
+	      name: "new_member3".to_string(),
+	      id: 3,
+	      addr: "127.0.0.1:9003".parse().unwrap(),
+	      server_name: None,
+	      config_version: 0,
+	    };
     tx.send(vec![
       this_node.clone(),
       new_member.clone(),

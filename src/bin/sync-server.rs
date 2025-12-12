@@ -8,7 +8,6 @@ use std::{
 use chitchat::ChitchatHandle;
 use clap::Parser as _;
 use katotonic::{
-  bully::{self, PeerState},
   cbor,
   disco::ChitchatDiscovery,
   quorum::{LeaderState, QuorumService},
@@ -53,7 +52,7 @@ fn main() -> anyhow::Result<()> {
 
   let config = Arc::new(server_tls_config(&conf.cert, &conf.key, Some(&conf.ca))?);
 
-  let (membership, discovery, quorum_leader, quorum_service, bully_leader) =
+  let (membership, discovery, quorum_leader, quorum_service) =
     run_background_processes(conf.clone())?;
   let listener = TcpListener::bind(addr).expect("Failed to bind to address");
 
@@ -69,7 +68,6 @@ fn main() -> anyhow::Result<()> {
         let discovery = discovery.clone();
         let quorum_leader = quorum_leader.clone();
         let quorum_service = quorum_service.clone();
-        let bully_leader = bully_leader.clone();
         let conf_arc = conf_arc.clone();
         pool.execute(move || {
           let mut conn = ServerConnection::new(config).expect("Failed to create connection");
@@ -94,7 +92,6 @@ fn main() -> anyhow::Result<()> {
               discovery.clone(),
               quorum_leader.clone(),
               quorum_service.clone(),
-              bully_leader.clone(),
               conf_arc.clone(),
             ) {
               error!("Error handling client: {}", e);
@@ -118,7 +115,6 @@ fn handle_client(
   discovery: SyncDiscovery,
   quorum_leader: WatchableValue<LeaderState>,
   quorum_service: Arc<QuorumService>,
-  bully_leader: WatchableValue<PeerState>,
   conf: Arc<katotonic::ServerConfig>,
 ) -> std::io::Result<()> {
   let mut buf = [0; 1];
@@ -126,6 +122,7 @@ fn handle_client(
   match buf[0] {
     1 => loop {
       let state = quorum_leader.read();
+      let term = state.term();
       if matches!(state, LeaderState::Leader { lease_valid: true, .. }) {
         let issued = discovery.rt.block_on({
           let service = quorum_service.clone();
@@ -149,30 +146,26 @@ fn handle_client(
         }
       }
 
-      match bully_leader.read() {
-        PeerState::Follower(ref name, generation) => {
-          if let Some(redirect_info) = discovery.redirect_info(name, generation) {
-            let response_bytes = match cbor::to_vec(&redirect_info) {
-              Ok(bytes) => bytes,
-              Err(e) => {
-                error!("Failed to serialize response: {:?}", e);
-                break;
-              }
-            };
+      if let LeaderState::Follower { leader, .. } = state {
+        if let Some(redirect_info) = discovery.redirect_info(&leader, term) {
+          let response_bytes = match cbor::to_vec(&redirect_info) {
+            Ok(bytes) => bytes,
+            Err(e) => {
+              error!("Failed to serialize response: {:?}", e);
+              break;
+            }
+          };
 
-            let response_len = response_bytes.len() as u32;
+          let response_len = response_bytes.len() as u32;
 
-            stream.write_all(&[2])?;
-            stream.write_all(&response_len.to_be_bytes())?;
-            stream.write_all(&response_bytes)?;
-            break;
-          }
-          continue;
-        }
-        _ => {
-          continue;
+          stream.write_all(&[2])?;
+          stream.write_all(&response_len.to_be_bytes())?;
+          stream.write_all(&response_bytes)?;
+          break;
         }
       }
+      std::thread::sleep(Duration::from_millis(100));
+      continue;
     },
     n => {
       error!("Unknown message type: {n}");
@@ -187,24 +180,11 @@ fn run_background_processes(
 ) -> anyhow::Result<BackgroundHandles> {
   let rt = Arc::new(Runtime::new()?);
 
-  let (membership, discovery, quorum_leader, quorum_service, bully_leader) = rt.block_on(async {
+  let (membership, discovery, quorum_leader, quorum_service) = rt.block_on(async {
     let (membership, discovery) = spawn_discovery(conf.clone()).await?;
     let (quorum_leader, quorum_service) =
       katotonic::quorum::track_leader(conf.clone(), discovery.clone()).await?;
-    let bully_leader = bully::track_leader(
-      conf.clone(),
-      discovery.clone(),
-      None,
-      Some(quorum_service.clone()),
-    )
-    .await?;
-    Ok::<_, anyhow::Error>((
-      membership,
-      discovery,
-      quorum_leader,
-      quorum_service,
-      bully_leader,
-    ))
+    Ok::<_, anyhow::Error>((membership, discovery, quorum_leader, quorum_service))
   })?;
 
   Ok((
@@ -218,7 +198,6 @@ fn run_background_processes(
     },
     quorum_leader,
     quorum_service,
-    bully_leader,
   ))
 }
 
@@ -227,7 +206,6 @@ type BackgroundHandles = (
   SyncDiscovery,
   WatchableValue<LeaderState>,
   Arc<QuorumService>,
-  WatchableValue<PeerState>,
 );
 
 #[derive(Clone)]
@@ -237,20 +215,18 @@ struct SyncDiscovery {
 }
 
 impl SyncDiscovery {
-  pub fn redirect_info(&self, name: &str, generation: u64) -> Option<RedirectInfo> {
+  pub fn redirect_info(&self, leader: &str, term: u64) -> Option<RedirectInfo> {
+    let leader_name = leader.to_string();
     self.rt.block_on({
       let discovery = Arc::clone(&self.discovery);
       async move {
-        let leader_node = discovery.api_addr_for(name, generation).await;
-        if let Some(ln_name) = leader_node {
-          let followers = discovery.app_addrs_without(&ln_name).await;
-          Some(RedirectInfo {
-            leader: ln_name,
-            followers,
-          })
-        } else {
-          None
-        }
+        let leader_addr = discovery.api_addr_for_latest(&leader_name).await?;
+        let followers = discovery.app_addrs_without(&leader_name).await;
+        Some(RedirectInfo {
+          term,
+          leader: leader_addr,
+          followers,
+        })
       }
     })
   }

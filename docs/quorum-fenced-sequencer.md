@@ -22,7 +22,7 @@ This document proposes a minimal consensus layer that **does not replicate a log
 
 - Providing linearizable reads/writes of arbitrary application data.
 - Supporting large or highly dynamic clusters (> ~7 nodes) without revisiting quorum and failure‑detector tuning.
-- Preserving ULID compatibility or timestamp semantics if it conflicts with safety.
+- Preserving legacy identifier compatibility or timestamp semantics if it conflicts with safety.
 
 ## Current System (v0.1.x)
 
@@ -213,6 +213,17 @@ Persistence:
 - Simple local file (e.g., `katotonic.state`), with atomic write + fsync on updates.
 - Store term/HW/config_version.
 
+## Tuning
+
+Defaults target 3‑node clusters with realistic tail latency:
+
+- `lease_duration_ms` (server): 1000. Keep comfortably above worst‑case RTT/GC pauses.
+- `renew_interval_ms` (server): 250. Renew frequently enough to avoid expiry during spikes.
+- `election_timeout_min_ms` / `election_timeout_max_ms`: 800 / 1500. Randomization prevents split votes.
+- `block_size` (server): 100_000. Larger blocks reduce quorum traffic but waste more IDs on abrupt leader loss.
+
+Adjust based on observed tail latency and failure‑detector behavior.
+
 ## Open Questions / Decisions
 
 1. **Lease duration and renewal interval** tuning for 3 nodes under realistic tail latency.
@@ -221,7 +232,7 @@ Persistence:
 
 ## Next Steps
 
-1. Ship UUIDv8 format and remove ULID (Milestone 0).
+1. Ship UUIDv8 format and remove legacy IDs (Milestone 0).
 2. Implement term + lease + block reservation behind a feature flag.
 3. Add fault‑injection tests for:
    - minority partition serving attempt

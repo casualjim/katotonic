@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/casualjim/ulidd/katotonic"
+		"github.com/casualjim/katotonic/go-katotonic"
 	"github.com/charmbracelet/log"
 	"github.com/google/uuid"
 )
@@ -26,8 +26,8 @@ const numRequests = 1_000_000
 func main() {
 
 	caCertPath := "../tests/certs/rootCA.pem"
-	clientCertPath := "../tests/certs/ulidd.client-client.pem"
-	clientKeyPath := "../tests/certs/ulidd.client-client-key.pem"
+	clientCertPath := "../tests/certs/katotonic.client-client.pem"
+	clientKeyPath := "../tests/certs/katotonic.client-client-key.pem"
 
 	client, err := katotonic.New(
 		katotonic.WithAddr("localhost:9000"),

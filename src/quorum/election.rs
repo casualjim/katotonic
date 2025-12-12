@@ -6,7 +6,9 @@ use rustls::pki_types::ServerName;
 use tokio::time::{sleep, timeout};
 use tracing::{debug, error, info, warn};
 
-use super::{rpc::QuorumPeer, LeaderState, QuorumRequest, QuorumResponse, QuorumService};
+use super::{
+  config::JointQuorum, rpc::QuorumPeer, LeaderState, QuorumRequest, QuorumResponse, QuorumService,
+};
 use crate::{
   disco::{Discovery, Member},
   keypair, root_store, Result, ServerConfig, WatchableValue,
@@ -21,6 +23,14 @@ pub async fn track_leader(
     conf.state_path.clone(),
     leader_state.clone(),
   )?);
+
+  let cluster_conf = conf.clone();
+  let cluster_service = Arc::clone(&service);
+  tokio::spawn(async move {
+    if let Err(e) = super::cluster::run_cluster_server(cluster_conf, cluster_service).await {
+      error!("quorum cluster server exited: {e}");
+    }
+  });
 
   let election_conf = conf.clone();
   let election_discovery = Arc::clone(&discovery);
@@ -41,8 +51,13 @@ pub async fn track_leader(
 
   let monitor_discovery = Arc::clone(&discovery);
   let monitor_leader_state = leader_state.clone();
+  let monitor_conf = conf.clone();
+  let monitor_service = Arc::clone(&service);
   tokio::spawn(async move {
-    if let Err(e) = membership_monitor(monitor_discovery, monitor_leader_state).await {
+    if let Err(e) =
+      membership_monitor(monitor_conf, monitor_discovery, monitor_leader_state, monitor_service)
+        .await
+    {
       error!("membership monitor exited: {e}");
     }
   });
@@ -64,21 +79,119 @@ pub async fn track_leader(
 }
 
 async fn membership_monitor(
+  conf: ServerConfig,
   discovery: Arc<crate::disco::ChitchatDiscovery>,
   leader_state: WatchableValue<LeaderState>,
+  service: Arc<QuorumService>,
 ) -> Result<()> {
   let mut changes = discovery.membership_changes().await;
+  let mut last_joint_triggered_version = service.get_state().await.config_version;
   while let Some(members) = changes.next().await {
     let members = members?;
-    if let LeaderState::Follower { leader, term } = leader_state.read() {
-      if !members.iter().any(|m| m.name == leader) {
-        warn!(
-          leader,
-          term, "leader missing from membership; triggering election"
-        );
-        leader_state.write(LeaderState::Down);
+    let local_config_version = service.get_state().await.config_version;
+    let max_config_version = members
+      .iter()
+      .map(|m| m.config_version)
+      .max()
+      .unwrap_or(local_config_version);
+
+    match leader_state.read() {
+      LeaderState::Follower { leader, term } => {
+        if !members.iter().any(|m| m.name == leader) {
+          warn!(
+            leader,
+            term, "leader missing from membership; triggering election"
+          );
+          leader_state.write(LeaderState::Down);
+          continue;
+        }
+
+        if max_config_version > local_config_version {
+          if let Some(leader_member) = members.iter().find(|m| m.name == leader) {
+            let client_config = cluster_client_config(&conf)?;
+            let addr = Cow::Owned(leader_member.addr.to_string());
+            let server_name = server_name_for(leader_member);
+            let peer = QuorumPeer::new_tls(addr, client_config, server_name);
+            match timeout(Duration::from_secs(1), peer.send(QuorumRequest::CatchupRequest)).await {
+              Ok(Ok(QuorumResponse::CatchupResponse {
+                term,
+                high_watermark,
+                config_version,
+              })) => {
+                let before_version = service.get_state().await.config_version;
+                if let Err(e) = service
+                  .install_catchup(term, high_watermark, config_version)
+                  .await
+                {
+                  warn!("failed to install catchup state: {e}");
+                } else {
+                  let after_version = service.get_state().await.config_version;
+                  if after_version > before_version {
+                    discovery.set_local_config_version_tag(after_version).await;
+                    last_joint_triggered_version =
+                      last_joint_triggered_version.max(after_version);
+                  }
+                  info!(
+                    term,
+                    high_watermark,
+                    config_version,
+                    "installed catchup state from leader"
+                  );
+                }
+              }
+              Ok(Ok(other)) => {
+                debug!(?other, "unexpected response to catchup request");
+              }
+              Ok(Err(e)) => {
+                debug!("catchup request failed: {e}");
+              }
+              Err(_elapsed) => {
+                debug!("catchup request timed out");
+              }
+            }
+          }
+        }
       }
-    }
+      LeaderState::Leader {
+        term,
+        lease_valid,
+      } => {
+        if max_config_version > local_config_version {
+          if max_config_version > last_joint_triggered_version {
+            warn!(
+              term,
+              local_config_version,
+              max_config_version,
+              "config version change detected; triggering election for joint quorum"
+            );
+            last_joint_triggered_version = max_config_version;
+            leader_state.write(LeaderState::Down);
+          } else if lease_valid {
+            match service.set_config_version_to(max_config_version).await {
+              Ok(true) => {
+                discovery
+                  .set_local_config_version_tag(max_config_version)
+                  .await;
+                info!(
+                  term,
+                  config_version = max_config_version,
+                  "committed config version and updated discovery tag"
+                );
+              }
+              Ok(false) => {}
+              Err(e) => {
+                warn!(
+                  term,
+                  max_config_version,
+                  "failed to commit config version: {e}"
+                );
+              }
+            }
+          }
+        }
+      }
+      _ => {}
+    };
   }
   Ok(())
 }
@@ -92,7 +205,7 @@ async fn election_loop(
   loop {
     match leader_state.read() {
       LeaderState::Down => {
-        let delay = random_election_delay();
+        let delay = random_election_delay(&conf);
         sleep(delay).await;
         if !matches!(leader_state.read(), LeaderState::Down) {
           continue;
@@ -119,9 +232,15 @@ async fn election_loop(
   }
 }
 
-fn random_election_delay() -> Duration {
+fn random_election_delay(conf: &ServerConfig) -> Duration {
   let mut rng = rand::rng();
-  let ms = rng.random_range(800..=1500);
+  let min = conf.election_timeout_min_ms.max(1);
+  let max = conf.election_timeout_max_ms.max(min);
+  let ms = if max == min {
+    min
+  } else {
+    rng.random_range(min..=max)
+  };
   Duration::from_millis(ms)
 }
 
@@ -134,15 +253,27 @@ async fn run_election_attempt(
 ) -> Result<()> {
   let this_node = discovery.myself().await?;
   let members = discovery.members().await?;
+  let state = service.get_state().await;
+  let local_config_version = state.config_version;
+  let max_config_version = members
+    .iter()
+    .map(|m| m.config_version)
+    .max()
+    .unwrap_or(local_config_version);
+
+  let quorum_cfg = JointQuorum::new(local_config_version, &members);
+  let joint_majority = quorum_cfg.joint_majority();
+  let old_majority = quorum_cfg.old_majority();
+
   let peers = members
     .into_iter()
     .filter(|m| m.name != this_node.name)
     .collect::<Vec<_>>();
-
-  let majority = (peers.len() + 2).div_ceil(2);
   debug!(
     proposed_term,
-    majority,
+    joint_majority,
+    old_majority,
+    joint = quorum_cfg.is_joint(),
     peers = peers.len(),
     "starting quorum election"
   );
@@ -155,25 +286,34 @@ async fn run_election_attempt(
     let peer_client = QuorumPeer::new_tls(addr, client_config.clone(), server_name);
     let candidate_id = this_node.name.clone();
 
+    let is_old = quorum_cfg.is_old(&peer.name);
     tasks.push(tokio::spawn(async move {
-      timeout(
-        Duration::from_secs(1),
-        peer_client.send(QuorumRequest::VoteRequest {
-          proposed_term,
-          candidate_id,
-        }),
+      (
+        is_old,
+        timeout(
+          Duration::from_secs(1),
+          peer_client.send(QuorumRequest::VoteRequest {
+            proposed_term,
+            candidate_id,
+          }),
+        )
+        .await,
       )
-      .await
     }));
   }
 
   let mut yes = 1usize; // self vote
-  let mut max_hw = service.get_state().await.high_watermark;
+  let mut old_yes = if quorum_cfg.is_old(&this_node.name) {
+    1usize
+  } else {
+    0usize
+  };
+  let mut max_hw = state.high_watermark;
   let mut highest_seen_term = proposed_term;
 
   for res in join_all(tasks).await {
     match res {
-      Ok(Ok(Ok(response))) => match response {
+      Ok((is_old, Ok(Ok(response)))) => match response {
         QuorumResponse::VoteYes {
           term,
           high_watermark,
@@ -182,6 +322,9 @@ async fn run_election_attempt(
           highest_seen_term = highest_seen_term.max(term);
           if term == proposed_term {
             yes += 1;
+            if is_old {
+              old_yes += 1;
+            }
             max_hw = max_hw.max(high_watermark);
           }
         }
@@ -198,10 +341,10 @@ async fn run_election_attempt(
           debug!(?other, "unexpected quorum response during election");
         }
       },
-      Ok(Ok(Err(e))) => {
+      Ok((_is_old, Ok(Err(e)))) => {
         debug!("vote request failed: {e}");
       }
-      Ok(Err(_elapsed)) => {
+      Ok((_is_old, Err(_elapsed))) => {
         debug!("vote request timed out");
       }
       Err(join_err) => {
@@ -216,15 +359,63 @@ async fn run_election_attempt(
     return Ok(());
   }
 
-  if yes >= majority {
-    info!(proposed_term, yes, majority, "won quorum election");
-    service.install_leader_term(proposed_term, max_hw).await?;
-    leader_state.write(LeaderState::Leader {
-      term: proposed_term,
-      lease_valid: false,
-    });
-  } else {
-    info!(proposed_term, yes, majority, "lost quorum election");
+  let has_joint_majority = yes >= joint_majority;
+  let has_old_majority = !quorum_cfg.is_joint() || old_yes >= old_majority;
+
+  if has_joint_majority && has_old_majority {
+    info!(
+      proposed_term,
+      yes,
+      joint_majority,
+      old_yes,
+      old_majority,
+      joint = quorum_cfg.is_joint(),
+      "won quorum election"
+	    );
+	    service.install_leader_term(proposed_term, max_hw).await?;
+	    leader_state.write(LeaderState::Leader {
+	      term: proposed_term,
+	      lease_valid: false,
+	    });
+
+	    // If we just won a joint election and at least one new-node acked, commit the new
+	    // config_version and advertise it via discovery. This avoids being stuck in joint mode.
+	    let new_yes = yes.saturating_sub(old_yes);
+	    if quorum_cfg.is_joint()
+	      && max_config_version > local_config_version
+	      && new_yes > 0
+	    {
+	      match service.set_config_version_to(max_config_version).await {
+	        Ok(true) => {
+	          discovery
+	            .set_local_config_version_tag(max_config_version)
+	            .await;
+	          info!(
+	            proposed_term,
+	            config_version = max_config_version,
+	            "committed config version after joint election"
+	          );
+	        }
+	        Ok(false) => {}
+	        Err(e) => {
+	          warn!(
+	            proposed_term,
+	            max_config_version,
+	            "failed to commit config version after joint election: {e}"
+	          );
+	        }
+	      }
+	    }
+	  } else {
+	    info!(
+      proposed_term,
+      yes,
+      joint_majority,
+      old_yes,
+      old_majority,
+      joint = quorum_cfg.is_joint(),
+      "lost quorum election"
+    );
     leader_state.write(LeaderState::Down);
   }
 
@@ -266,10 +457,11 @@ mod tests {
 
   #[test]
   fn test_random_delay_in_range() {
+    let conf = ServerConfig::new().unwrap();
     for _ in 0..50 {
-      let d = random_election_delay();
-      assert!(d >= Duration::from_millis(800));
-      assert!(d <= Duration::from_millis(1500));
+      let d = random_election_delay(&conf);
+      assert!(d >= Duration::from_millis(conf.election_timeout_min_ms));
+      assert!(d <= Duration::from_millis(conf.election_timeout_max_ms));
     }
   }
 }

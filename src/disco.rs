@@ -82,6 +82,7 @@ pub struct Member {
   pub id: u64,
   pub addr: SocketAddr,
   pub server_name: Option<ServerName<'static>>,
+  pub config_version: u64,
 }
 
 #[cfg_attr(test, mry::mry)]
@@ -196,6 +197,23 @@ impl ChitchatDiscovery {
     state.get("api_addr").map(|v| v.to_string())
   }
 
+  pub async fn api_addr_for_latest(&self, id: &str) -> Option<String> {
+    let guard = self.chitchat.lock().await;
+    let cid = guard
+      .live_nodes()
+      .filter(|cid| cid.node_id == id)
+      .max_by_key(|cid| cid.generation_id)?;
+    let state = guard.node_state(cid)?;
+    state.get("api_addr").map(|v| v.to_string())
+  }
+
+  pub async fn set_local_config_version_tag(&self, version: u64) {
+    let mut guard = self.chitchat.lock().await;
+    guard
+      .self_node_state()
+      .set("config_version", version.to_string());
+  }
+
   pub async fn app_addrs_without(&self, id: &str) -> Vec<String> {
     let guard = self.chitchat.lock().await;
     let mut addrs = vec![];
@@ -225,21 +243,26 @@ impl Debug for ChitchatDiscovery {
       let guard = cc.lock().await;
       let nodes = guard.live_nodes();
       let mut members = vec![];
-      for cid in nodes {
-        if let Some(state) = guard.node_state(cid) {
-          let server_name = state
-            .get("cluster_server_name")
-            .or_else(|| state.get("server_name"))
-            .map(|v| v.to_string())
-            .and_then(|sn| ServerName::try_from(sn).ok());
-          members.push(Member {
-            name: cid.node_id.clone(),
-            id: cid.generation_id,
-            addr: cid.gossip_advertise_addr,
-            server_name,
-          });
-        }
-      }
+	      for cid in nodes {
+	        if let Some(state) = guard.node_state(cid) {
+	          let server_name = state
+	            .get("cluster_server_name")
+	            .or_else(|| state.get("server_name"))
+	            .map(|v| v.to_string())
+	            .and_then(|sn| ServerName::try_from(sn).ok());
+	          let config_version = state
+	            .get("config_version")
+	            .and_then(|v| v.parse().ok())
+	            .unwrap_or(0);
+	          members.push(Member {
+	            name: cid.node_id.clone(),
+	            id: cid.generation_id,
+	            addr: cid.gossip_advertise_addr,
+	            server_name,
+	            config_version,
+	          });
+	        }
+	      }
       members
     });
     b.field("members", &members);
@@ -262,11 +285,16 @@ impl ChitchatDiscovery {
     let cid = guard.live_nodes().find(|cid| cid.node_id == id.as_ref())?;
     let state = guard.node_state(cid)?;
     let server_name = state.get("cluster_server_name")?.to_string();
+    let config_version = state
+      .get("config_version")
+      .and_then(|v| v.parse().ok())
+      .unwrap_or(0);
     Some(Member {
       name: cid.node_id.clone(),
       id: cid.generation_id,
       addr: cid.gossip_advertise_addr,
       server_name: ServerName::try_from(server_name).ok(),
+      config_version,
     })
   }
 }
@@ -284,12 +312,18 @@ impl Discovery for ChitchatDiscovery {
           .or_else(|| v.get("server_name"))
           .map(|v| v.to_string())
       }) {
+        let config_version = guard
+          .node_state(peer)
+          .and_then(|v| v.get("config_version"))
+          .and_then(|v| v.parse().ok())
+          .unwrap_or(0);
         let server_name = ServerName::try_from(server_name).ok();
         let member = Member {
           name: peer.node_id.clone(),
           id: peer.generation_id,
           addr: peer.gossip_advertise_addr,
           server_name,
+          config_version,
         };
         members.push(member);
       }
@@ -302,24 +336,29 @@ impl Discovery for ChitchatDiscovery {
 
     let stream = WatchStream::new(watcher);
     Box::pin(stream.map(|peers| {
-      Ok(
-        peers
-          .iter()
-          .map(|(cid, state)| {
-            let server_name = state
-              .get("cluster_server_name")
-              .or_else(|| state.get("server_name"))
-              .map(|v| v.to_string())
-              .unwrap_or_default();
-            Member {
-              name: cid.node_id.clone(),
-              addr: cid.gossip_advertise_addr,
-              id: cid.generation_id,
-              server_name: ServerName::try_from(server_name).ok(),
-            }
-          })
-          .collect(),
-      )
+          Ok(
+            peers
+              .iter()
+              .map(|(cid, state)| {
+                let server_name = state
+                  .get("cluster_server_name")
+                  .or_else(|| state.get("server_name"))
+                  .map(|v| v.to_string())
+                  .unwrap_or_default();
+                let config_version = state
+                  .get("config_version")
+                  .and_then(|v| v.parse().ok())
+                  .unwrap_or(0);
+                Member {
+                  name: cid.node_id.clone(),
+                  addr: cid.gossip_advertise_addr,
+                  id: cid.generation_id,
+                  server_name: ServerName::try_from(server_name).ok(),
+                  config_version,
+                }
+              })
+              .collect(),
+          )
     }))
   }
 
@@ -336,6 +375,11 @@ impl Discovery for ChitchatDiscovery {
       id: cid.generation_id,
       addr: cid.gossip_advertise_addr,
       server_name: state.and_then(|sn| ServerName::try_from(sn).ok()),
+      config_version: guard
+        .self_node_state()
+        .get("config_version")
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(0),
     })
   }
 }

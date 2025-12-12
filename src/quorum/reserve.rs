@@ -4,7 +4,9 @@ use futures::future::join_all;
 use tokio::time::timeout;
 use tracing::{debug, info, warn};
 
-use super::{election, rpc::QuorumPeer, QuorumRequest, QuorumResponse, QuorumService};
+use super::{
+  config::JointQuorum, election, rpc::QuorumPeer, QuorumRequest, QuorumResponse, QuorumService,
+};
 use crate::{disco::Discovery, Result, ServerConfig};
 
 const RESERVE_RPC_TIMEOUT: Duration = Duration::from_secs(1);
@@ -19,15 +21,20 @@ pub async fn reserve_next_block(
 ) -> Result<(u64, u64)> {
   let this_node = discovery.myself().await?;
   let members = discovery.members().await?;
+  let state = service.get_state().await;
+  let local_config_version = state.config_version;
+  let quorum_cfg = JointQuorum::new(local_config_version, &members);
+  let joint_majority = quorum_cfg.joint_majority();
+  let old_majority = quorum_cfg.old_majority();
+
   let peers = members
     .into_iter()
     .filter(|m| m.name != this_node.name)
     .collect::<Vec<_>>();
 
-  let majority = (peers.len() + 2).div_ceil(2);
   let client_config = election::cluster_client_config(conf)?;
 
-  let mut base_hw = service.get_state().await.high_watermark;
+  let mut base_hw = state.high_watermark;
   for attempt in 1..=MAX_RESERVE_ATTEMPTS {
     let start_seq = base_hw.saturating_add(1);
     let end_seq = start_seq
@@ -39,7 +46,9 @@ pub async fn reserve_next_block(
       attempt,
       start_seq,
       end_seq,
-      majority,
+      joint_majority,
+      old_majority,
+      joint = quorum_cfg.is_joint(),
       peers = peers.len(),
       "reserving block"
     );
@@ -55,26 +64,35 @@ pub async fn reserve_next_block(
       let server_name = election::server_name_for(&peer);
       let peer_client = QuorumPeer::new_tls(addr, client_config.clone(), server_name);
 
+      let is_old = quorum_cfg.is_old(&peer.name);
       tasks.push(tokio::spawn(async move {
-        timeout(
-          RESERVE_RPC_TIMEOUT,
-          peer_client.send(QuorumRequest::ReserveBlock {
-            term,
-            start_seq,
-            end_seq,
-          }),
+        (
+          is_old,
+          timeout(
+            RESERVE_RPC_TIMEOUT,
+            peer_client.send(QuorumRequest::ReserveBlock {
+              term,
+              start_seq,
+              end_seq,
+            }),
+          )
+          .await,
         )
-        .await
       }));
     }
 
     let mut yes = 1usize; // self-ack
+    let mut old_yes = if quorum_cfg.is_old(&this_node.name) {
+      1usize
+    } else {
+      0usize
+    };
     let mut max_hw_seen = base_hw;
     let mut highest_term_seen = term;
 
     for res in join_all(tasks).await {
       match res {
-        Ok(Ok(Ok(response))) => match response {
+        Ok((is_old, Ok(Ok(response)))) => match response {
           QuorumResponse::ReserveAck {
             term: ack_term,
             high_watermark,
@@ -82,6 +100,9 @@ pub async fn reserve_next_block(
             highest_term_seen = highest_term_seen.max(ack_term);
             if ack_term == term {
               yes += 1;
+              if is_old {
+                old_yes += 1;
+              }
               max_hw_seen = max_hw_seen.max(high_watermark);
             }
           }
@@ -96,10 +117,10 @@ pub async fn reserve_next_block(
             debug!(?other, "unexpected quorum response during reserve");
           }
         },
-        Ok(Ok(Err(e))) => {
+        Ok((_is_old, Ok(Err(e)))) => {
           debug!("reserve request failed: {e}");
         }
-        Ok(Err(_elapsed)) => {
+        Ok((_is_old, Err(_elapsed))) => {
           debug!("reserve request timed out");
         }
         Err(join_err) => {
@@ -119,16 +140,37 @@ pub async fn reserve_next_block(
       continue;
     }
 
-    if yes >= majority {
+    let has_joint_majority = yes >= joint_majority;
+    let has_old_majority = !quorum_cfg.is_joint() || old_yes >= old_majority;
+
+    if has_joint_majority && has_old_majority {
       let new_hw = service.advance_high_watermark_to(end_seq).await?;
       info!(
         term,
-        yes, majority, start_seq, end_seq, new_hw, "reserved block"
+        yes,
+        joint_majority,
+        old_yes,
+        old_majority,
+        joint = quorum_cfg.is_joint(),
+        start_seq,
+        end_seq,
+        new_hw,
+        "reserved block"
       );
       return Ok((start_seq, end_seq));
     }
 
-    warn!(term, yes, majority, start_seq, end_seq, "reserve failed");
+    warn!(
+      term,
+      yes,
+      joint_majority,
+      old_yes,
+      old_majority,
+      joint = quorum_cfg.is_joint(),
+      start_seq,
+      end_seq,
+      "reserve failed"
+    );
     return Err(
       std::io::Error::new(std::io::ErrorKind::TimedOut, "failed to reserve block").into(),
     );
