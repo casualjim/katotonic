@@ -6,7 +6,8 @@ use futures_lite::StreamExt;
 use katotonic::client::SmolClient;
 use katotonic::KatotonicId;
 use smol::channel::bounded;
-#[cfg(not(target_env = "msvc"))] use tikv_jemallocator::Jemalloc;
+#[cfg(not(target_env = "msvc"))]
+use tikv_jemallocator::Jemalloc;
 
 #[cfg(not(target_env = "msvc"))]
 #[global_allocator]

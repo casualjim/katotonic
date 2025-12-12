@@ -116,6 +116,9 @@ pub struct ServerConfig {
   #[clap(long)]
   pub node_id: Option<String>,
 
+  #[clap(long, default_value = "katotonic.state")]
+  pub state_path: String,
+
   #[clap(long, default_value = "500ms", value_parser = humantime::parse_duration)]
   pub gossip_interval: time::Duration,
   #[clap(long)]
@@ -255,7 +258,10 @@ pub fn keypair<P: AsRef<Path>>(
   let key_file = File::open(key)?;
   let key_reader = BufReader::new(key_file);
   let key = PrivateKeyDer::from_pem_reader(key_reader).map_err(|e| {
-    io::Error::new(io::ErrorKind::InvalidInput, format!("invalid private key PEM: {e}"))
+    io::Error::new(
+      io::ErrorKind::InvalidInput,
+      format!("invalid private key PEM: {e}"),
+    )
   })?;
   Ok((certs, key))
 }

@@ -14,9 +14,10 @@ use katotonic::{
   server_tls_config, WatchableValue,
 };
 use rustls::{ServerConnection, Stream};
-#[cfg(not(target_env = "msvc"))] use tikv_jemallocator::Jemalloc;
+#[cfg(not(target_env = "msvc"))]
+use tikv_jemallocator::Jemalloc;
 use tokio::runtime::Runtime;
-use tracing::error;
+use tracing::{error, info};
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _, Layer as _};
 
 #[cfg(not(target_env = "msvc"))]
@@ -37,6 +38,14 @@ fn main() -> anyhow::Result<()> {
     .init();
 
   let conf = katotonic::ServerConfig::parse();
+  let quorum_state = katotonic::quorum::QuorumState::load(&conf.state_path)?;
+  info!(
+    "loaded quorum state term={} voted_term={} high_watermark={} config_version={}",
+    quorum_state.current_term,
+    quorum_state.voted_term,
+    quorum_state.high_watermark,
+    quorum_state.config_version
+  );
   let addr = conf.addr()?;
 
   let config = Arc::new(server_tls_config(&conf.cert, &conf.key, Some(&conf.ca))?);

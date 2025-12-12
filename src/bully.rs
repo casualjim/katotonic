@@ -25,13 +25,15 @@ use tokio_util::codec::Decoder;
 use tracing::{debug, error, info};
 
 use super::disco::Discovery;
+use crate::cbor_codec::Codec;
 use crate::{
   disco::ChitchatDiscovery,
-  keypair, root_store, server_tls_config,
+  keypair,
+  quorum::{QuorumRequest, QuorumResponse},
+  root_store, server_tls_config,
   transport::{TcpTransport, TlsTransport, Transport},
   Error, Result, ServerConfig, WatchableValue,
 };
-use crate::cbor_codec::Codec;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Request {
@@ -46,6 +48,20 @@ pub enum Response {
   NotYou { node_name: String, node_id: u64 },
   ItsYou { node_name: String, node_id: u64 },
   Done(String),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(untagged)]
+enum ClusterRequest {
+  Bully(Request),
+  Quorum(QuorumRequest),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(untagged)]
+enum ClusterResponse {
+  Bully(Response),
+  Quorum(QuorumResponse),
 }
 
 pub type PeerFactory = Arc<dyn Fn(u64, SocketAddr) -> Peer + Send + Sync>;
@@ -390,7 +406,7 @@ async fn monitor_leader<'a>(
 
 async fn handle_requests<'a, S: AsyncRead + AsyncWrite + Unpin>(
   this_node: &LocalPeer<'a>,
-  codec: Codec<Request, Response>,
+  codec: Codec<ClusterRequest, ClusterResponse>,
   leader_holder: WatchableValue<PeerState>,
   stream: S,
 ) {
@@ -408,39 +424,55 @@ async fn handle_requests<'a, S: AsyncRead + AsyncWrite + Unpin>(
 
       continue;
     }
-    match maybe_error.unwrap() {
-      Request::Ping => {
-        let _ = sender.send(Response::Pong).await;
-      }
+
+    let request = maybe_error.unwrap();
+    let response = handle_cluster_request(this_node, &leader_holder, request).await;
+    if let Err(e) = sender.send(response).await {
+      error!("failed to send response: {}", e);
+      break;
+    }
+  }
+}
+
+async fn handle_cluster_request<'a>(
+  this_node: &LocalPeer<'a>,
+  leader_holder: &WatchableValue<PeerState>,
+  request: ClusterRequest,
+) -> ClusterResponse {
+  match request {
+    ClusterRequest::Bully(req) => match req {
+      Request::Ping => ClusterResponse::Bully(Response::Pong),
       Request::ElectMe(sender_id) => {
         debug!(sender_id, "got election message");
         if sender_id < this_node.id {
-          let _ = sender
-            .send(Response::NotYou {
-              node_id: this_node.id,
-              node_name: this_node.name.to_string(),
-            })
-            .await;
+          ClusterResponse::Bully(Response::NotYou {
+            node_id: this_node.id,
+            node_name: this_node.name.to_string(),
+          })
         } else {
-          let _ = sender
-            .send(Response::ItsYou {
-              node_id: this_node.id,
-              node_name: this_node.name.to_string(),
-            })
-            .await;
+          ClusterResponse::Bully(Response::ItsYou {
+            node_id: this_node.id,
+            node_name: this_node.name.to_string(),
+          })
         }
       }
       Request::Coordinator { node_name, node_id } => {
         debug!(node_id, node_name, "got coordinator message");
         leader_holder.write(PeerState::Follower(node_name, node_id));
-        if let Err(e) = sender
-          .send(Response::Done(this_node.name.to_string()))
-          .await
-        {
-          error!("failed to send response: {}", e);
-        }
+        ClusterResponse::Bully(Response::Done(this_node.name.to_string()))
       }
-    }
+    },
+    ClusterRequest::Quorum(req) => ClusterResponse::Quorum(handle_quorum_request(req).await),
+  }
+}
+
+async fn handle_quorum_request(request: QuorumRequest) -> QuorumResponse {
+  match request {
+    QuorumRequest::Ping => QuorumResponse::Pong,
+    other => QuorumResponse::Error {
+      code: 501,
+      message: format!("quorum request not implemented: {other:?}"),
+    },
   }
 }
 
@@ -455,7 +487,7 @@ async fn run_server(
   discovery: Arc<dyn Discovery>,
   current_leader: WatchableValue<PeerState>,
 ) -> Result<()> {
-  let codec = Codec::new();
+  let codec: Codec<ClusterRequest, ClusterResponse> = Codec::new();
   let config = Arc::new(server_tls_config(
     &conf.cluster_cert,
     &conf.cluster_key,
@@ -673,6 +705,24 @@ mod tests {
     };
     let response = peer.send(msg).await.unwrap();
     assert_eq!(response, Response::Done("".to_string()));
+  }
+
+  #[tokio::test]
+  async fn handles_quorum_ping_on_cluster() {
+    let this_node = LocalPeer {
+      id: 1,
+      name: "n1".into(),
+    };
+    let leader_holder = WatchableValue::new(PeerState::Down);
+
+    let response = handle_cluster_request(
+      &this_node,
+      &leader_holder,
+      ClusterRequest::Quorum(QuorumRequest::Ping),
+    )
+    .await;
+
+    assert_eq!(response, ClusterResponse::Quorum(QuorumResponse::Pong));
   }
 
   #[tokio::test]

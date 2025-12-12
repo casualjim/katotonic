@@ -9,12 +9,13 @@ use std::{
 
 use clap::Parser as _;
 use kanal::{Receiver, Sender};
+use katotonic::KatotonicId;
 use katotonic::{Error, Result};
 use parking_lot::{Condvar, Mutex, RwLock};
 use rustls::{pki_types::ServerName, ClientConfig, ClientConnection, StreamOwned};
-#[cfg(not(target_env = "msvc"))] use tikv_jemallocator::Jemalloc;
+#[cfg(not(target_env = "msvc"))]
+use tikv_jemallocator::Jemalloc;
 use tracing::{error, info};
-use katotonic::KatotonicId;
 
 const CONCURRENCY: usize = 50; // This client doesn't do well with high concurrency rates
 const NUM_IDS: usize = 1_000_000;
@@ -145,13 +146,13 @@ fn next_id(pool: &ConnectionPool) -> katotonic::Result<KatotonicId> {
 
         let redirect_info: katotonic::server::RedirectInfo =
           match katotonic::cbor::from_slice(&buffer) {
-          Ok(info) => info,
-          Err(e) => {
-            error!("Failed to deserialize response: {:?}", e);
-            tls_stream.mark_invalid();
-            return Err(e.into());
-          }
-        };
+            Ok(info) => info,
+            Err(e) => {
+              error!("Failed to deserialize response: {:?}", e);
+              tls_stream.mark_invalid();
+              return Err(e.into());
+            }
+          };
         drop(tls_stream);
         pool.switch_addr(redirect_info.leader)?;
       }

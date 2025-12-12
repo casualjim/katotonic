@@ -5,13 +5,14 @@ pub mod blocking;
 #[macro_use]
 mod defer;
 pub mod bully;
-pub mod client;
 pub mod cbor;
 pub mod cbor_codec;
+pub mod client;
 mod config;
 pub mod disco;
 pub mod id;
 mod idgen;
+pub mod quorum;
 pub mod server;
 mod state;
 pub mod transport;

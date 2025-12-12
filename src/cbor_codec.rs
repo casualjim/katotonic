@@ -61,11 +61,7 @@ where
 {
   type Error = Error;
 
-  fn encode(
-    &mut self,
-    item: O,
-    dst: &mut BytesMut,
-  ) -> std::result::Result<(), Self::Error> {
+  fn encode(&mut self, item: O, dst: &mut BytesMut) -> std::result::Result<(), Self::Error> {
     let bytes = cbor::to_vec(&item)?;
     self
       .inner
@@ -74,4 +70,3 @@ where
     Ok(())
   }
 }
-

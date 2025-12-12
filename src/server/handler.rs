@@ -5,7 +5,9 @@ use tokio::time::sleep;
 use tracing::{error, info, instrument};
 
 use super::RedirectInfo;
-use crate::{bully::PeerState, cbor, disco::ChitchatDiscovery, generate_monotonic_id, WatchableValue};
+use crate::{
+  bully::PeerState, cbor, disco::ChitchatDiscovery, generate_monotonic_id, WatchableValue,
+};
 
 #[instrument(skip(tls_stream, discovery, leader))]
 pub async fn handle_client<IO: AsyncRead + AsyncWrite + Unpin>(

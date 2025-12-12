@@ -4,7 +4,8 @@ use clap::Parser as _;
 use futures::{stream::FuturesOrdered, StreamExt};
 use katotonic::client::{AsyncClient as _, Client};
 use katotonic::KatotonicId;
-#[cfg(not(target_env = "msvc"))] use tikv_jemallocator::Jemalloc;
+#[cfg(not(target_env = "msvc"))]
+use tikv_jemallocator::Jemalloc;
 use tokio::sync::mpsc;
 
 #[cfg(not(target_env = "msvc"))]

@@ -24,4 +24,3 @@ pub fn from_slice<T: DeserializeOwned>(bytes: &[u8]) -> Result<T> {
   let value = ciborium::de::from_reader(reader)?;
   Ok(value)
 }
-

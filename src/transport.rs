@@ -15,8 +15,8 @@ use tokio_rustls::TlsConnector;
 use tokio_util::codec::Decoder;
 use tracing::debug;
 
-use crate::{Error, Result};
 use crate::cbor_codec::Codec;
+use crate::{Error, Result};
 
 pub trait Handler<I, O>: Send + Sync
 where
