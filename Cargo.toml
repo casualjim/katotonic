@@ -59,7 +59,7 @@ tracing-log = { version = "0.2.0" }
 tracing-subscriber = { version = "0.3.22", features = ["env-filter", "valuable"] }
 trust-dns-resolver = "0.23.2"
 
-ulid = { version = "1.2.1", features = ["serde"] }
+uuid = { version = "1", features = ["serde", "v8"] }
 
 webpki = "0.22.4"
 webpki-roots = "1.0.4"

@@ -14,7 +14,7 @@ use parking_lot::{Condvar, Mutex, RwLock};
 use rustls::{pki_types::ServerName, ClientConfig, ClientConnection, StreamOwned};
 #[cfg(not(target_env = "msvc"))] use tikv_jemallocator::Jemalloc;
 use tracing::{error, info};
-use ulid::Ulid;
+use katotonic::KatotonicId;
 
 const CONCURRENCY: usize = 50; // This client doesn't do well with high concurrency rates
 const NUM_IDS: usize = 1_000_000;
@@ -51,22 +51,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
   thread::scope(|s| {
     for _ in 0..CONCURRENCY {
       s.spawn(|| {
-        let mut prev = Ulid::nil();
-        let mut local_ulids = Vec::new();
-        let mut local_ulid_set = HashSet::new();
+        let mut prev = KatotonicId::nil();
+        let mut local_ids = Vec::new();
+        let mut local_id_set = HashSet::new();
 
-        // Generate ULIDs in each thread
+        // Generate IDs in each thread
         for _ in 0..NUM_IDS {
           let new = next_id(&pool).expect("Failed to get next ID");
-          if new < prev {
-            panic!("received non-monotonic ID: {} < {}", new, prev);
+          if new.as_bytes() < prev.as_bytes() {
+            panic!("received non-monotonic ID");
           }
-          local_ulid_set.insert(new.clone());
-          local_ulids.push(new);
+          local_id_set.insert(new);
+          local_ids.push(new);
 
           prev = new;
         }
-        tx.send(local_ulids).expect("Failed to send ID");
+        tx.send(local_ids).expect("Failed to send ID");
       });
     }
   });
@@ -74,25 +74,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
   drop(tx); // Close the sending side of the channel
   println!("All tasks completed in {:?}", start.elapsed());
 
-  let mut all_ulids = Vec::new();
+  let mut all_ids = Vec::new();
   for received in rx {
-    all_ulids.extend(received);
+    all_ids.extend(received);
   }
 
-  // Ensure all ULIDs across all threads are unique
-  let mut ulid_set = HashSet::new();
-  for ulid in &all_ulids {
-    ulid_set.insert(ulid.clone());
+  // Ensure all IDs across all threads are unique
+  let mut id_set = HashSet::new();
+  for id in &all_ids {
+    id_set.insert(*id);
   }
-  assert_eq!(ulid_set.len(), all_ulids.len());
+  assert_eq!(id_set.len(), all_ids.len());
   println!(
-    "All {} ULIDs are unique and the ordering is valid",
-    all_ulids.len()
+    "All {} IDs are unique and the ordering is valid",
+    all_ids.len()
   );
   Ok(())
 }
 
-fn next_id(pool: &ConnectionPool) -> katotonic::Result<Ulid> {
+fn next_id(pool: &ConnectionPool) -> katotonic::Result<KatotonicId> {
   let mut tries = 0;
   loop {
     tries += 1;
@@ -118,7 +118,7 @@ fn next_id(pool: &ConnectionPool) -> katotonic::Result<Ulid> {
         let mut buffer = [0u8; 16];
         match tls_stream.read_exact(&mut buffer) {
           Ok(_) => {
-            return Ok(Ulid::from_bytes(buffer));
+            return Ok(KatotonicId::from_bytes(buffer));
           }
           Err(e) => {
             tls_stream.mark_invalid();

@@ -4,9 +4,9 @@ use clap::Parser as _;
 use futures::stream::FuturesOrdered;
 use futures_lite::StreamExt;
 use katotonic::client::SmolClient;
+use katotonic::KatotonicId;
 use smol::channel::bounded;
 #[cfg(not(target_env = "msvc"))] use tikv_jemallocator::Jemalloc;
-use ulid::Ulid;
 
 #[cfg(not(target_env = "msvc"))]
 #[global_allocator]
@@ -29,17 +29,17 @@ fn main() -> anyhow::Result<()> {
     let client = client.clone();
     let tx = tx.clone();
     processed.push_back(smolscale::spawn(async move {
-      let mut prev = Ulid::nil();
-      let mut local_ulids = Vec::new();
+      let mut prev = KatotonicId::nil();
+      let mut local_ids = Vec::new();
 
-      // Generate ULIDs in each thread
+      // Generate IDs in each task
       for _ in 0..NUM_IDS {
         match client.next_id().await {
           Ok(new) => {
-            if new < prev {
-              panic!("received non-monotonic ID: {} < {}", new, prev);
+            if new.as_bytes() < prev.as_bytes() {
+              panic!("received non-monotonic ID");
             }
-            local_ulids.push(new);
+            local_ids.push(new);
             prev = new;
           }
           Err(e) => {
@@ -47,7 +47,7 @@ fn main() -> anyhow::Result<()> {
           }
         }
       }
-      tx.send(local_ulids).await.expect("Failed to send ID");
+      tx.send(local_ids).await.expect("Failed to send ID");
     }));
   }
 
@@ -58,19 +58,19 @@ fn main() -> anyhow::Result<()> {
     while let Some(_) = processed.next().await {}
     println!("All tasks completed in {:?}", start.elapsed());
 
-    let mut all_ulids = Vec::new();
+    let mut all_ids = Vec::new();
     while let Ok(received) = rx.recv().await {
-      all_ulids.extend(received);
+      all_ids.extend(received);
     }
 
-    // Ensure all ULIDs across all threads are unique
-    let mut ulid_set = HashSet::new();
-    for ulid in &all_ulids {
-      ulid_set.insert(ulid.clone());
+    // Ensure all IDs across all tasks are unique
+    let mut id_set = HashSet::new();
+    for id in &all_ids {
+      id_set.insert(*id);
     }
-    assert_eq!(ulid_set.len(), all_ulids.len());
+    assert_eq!(id_set.len(), all_ids.len());
 
-    println!("All ULIDs are unique and the ordering is valid");
+    println!("All IDs are unique and the ordering is valid");
   });
   Ok(())
 }

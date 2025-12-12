@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/fxamacker/cbor/v2"
-	"github.com/oklog/ulid/v2"
+	"github.com/google/uuid"
 )
 
 type opts struct {
@@ -147,14 +147,14 @@ func (c *Client) Close() {
 	c.pool.Close()
 }
 
-func (c *Client) NextId() (ulid.ULID, error) {
+func (c *Client) NextId() (uuid.UUID, error) {
 
 	for i := 0; i < 3; i++ {
 
 		conn, err := c.pool.Get()
 		if err != nil {
 			c.pool.Put(conn, err)
-			return ulid.ULID{}, err
+			return uuid.Nil, err
 		}
 
 		requestType := []byte{1}
@@ -162,37 +162,37 @@ func (c *Client) NextId() (ulid.ULID, error) {
 		if err != nil {
 			slog.Error("failed to write request type", slog.Any("error", err))
 			c.pool.Put(conn, err)
-			return ulid.ULID{}, err
+			return uuid.Nil, err
 		}
 		var responseType [1]byte
 		_, err = io.ReadFull(conn, responseType[:])
 		if err != nil {
 			slog.Error("failed to read response type", slog.Any("error", err))
 			c.pool.Put(conn, err)
-			return ulid.ULID{}, err
+			return uuid.Nil, err
 		}
 		switch responseType[0] {
 		case 0:
 			slog.Error("server error")
 			c.pool.Put(conn, err)
-			return ulid.ULID{}, errors.New("server error")
-		case 1: // this is a ulid
+			return uuid.Nil, errors.New("server error")
+		case 1: // this is an id
 			var buffer [16]byte
 			_, err = io.ReadFull(conn, buffer[:])
 			if err != nil {
-				slog.Error("failed to read ulid", slog.Any("error", err))
+				slog.Error("failed to read id", slog.Any("error", err))
 				c.pool.Put(conn, err)
-				return ulid.ULID{}, err
+				return uuid.Nil, err
 			}
 			c.pool.Put(conn, nil)
-			return ulid.ULID(buffer), nil
+			return uuid.UUID(buffer), nil
 		case 2: // redirect to new leader
 			addrLen := make([]byte, 4)
 			_, err = io.ReadFull(conn, addrLen)
 			if err != nil {
 				slog.Error("failed to read address length", slog.Any("error", err))
 				c.pool.Put(conn, err)
-				return ulid.ULID{}, err
+				return uuid.Nil, err
 			}
 
 			length := binary.BigEndian.Uint32(addrLen)
@@ -201,28 +201,28 @@ func (c *Client) NextId() (ulid.ULID, error) {
 			if err != nil {
 				slog.Error("failed to read response bytes", slog.Any("error", err))
 				c.pool.Put(conn, err)
-				return ulid.ULID{}, err
+				return uuid.Nil, err
 			}
 			var response RedirectInfo
 			err = cbor.Unmarshal(addr, &response)
 			if err != nil {
 				slog.Error("failed to unmarshal redirect info", slog.Any("error", err))
 				c.pool.Put(conn, err)
-				return ulid.ULID{}, err
+				return uuid.Nil, err
 			}
 
 			c.pool.Put(conn, nil)
 			err = c.pool.SwitchAddr(response.Leader)
 			if err != nil {
 				slog.Error("failed to switch address", slog.Any("error", err))
-				return ulid.ULID{}, err
+				return uuid.Nil, err
 			}
 		default:
 			slog.Error("unknown response type")
 			c.pool.Put(conn, nil)
 		}
 	}
-	return ulid.ULID{}, errors.New("too many retries")
+	return uuid.Nil, errors.New("too many retries")
 }
 
 type RedirectInfo struct {

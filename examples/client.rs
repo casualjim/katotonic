@@ -22,7 +22,6 @@ async fn main() -> Result<()> {
   for _ in 0..5 {
     let v = client.next_id().await;
     tasks.push_back(futures::future::ready(v));
-    // let response: ulid::Ulid = client.next_id().await?;
     // info!(%response, "Received response");
     // let period = Duration::from_millis(rng.gen_range(50..500));
     // sleep(period).await;
@@ -32,13 +31,12 @@ async fn main() -> Result<()> {
   while let Some(response) = tasks.next().await {
     let response = response?;
     info!(%response, "Received response");
-    v.push(response.to_string());
+    v.push(response);
   }
 
-  let original = v.clone();
-  v.sort();
-  // original.sort();
-  assert_eq!(v, original);
+  let mut sorted = v.clone();
+  sorted.sort_by(|a, b| a.as_bytes().cmp(b.as_bytes()));
+  assert_eq!(v, sorted);
 
   Ok(())
 }

@@ -16,10 +16,9 @@ use tokio::{
 };
 use tokio_rustls::{client::TlsStream, TlsConnector};
 use tracing::{error, info, instrument};
-use ulid::Ulid;
 
 use super::AsyncClient;
-use crate::{server::RedirectInfo, Error, Result};
+use crate::{server::RedirectInfo, Error, KatotonicId, Result};
 
 #[derive(Clone)]
 pub struct Client {
@@ -49,7 +48,7 @@ impl Client {
 #[async_trait]
 impl AsyncClient for Client {
   #[instrument(skip(self))]
-  async fn next_id(&self) -> Result<Ulid> {
+  async fn next_id(&self) -> Result<KatotonicId> {
     let mut tries = 0;
     loop {
       tries += 1;
@@ -74,7 +73,7 @@ impl AsyncClient for Client {
           let mut buffer = [0u8; 16];
           match tls_stream.read_exact(&mut buffer).await {
             Ok(_) => {
-              return Ok(Ulid::from_bytes(buffer));
+              return Ok(KatotonicId::from_bytes(buffer));
             }
             Err(e) => {
               tls_stream.mark_invalid();

@@ -20,8 +20,8 @@ pub async fn handle_client<IO: AsyncRead + AsyncWrite + Unpin>(
     1 => loop {
       match leader.read() {
         PeerState::Leader(_, _) => {
-          let new_id = generate_monotonic_id();
-          let response = new_id.to_bytes();
+          let new_id = generate_monotonic_id(0);
+          let response = new_id.into_bytes();
           // message type 1
           let response_type = &[1u8];
 

@@ -105,7 +105,7 @@ fn handle_client(
       let discovery = discovery.clone();
       match leader_state.read() {
         PeerState::Leader(_, _) => {
-          let response = katotonic::generate_monotonic_id().to_bytes();
+          let response = katotonic::generate_monotonic_id(0).into_bytes();
           let response_type = &[1u8];
           stream.write_all(response_type)?;
           stream.write_all(&response)?;

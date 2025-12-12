@@ -10,6 +10,7 @@ pub mod cbor;
 pub mod cbor_codec;
 mod config;
 pub mod disco;
+pub mod id;
 mod idgen;
 pub mod server;
 mod state;
@@ -17,7 +18,8 @@ pub mod transport;
 use std::io;
 
 pub use config::*;
-pub use idgen::generate_ulid as generate_monotonic_id;
+pub use id::KatotonicId;
+pub use idgen::generate_monotonic_id;
 use rustls::pki_types::InvalidDnsNameError;
 pub use state::WatchableValue;
 use thiserror::Error;

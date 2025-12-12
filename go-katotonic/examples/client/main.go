@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log/slog"
@@ -10,7 +11,7 @@ import (
 
 	"github.com/casualjim/ulidd/katotonic"
 	"github.com/charmbracelet/log"
-	"github.com/oklog/ulid/v2"
+	"github.com/google/uuid"
 )
 
 func init() {
@@ -41,7 +42,7 @@ func main() {
 	}
 
 	var wg sync.WaitGroup
-	allULIDs := make(chan []ulid.ULID, numConnections)
+	allIDs := make(chan []uuid.UUID, numConnections)
 
 	start := time.Now()
 	for i := 0; i < numConnections; i++ {
@@ -49,8 +50,8 @@ func main() {
 		go func() {
 			defer wg.Done()
 
-			var prev ulid.ULID
-			localULIDs := make([]ulid.ULID, 0, numRequests)
+				var prev uuid.UUID
+				localIDs := make([]uuid.UUID, 0, numRequests)
 
 			for j := 0; j < numRequests; j++ {
 				if slog.Default().Enabled(context.TODO(), slog.LevelDebug) {
@@ -59,42 +60,42 @@ func main() {
 					slog.Info("Requesting next ID", slog.Int("request", j))
 				}
 				id, err := client.NextId()
-				if err != nil {
-					slog.Error("failed to get next ID", slog.Any("error", err))
-					os.Exit(1)
-				}
-				if id.Compare(prev) <= 0 {
-					slog.Error(fmt.Sprintf("received non-monotonic ID: %s < %s", id, prev))
-					os.Exit(1)
-				}
-				prev = id
+					if err != nil {
+						slog.Error("failed to get next ID", slog.Any("error", err))
+						os.Exit(1)
+					}
+					if bytes.Compare(id[:], prev[:]) <= 0 {
+						slog.Error(fmt.Sprintf("received non-monotonic ID: %s < %s", id, prev))
+						os.Exit(1)
+					}
+					prev = id
 
-				localULIDs = append(localULIDs, id)
-				slog.Debug("Received ID", slog.Any("id", id))
-			}
+					localIDs = append(localIDs, id)
+					slog.Debug("Received ID", slog.Any("id", id))
+				}
 
-			allULIDs <- localULIDs
-		}()
-	}
+				allIDs <- localIDs
+			}()
+		}
 
 	wg.Wait()
-	close(allULIDs)
-	slog.Info("All tasks completed", slog.Duration("took", time.Since(start)))
+		close(allIDs)
+		slog.Info("All tasks completed", slog.Duration("took", time.Since(start)))
 
-	// Collect all ULIDs into a single slice for global verification
-	var combinedULIDs []ulid.ULID
-	for localULIDs := range allULIDs {
-		combinedULIDs = append(combinedULIDs, localULIDs...)
-	}
-
-	// Verify global monotonic order and uniqueness
-	ulidSet := make(map[ulid.ULID]struct{})
-	for _, id := range combinedULIDs {
-		if _, exists := ulidSet[id]; exists {
-			log.Fatalf("duplicate ULID found: %s", id)
+		// Collect all IDs into a single slice for global verification
+		var combinedIDs []uuid.UUID
+		for localIDs := range allIDs {
+			combinedIDs = append(combinedIDs, localIDs...)
 		}
-		ulidSet[id] = struct{}{}
-	}
 
-	slog.Info("All ULIDs are unique and strictly monotonic")
-}
+		// Verify global monotonic order and uniqueness
+		idSet := make(map[uuid.UUID]struct{})
+		for _, id := range combinedIDs {
+			if _, exists := idSet[id]; exists {
+				log.Fatalf("duplicate ID found: %s", id)
+			}
+			idSet[id] = struct{}{}
+		}
+
+		slog.Info("All IDs are unique and strictly monotonic")
+	}

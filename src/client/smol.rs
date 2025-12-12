@@ -9,9 +9,8 @@ use smol::{
   net::TcpStream,
 };
 use tracing::{error, info, instrument};
-use ulid::Ulid;
 
-use crate::{server::RedirectInfo, Result};
+use crate::{server::RedirectInfo, KatotonicId, Result};
 
 #[derive(Clone)]
 pub struct Client {
@@ -38,7 +37,7 @@ impl Client {
   }
 
   #[instrument(skip(self))]
-  pub async fn next_id(&self) -> Result<Ulid> {
+  pub async fn next_id(&self) -> Result<KatotonicId> {
     let mut tries = 0;
     loop {
       tries += 1;
@@ -56,7 +55,7 @@ impl Client {
           let mut buffer = [0u8; 16];
           tls_stream.read_exact(&mut buffer).await?;
           self.pool.return_connection(tls_stream).await;
-          return Ok(Ulid::from_bytes(buffer));
+          return Ok(KatotonicId::from_bytes(buffer));
         }
         2 => {
           let mut response_len = [0u8; 4];

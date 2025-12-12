@@ -20,7 +20,6 @@ use rustls::{
   RootCertStore,
 };
 use rustls_pki_types::pem::PemObject;
-use ulid::Ulid;
 
 use crate::Result;
 
@@ -130,7 +129,7 @@ impl From<&ServerConfig> for ChitchatConfig {
     let node_id = value
       .node_id
       .clone()
-      .unwrap_or_else(|| Ulid::new().to_string());
+      .unwrap_or_else(|| format!("{:032x}", rand::random::<u128>()));
 
     let generation = rng.random_range(1_000..65_000);
     // let generation = 0;

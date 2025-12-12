@@ -2,7 +2,7 @@
 
 ## Summary
 
-Katotonic today provides a high‑throughput monotonic ULID service by electing a leader (Bully) and issuing IDs only from that leader. This is fast and works well under stable conditions, but it does **not** provide datacenter‑grade safety: Bully + gossip can produce overlapping leaders during partitions or transient slowness, and leader failover can regress ordering under clock skew.
+Katotonic today provides a high‑throughput monotonic UUIDv8 service by electing a leader (Bully) and issuing IDs only from that leader. This is fast and works well under stable conditions, but it does **not** provide datacenter‑grade safety: Bully + gossip can produce overlapping leaders during partitions or transient slowness, and leader failover can regress ordering.
 
 This document proposes a minimal consensus layer that **does not replicate a log**, but still provides the safety properties required for Katotonic to replace a Raft “log position / term” agreement. The design keeps Chitchat for membership/reconfiguration/failure detection, while adding a quorum‑fenced `term` and `high_watermark` counter (with optional block leasing) for the ID data plane.
 
@@ -22,25 +22,25 @@ This document proposes a minimal consensus layer that **does not replicate a log
 
 - Providing linearizable reads/writes of arbitrary application data.
 - Supporting large or highly dynamic clusters (> ~7 nodes) without revisiting quorum and failure‑detector tuning.
-- Perfect ULID semantic compatibility if it conflicts with safety.
+- Preserving ULID compatibility or timestamp semantics if it conflicts with safety.
 
 ## Current System (v0.1.x)
 
 - **Control plane:** Chitchat gossip provides membership and liveness (`src/server/mod.rs`, `src/disco.rs`).
 - **Leader election:** Bully algorithm based on per‑node random generation/ID; leader tracked in `WatchableValue` (`src/bully.rs`).
-- **Data plane:** Clients connect over TLS to any node. Followers redirect to leader; leader returns a 16‑byte ULID (`src/server/handler.rs`, `src/client/*`).
-- **Monotonicity:** Guaranteed only inside a single process by `AtomicU128` fetch‑update (`src/idgen.rs`).
+- **Data plane:** Clients connect over TLS to any node. Followers redirect to leader; leader returns a 16‑byte UUIDv8 Katotonic ID (`src/server/handler.rs`, `src/client/*`).
+- **Monotonicity:** Guaranteed only inside a single process by an atomic counter (`src/idgen.rs`).
 
 ### Observed invariants today
 
-- **I1:** Per‑leader‑process strict monotonic ULIDs.
+- **I1:** Per‑leader‑process strict monotonic IDs.
 - **I2:** Per‑membership‑view single leader (eventually).
 - **I3:** Clients eventually converge on some leader.
 
 ### Failure modes today
 
 - **Split brain:** partitions or transient stalls can produce two leaders issuing concurrently.
-- **Clock skew on failover:** new leader may issue ULIDs smaller than previous leader’s last ULID.
+- **Failover regression:** new leader may issue IDs smaller than previous leader’s last ID without fencing.
 - **No fencing term:** stale leader keeps serving until convergence.
 
 These modes are acceptable only under strong operational assumptions (no partitions; minority not reachable; tight clocks).
@@ -70,12 +70,13 @@ Only these values must be persisted/replicated; there is no log.
 
 Primary ordering is by `(term, seq)` lexicographically. This yields a total order that does not depend on wall clocks.
 
-Encoding options:
+Katotonic IDs are fixed to a single opaque format:
 
-- **Option A (recommended for safety):** treat IDs as opaque 16‑byte monotonic values where high bits contain `term` and low bits contain `seq`. ULID *ordering* holds (bytewise), but ULID *timestamp semantics* are synthetic.
-- **Option B (compatibility‑first):** keep ULID timestamp in high 48 bits but set it to `max(last_ts, now_ts)` on each leader change using the gossiped/persisted max timestamp. This reduces regressions but still relies on clocks; not sufficient alone.
+- RFC 4122 UUID **version 8**, variant RFC4122.
+- The 122 variable bits store `(term, seq)` big‑endian.
+- Raw 16‑byte lexicographic order equals `(term, seq)` order.
 
-Option A provides the cleanest replacement for “log position agreement.”
+See `docs/id-format-uuidv8.md` for the formal bit layout and encoding rules.
 
 ## Protocols
 
@@ -214,18 +215,16 @@ Persistence:
 
 ## Open Questions / Decisions
 
-1. **ID encoding choice** (Option A vs B). Option A provides strongest safety but changes ULID timestamp meaning.
-2. **Lease duration and renewal interval** tuning for 3 nodes under realistic tail latency.
-3. **Block size default** and adaptive strategies.
-4. **Chitchat membership versioning**: how to surface `config_version` cleanly in node tags.
+1. **Lease duration and renewal interval** tuning for 3 nodes under realistic tail latency.
+2. **Block size default** and adaptive strategies.
+3. **Chitchat membership versioning**: how to surface `config_version` cleanly in node tags.
 
 ## Next Steps
 
-1. Decide on ID encoding (opaque vs ULID‑semantic).
+1. Ship UUIDv8 format and remove ULID (Milestone 0).
 2. Implement term + lease + block reservation behind a feature flag.
 3. Add fault‑injection tests for:
    - minority partition serving attempt
    - transient stall false‑death
    - rolling replace with joint quorum
 4. Benchmark block sizes and atomic ordering for max throughput.
-

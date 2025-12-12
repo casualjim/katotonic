@@ -1,7 +1,7 @@
 package katotonic
 
-import "github.com/oklog/ulid/v2"
+import "github.com/google/uuid"
 
 type IDGenerator interface {
-	NextId() (ulid.ULID, error)
+	NextId() (uuid.UUID, error)
 }
