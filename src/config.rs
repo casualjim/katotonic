@@ -40,6 +40,10 @@ pub struct ClientConfig {
 
 impl ClientConfig {
   pub fn new() -> crate::Result<Self> {
+    Ok(Self::try_parse_from(["katotonic-client"])?)
+  }
+
+  pub fn from_args() -> crate::Result<Self> {
     Ok(Self::try_parse()?)
   }
 
@@ -208,6 +212,10 @@ fn parse_seed_node(s: &str) -> Result<SeedNode> {
 
 impl ServerConfig {
   pub fn new() -> crate::Result<Self> {
+    Ok(Self::try_parse_from(["katotonic"])?)
+  }
+
+  pub fn from_args() -> crate::Result<Self> {
     Ok(Self::try_parse()?)
   }
 

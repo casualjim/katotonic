@@ -81,6 +81,7 @@ blocking = ["dep:threadpool"]
 [dev-dependencies]
 color-backtrace = "0.7.2"
 ctor = "0.6.3"
+proptest = "1.5.0"
 
 [[bin]]
 name = "catotonic"

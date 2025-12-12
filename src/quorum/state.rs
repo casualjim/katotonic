@@ -168,6 +168,8 @@ mod tests {
     time::{SystemTime, UNIX_EPOCH},
   };
 
+  use proptest::prelude::*;
+
   use super::QuorumState;
 
   fn temp_state_path(label: &str) -> std::path::PathBuf {
@@ -263,5 +265,50 @@ mod tests {
 
     state.set_config_version(2).unwrap();
     assert!(state.set_config_version(1).is_err());
+  }
+
+  #[derive(Debug, Clone)]
+  enum Op {
+    SetCurrent(u64),
+    SetVoted(u64),
+    AdvanceHw(u64),
+    SetConfig(u64),
+    BumpTerm,
+  }
+
+  fn op_strategy() -> impl Strategy<Value = Op> {
+    prop_oneof![
+      (0u64..200).prop_map(Op::SetCurrent),
+      (0u64..200).prop_map(Op::SetVoted),
+      (0u64..5000).prop_map(Op::AdvanceHw),
+      (0u64..50).prop_map(Op::SetConfig),
+      Just(Op::BumpTerm),
+    ]
+  }
+
+  proptest! {
+    #[test]
+    fn prop_state_invariants_hold(ops in proptest::collection::vec(op_strategy(), 0..200)) {
+      let mut state = QuorumState::default();
+
+      for op in ops {
+        let before = state.clone();
+        let _ = match op {
+          Op::SetCurrent(term) => state.set_current_term(term),
+          Op::SetVoted(term) => state.set_voted_term(term).map(|_| ()),
+          Op::AdvanceHw(hw) => state.advance_high_watermark(hw).map(|_| ()),
+          Op::SetConfig(v) => state.set_config_version(v).map(|_| ()),
+          Op::BumpTerm => { state.bump_term(); Ok(()) }
+        };
+
+        prop_assert!(state.current_term >= before.current_term);
+        prop_assert!(state.voted_term >= before.voted_term);
+        prop_assert!(state.voted_term >= state.current_term);
+        prop_assert!(state.config_version >= before.config_version);
+        if state.current_term == before.current_term {
+          prop_assert!(state.high_watermark >= before.high_watermark);
+        }
+      }
+    }
   }
 }

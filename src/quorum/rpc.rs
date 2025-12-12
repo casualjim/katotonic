@@ -176,4 +176,13 @@ mod tests {
       assert_eq!(resp, decoded);
     }
   }
+
+  #[test]
+  fn test_cbor_decode_invalid_bytes_fails() {
+    let garbage = vec![0xff, 0xff, 0xff, 0xff];
+    let req: crate::cbor::Result<QuorumRequest> = crate::cbor::from_slice(&garbage);
+    assert!(req.is_err());
+    let resp: crate::cbor::Result<QuorumResponse> = crate::cbor::from_slice(&garbage);
+    assert!(resp.is_err());
+  }
 }

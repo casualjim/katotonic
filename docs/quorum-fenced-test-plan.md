@@ -5,6 +5,25 @@ Scope: the quorum‑fenced sequencer described in `docs/quorum-fenced-sequencer.
 
 This plan aims to make the system “bomb‑proof” under the stated failure model by combining unit tests, property tests, deterministic simulations, integration tests, fuzzing, and long‑running chaos/soak tests.
 
+## Progress (as of 2025‑12‑12)
+
+Completed:
+- L0 UUIDv8 unit coverage (round‑trip, fixed bits, bytewise order).
+- L0 quorum state, vote handling, lease follower, and block reservation unit tests.
+- L1 property tests for UUID ordering/round‑trip, QuorumState invariants, and vote safety.
+- L2 deterministic election sims: concurrent elections, majority/minority partition, crash‑mid‑election.
+- L0 leader‑lease renewal decision tests via shared evaluation helper.
+- L3 steady‑state TLS quorum smoke test (3 nodes, global monotonic issuance).
+- L3 lease fencing integration: isolate leader on cluster port and assert it stops serving after lease expiry.
+- L4 basic CBOR negative decode tests for quorum RPC types.
+
+Remaining / next:
+- L1/L2 lease/block property+sim scenarios beyond single‑round cases.
+- L2/L3 joint quorum reconfiguration sims (M6) once implementation lands.
+- L3 fault‑injection integration suite (needs discovery/transport refactor to control partitions).
+- L4 structured fuzzing harness for quorum CBOR and handler paths.
+- L5 chaos/soak runner plus an opt‑out “quick‑tests” feature to skip it locally.
+
 ---
 
 ## 1. Safety Invariants (what every test ultimately protects)

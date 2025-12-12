@@ -92,6 +92,7 @@ pub fn is_katotonic_v8(id: Uuid) -> bool {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use proptest::prelude::*;
 
   #[test]
   fn test_round_trip_encode_decode() {
@@ -138,5 +139,39 @@ mod tests {
     let mut sorted = ids.clone();
     sorted.sort_by(|a, b| a.as_bytes().cmp(b.as_bytes()));
     assert_eq!(ids, sorted);
+  }
+
+  proptest! {
+    #[test]
+    fn prop_round_trip_encode_decode(term in 0u64..=TERM_MASK, seq in 0u128..=SEQ_MASK) {
+      let id = encode_v8(term, seq);
+      let (decoded_term, decoded_seq) = decode_v8(id);
+      prop_assert_eq!(decoded_term, term & TERM_MASK);
+      prop_assert_eq!(decoded_seq, seq & SEQ_MASK);
+      prop_assert!(is_katotonic_v8(id));
+    }
+
+    #[test]
+    fn prop_bytewise_order_matches_term_seq(
+      a_term in 0u64..=TERM_MASK,
+      a_seq in 0u128..=SEQ_MASK,
+      b_term in 0u64..=TERM_MASK,
+      b_seq in 0u128..=SEQ_MASK
+    ) {
+      let id_a = encode_v8(a_term, a_seq);
+      let id_b = encode_v8(b_term, b_seq);
+
+      let tuple_cmp = (a_term, a_seq).cmp(&(b_term, b_seq));
+      let bytes_cmp = id_a.as_bytes().cmp(id_b.as_bytes());
+      prop_assert_eq!(tuple_cmp, bytes_cmp);
+    }
+
+    #[test]
+    fn prop_fixed_bits_always_correct(term in 0u64..=TERM_MASK, seq in 0u128..=SEQ_MASK) {
+      let id = encode_v8(term, seq);
+      let bytes = id.as_bytes();
+      prop_assert_eq!(bytes[6] >> 4, 0x8);
+      prop_assert_eq!(bytes[8] & 0xC0, 0x80);
+    }
   }
 }

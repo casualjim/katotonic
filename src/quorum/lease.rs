@@ -26,6 +26,135 @@ pub(crate) struct FollowerLeaseState {
   acked_leader: Option<String>,
 }
 
+#[derive(Debug, Clone)]
+struct LeaseRoundDecision {
+  highest_seen_term: u64,
+  yes: usize,
+  old_yes: usize,
+  has_joint_majority: bool,
+  has_old_majority: bool,
+  lease_until_ms: u64,
+  max_hw: u64,
+  expired: bool,
+}
+
+fn evaluate_lease_round<I>(
+  term: u64,
+  quorum_cfg: &JointQuorum,
+  this_is_old: bool,
+  state_high_watermark: u64,
+  responses: I,
+  now_ms: u64,
+  proposed_until_ms: u64,
+  prev_lease_valid: bool,
+  prev_lease_until_ms: u64,
+) -> LeaseRoundDecision
+where
+  I: IntoIterator<Item = (bool, QuorumResponse)>,
+{
+  let mut yes = 1usize; // self-ack
+  let mut old_yes = if this_is_old { 1usize } else { 0usize };
+  let mut highest_seen_term = term;
+  let mut max_hw = state_high_watermark;
+
+  for (is_old, response) in responses {
+    match response {
+      QuorumResponse::LeaseAck {
+        term: ack_term,
+        high_watermark,
+      } => {
+        highest_seen_term = highest_seen_term.max(ack_term);
+        if ack_term == term {
+          yes += 1;
+          if is_old {
+            old_yes += 1;
+          }
+          max_hw = max_hw.max(high_watermark);
+        }
+      }
+      QuorumResponse::LeaseNack {
+        term: nack_term,
+        voted_term,
+      } => {
+        highest_seen_term = highest_seen_term.max(nack_term).max(voted_term);
+      }
+      QuorumResponse::VoteNo {
+        term: other_term,
+        voted_term,
+        high_watermark,
+        ..
+      } => {
+        highest_seen_term = highest_seen_term.max(other_term).max(voted_term);
+        max_hw = max_hw.max(high_watermark);
+      }
+      other => {
+        debug!(?other, "unexpected quorum response during lease renew");
+      }
+    }
+  }
+
+  if highest_seen_term > term {
+    return LeaseRoundDecision {
+      highest_seen_term,
+      yes,
+      old_yes,
+      has_joint_majority: false,
+      has_old_majority: false,
+      lease_until_ms: prev_lease_until_ms,
+      max_hw,
+      expired: false,
+    };
+  }
+
+  let joint_majority = quorum_cfg.joint_majority();
+  let old_majority = quorum_cfg.old_majority();
+  let has_joint_majority = yes >= joint_majority;
+  let has_old_majority = !quorum_cfg.is_joint() || old_yes >= old_majority;
+
+  let has_majority = has_joint_majority && has_old_majority;
+
+  if has_majority {
+    LeaseRoundDecision {
+      highest_seen_term,
+      yes,
+      old_yes,
+      has_joint_majority,
+      has_old_majority,
+      lease_until_ms: proposed_until_ms,
+      max_hw,
+      expired: false,
+    }
+  } else if prev_lease_valid {
+    let expired = now_ms >= prev_lease_until_ms;
+    LeaseRoundDecision {
+      highest_seen_term,
+      yes,
+      old_yes,
+      has_joint_majority,
+      has_old_majority,
+      lease_until_ms: prev_lease_until_ms,
+      max_hw,
+      expired,
+    }
+  } else {
+    let lease_until_ms = if prev_lease_until_ms == 0 || now_ms >= prev_lease_until_ms {
+      proposed_until_ms
+    } else {
+      prev_lease_until_ms
+    };
+    LeaseRoundDecision {
+      highest_seen_term,
+      yes,
+      old_yes,
+      has_joint_majority,
+      has_old_majority,
+      lease_until_ms,
+      max_hw,
+      expired: false,
+    }
+  }
+}
+
 impl FollowerLeaseState {
   pub fn allows(&self, term: u64, leader_id: &str) -> bool {
     if term == self.acked_term {
@@ -133,50 +262,10 @@ async fn leader_lease_loop(
       }));
     }
 
-    let mut yes = 1usize; // self-ack
-    let mut old_yes = if quorum_cfg.is_old(&this_node.name) {
-      1usize
-    } else {
-      0usize
-    };
-    let mut highest_seen_term = term;
-    let mut max_hw = state.high_watermark;
-
+    let mut responses = Vec::new();
     for res in join_all(tasks).await {
       match res {
-        Ok((is_old, Ok(Ok(response)))) => match response {
-          QuorumResponse::LeaseAck {
-            term: ack_term,
-            high_watermark,
-          } => {
-            highest_seen_term = highest_seen_term.max(ack_term);
-            if ack_term == term {
-              yes += 1;
-              if is_old {
-                old_yes += 1;
-              }
-              max_hw = max_hw.max(high_watermark);
-            }
-          }
-          QuorumResponse::LeaseNack {
-            term: nack_term,
-            voted_term,
-          } => {
-            highest_seen_term = highest_seen_term.max(nack_term).max(voted_term);
-          }
-          QuorumResponse::VoteNo {
-            term: other_term,
-            voted_term,
-            high_watermark,
-            ..
-          } => {
-            highest_seen_term = highest_seen_term.max(other_term).max(voted_term);
-            max_hw = max_hw.max(high_watermark);
-          }
-          other => {
-            debug!(?other, "unexpected quorum response during lease renew");
-          }
-        },
+        Ok((is_old, Ok(Ok(response)))) => responses.push((is_old, response)),
         Ok((_is_old, Ok(Err(e)))) => {
           debug!("lease renew request failed: {e}");
         }
@@ -189,22 +278,32 @@ async fn leader_lease_loop(
       }
     }
 
-    if highest_seen_term > term {
-      service.observe_higher_voted_term(highest_seen_term).await?;
+    let decision = evaluate_lease_round(
+      term,
+      &quorum_cfg,
+      quorum_cfg.is_old(&this_node.name),
+      state.high_watermark,
+      responses,
+      now,
+      proposed_until_ms,
+      lease_valid,
+      lease_until_ms,
+    );
+
+    if decision.highest_seen_term > term {
+      service.observe_higher_voted_term(decision.highest_seen_term).await?;
       warn!(
         term,
-        highest_seen_term, "observed higher term during lease renew; stepping down"
+        highest_seen_term = decision.highest_seen_term,
+        "observed higher term during lease renew; stepping down"
       );
       leader_state.write(LeaderState::Down);
       return Ok(());
     }
 
-    let has_joint_majority = yes >= joint_majority;
-    let has_old_majority = !quorum_cfg.is_joint() || old_yes >= old_majority;
-
-    if has_joint_majority && has_old_majority {
+    if decision.has_joint_majority && decision.has_old_majority {
       lease_valid = true;
-      lease_until_ms = proposed_until_ms;
+      lease_until_ms = decision.lease_until_ms;
       if matches!(
         leader_state.read(),
         LeaderState::Leader { term: t, .. } if t == term
@@ -216,22 +315,22 @@ async fn leader_lease_loop(
       }
       info!(
         term,
-        yes,
+        yes = decision.yes,
         joint_majority,
-        old_yes,
+        old_yes = decision.old_yes,
         old_majority,
         joint = quorum_cfg.is_joint(),
         lease_until_ms,
-        max_hw,
+        max_hw = decision.max_hw,
         "lease renewed"
       );
     } else if lease_valid {
-      if now >= lease_until_ms {
+      if decision.expired {
         warn!(
           term,
-          yes,
+          yes = decision.yes,
           joint_majority,
-          old_yes,
+          old_yes = decision.old_yes,
           old_majority,
           joint = quorum_cfg.is_joint(),
           lease_until_ms,
@@ -242,18 +341,17 @@ async fn leader_lease_loop(
       }
       warn!(
         term,
-        yes,
+        yes = decision.yes,
         joint_majority,
-        old_yes,
+        old_yes = decision.old_yes,
         old_majority,
         joint = quorum_cfg.is_joint(),
         lease_until_ms,
         "lease renew failed; keeping previous lease"
       );
     } else {
-      if lease_until_ms == 0 || now >= lease_until_ms {
-        lease_until_ms = proposed_until_ms;
-      }
+      lease_valid = false;
+      lease_until_ms = decision.lease_until_ms;
       if matches!(
         leader_state.read(),
         LeaderState::Leader { term: t, .. } if t == term
@@ -265,9 +363,9 @@ async fn leader_lease_loop(
       }
       warn!(
         term,
-        yes,
+        yes = decision.yes,
         joint_majority,
-        old_yes,
+        old_yes = decision.old_yes,
         old_majority,
         joint = quorum_cfg.is_joint(),
         lease_until_ms,
@@ -284,6 +382,135 @@ fn now_ms() -> u64 {
     .duration_since(UNIX_EPOCH)
     .unwrap_or_default()
     .as_millis() as u64
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::disco::Member;
+  use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+
+  fn members_three() -> Vec<Member> {
+    let addr1 = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 1111);
+    let addr2 = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 2222);
+    let addr3 = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 3333);
+    vec![
+      Member {
+        name: "n1".to_string(),
+        id: 1,
+        addr: addr1,
+        server_name: None,
+        config_version: 0,
+      },
+      Member {
+        name: "n2".to_string(),
+        id: 2,
+        addr: addr2,
+        server_name: None,
+        config_version: 0,
+      },
+      Member {
+        name: "n3".to_string(),
+        id: 3,
+        addr: addr3,
+        server_name: None,
+        config_version: 0,
+      },
+    ]
+  }
+
+  #[test]
+  fn lease_round_acquires_majority_sets_valid_until() {
+    let members = members_three();
+    let quorum_cfg = JointQuorum::new(0, &members);
+    let term = 1;
+    let now = 1000;
+    let proposed_until = 2000;
+    let responses = vec![
+      (
+        true,
+        QuorumResponse::LeaseAck {
+          term,
+          high_watermark: 10,
+        },
+      ),
+      (
+        true,
+        QuorumResponse::LeaseAck {
+          term,
+          high_watermark: 8,
+        },
+      ),
+    ];
+
+    let decision = evaluate_lease_round(
+      term,
+      &quorum_cfg,
+      true,
+      0,
+      responses,
+      now,
+      proposed_until,
+      false,
+      0,
+    );
+
+    assert_eq!(decision.lease_until_ms, proposed_until);
+    assert!(!decision.expired);
+    assert!(decision.has_joint_majority);
+    assert!(decision.has_old_majority);
+  }
+
+  #[test]
+  fn lease_round_expires_without_majority_steps_down() {
+    let members = members_three();
+    let quorum_cfg = JointQuorum::new(0, &members);
+    let term = 2;
+    let responses: Vec<(bool, QuorumResponse)> = Vec::new();
+
+    let decision = evaluate_lease_round(
+      term,
+      &quorum_cfg,
+      true,
+      0,
+      responses,
+      3000,
+      4000,
+      true,
+      2500,
+    );
+
+    assert!(decision.expired);
+  }
+
+  #[test]
+  fn lease_round_observes_higher_term_triggers_stepdown() {
+    let members = members_three();
+    let quorum_cfg = JointQuorum::new(0, &members);
+    let term = 5;
+    let responses = vec![(
+      true,
+      QuorumResponse::LeaseNack {
+        term,
+        voted_term: 7,
+      },
+    )];
+
+    let decision = evaluate_lease_round(
+      term,
+      &quorum_cfg,
+      true,
+      0,
+      responses,
+      1000,
+      2000,
+      true,
+      1500,
+    );
+
+    assert!(decision.highest_seen_term > term);
+    assert_eq!(decision.highest_seen_term, 7);
+  }
 }
 
 #[allow(dead_code)]

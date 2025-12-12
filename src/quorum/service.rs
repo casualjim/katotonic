@@ -325,9 +325,12 @@ impl QuorumService {
 #[cfg(test)]
 mod tests {
   use std::{
+    collections::HashSet,
     env, fs,
     time::{SystemTime, UNIX_EPOCH},
   };
+
+  use proptest::prelude::*;
 
   use super::*;
 
@@ -514,5 +517,60 @@ mod tests {
 
     let st = service.get_state().await;
     assert_eq!(st.high_watermark, 10);
+  }
+
+  proptest! {
+    #[test]
+    fn prop_vote_safety(sequence in proptest::collection::vec(0u64..50, 0..100)) {
+      let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+
+      let res: Result<(), TestCaseError> = rt.block_on(async {
+        let path = temp_state_path("prop-vote");
+        let dir = path.parent().unwrap().to_path_buf();
+
+        let leader_state = WatchableValue::new(LeaderState::Down);
+        let service =
+          QuorumService::new(path.to_string_lossy().to_string(), leader_state.clone()).unwrap();
+
+        let mut yes_terms = HashSet::new();
+        let mut last_yes_term = 0u64;
+
+        for proposed_term in sequence {
+          let resp = service
+            .handle(QuorumRequest::VoteRequest {
+              proposed_term,
+              candidate_id: "c".to_string(),
+            })
+            .await;
+
+          match resp {
+            QuorumResponse::VoteYes { term, .. } => {
+              prop_assert!(yes_terms.insert(term));
+              prop_assert!(term > last_yes_term);
+              last_yes_term = term;
+            }
+            QuorumResponse::VoteNo { voted_term, .. } => {
+              prop_assert!(proposed_term <= voted_term);
+            }
+            other => {
+              prop_assert!(false, "unexpected response: {other:?}");
+            }
+          }
+        }
+
+        let st = service.get_state().await;
+        prop_assert!(st.voted_term >= last_yes_term);
+
+        let _ = fs::remove_dir_all(dir);
+        Ok(())
+      });
+
+      if let Err(e) = res {
+        prop_assert!(false, "async vote property failed: {e}");
+      }
+    }
   }
 }
