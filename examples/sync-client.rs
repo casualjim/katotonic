@@ -11,18 +11,16 @@ use clap::Parser as _;
 use kanal::{Receiver, Sender};
 use katotonic::KatotonicId;
 use katotonic::{Error, Result};
+use mimalloc::MiMalloc;
 use parking_lot::{Condvar, Mutex, RwLock};
 use rustls::{pki_types::ServerName, ClientConfig, ClientConnection, StreamOwned};
-#[cfg(not(target_env = "msvc"))]
-use tikv_jemallocator::Jemalloc;
 use tracing::{error, info};
 
 const CONCURRENCY: usize = 50; // This client doesn't do well with high concurrency rates
 const NUM_IDS: usize = 1_000_000;
 
-#[cfg(not(target_env = "msvc"))]
 #[global_allocator]
-static GLOBAL: Jemalloc = Jemalloc;
+static GLOBAL: MiMalloc = MiMalloc;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
   tracing_subscriber::fmt::init();
@@ -413,13 +411,7 @@ impl SemaphoreInner {
       waiters.push_back((permits, Arc::clone(&waiter)));
     }
 
-    while *count < permits
-      || self
-        .waiters
-        .lock()
-        .front()
-        .is_some_and(|w| w.0 != permits)
-    {
+    while *count < permits || self.waiters.lock().front().is_some_and(|w| w.0 != permits) {
       waiter.wait(&mut count);
     }
 

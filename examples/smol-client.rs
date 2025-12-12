@@ -5,13 +5,11 @@ use futures::stream::FuturesOrdered;
 use futures_lite::StreamExt;
 use katotonic::client::SmolClient;
 use katotonic::KatotonicId;
+use mimalloc::MiMalloc;
 use smol::channel::bounded;
-#[cfg(not(target_env = "msvc"))]
-use tikv_jemallocator::Jemalloc;
 
-#[cfg(not(target_env = "msvc"))]
 #[global_allocator]
-static GLOBAL: Jemalloc = Jemalloc;
+static GLOBAL: MiMalloc = MiMalloc;
 
 const CONCURRENCY: usize = 5;
 const NUM_IDS: usize = 1_000_000;

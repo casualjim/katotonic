@@ -54,9 +54,13 @@ pub async fn track_leader(
   let monitor_conf = conf.clone();
   let monitor_service = Arc::clone(&service);
   tokio::spawn(async move {
-    if let Err(e) =
-      membership_monitor(monitor_conf, monitor_discovery, monitor_leader_state, monitor_service)
-        .await
+    if let Err(e) = membership_monitor(
+      monitor_conf,
+      monitor_discovery,
+      monitor_leader_state,
+      monitor_service,
+    )
+    .await
     {
       error!("membership monitor exited: {e}");
     }
@@ -67,9 +71,13 @@ pub async fn track_leader(
   let lease_leader_state = leader_state.clone();
   let lease_service = Arc::clone(&service);
   tokio::spawn(async move {
-    if let Err(e) =
-      super::lease::track_lease(lease_conf, lease_discovery, lease_leader_state, lease_service)
-        .await
+    if let Err(e) = super::lease::track_lease(
+      lease_conf,
+      lease_discovery,
+      lease_leader_state,
+      lease_service,
+    )
+    .await
     {
       error!("lease loop exited: {e}");
     }
@@ -112,7 +120,12 @@ async fn membership_monitor(
             let addr = Cow::Owned(leader_member.addr.to_string());
             let server_name = server_name_for(leader_member);
             let peer = QuorumPeer::new_tls(addr, client_config, server_name);
-            match timeout(Duration::from_secs(1), peer.send(QuorumRequest::CatchupRequest)).await {
+            match timeout(
+              Duration::from_secs(1),
+              peer.send(QuorumRequest::CatchupRequest),
+            )
+            .await
+            {
               Ok(Ok(QuorumResponse::CatchupResponse {
                 term,
                 high_watermark,
@@ -128,14 +141,11 @@ async fn membership_monitor(
                   let after_version = service.get_state().await.config_version;
                   if after_version > before_version {
                     discovery.set_local_config_version_tag(after_version).await;
-                    last_joint_triggered_version =
-                      last_joint_triggered_version.max(after_version);
+                    last_joint_triggered_version = last_joint_triggered_version.max(after_version);
                   }
                   info!(
                     term,
-                    high_watermark,
-                    config_version,
-                    "installed catchup state from leader"
+                    high_watermark, config_version, "installed catchup state from leader"
                   );
                 }
               }
@@ -152,10 +162,7 @@ async fn membership_monitor(
           }
         }
       }
-      LeaderState::Leader {
-        term,
-        lease_valid,
-      } => {
+      LeaderState::Leader { term, lease_valid } => {
         if max_config_version > local_config_version {
           if max_config_version > last_joint_triggered_version {
             warn!(
@@ -182,8 +189,7 @@ async fn membership_monitor(
               Err(e) => {
                 warn!(
                   term,
-                  max_config_version,
-                  "failed to commit config version: {e}"
+                  max_config_version, "failed to commit config version: {e}"
                 );
               }
             }
@@ -371,43 +377,39 @@ async fn run_election_attempt(
       old_majority,
       joint = quorum_cfg.is_joint(),
       "won quorum election"
-	    );
-	    service.install_leader_term(proposed_term, max_hw).await?;
-	    leader_state.write(LeaderState::Leader {
-	      term: proposed_term,
-	      lease_valid: false,
-	    });
+    );
+    service.install_leader_term(proposed_term, max_hw).await?;
+    leader_state.write(LeaderState::Leader {
+      term: proposed_term,
+      lease_valid: false,
+    });
 
-	    // If we just won a joint election and at least one new-node acked, commit the new
-	    // config_version and advertise it via discovery. This avoids being stuck in joint mode.
-	    let new_yes = yes.saturating_sub(old_yes);
-	    if quorum_cfg.is_joint()
-	      && max_config_version > local_config_version
-	      && new_yes > 0
-	    {
-	      match service.set_config_version_to(max_config_version).await {
-	        Ok(true) => {
-	          discovery
-	            .set_local_config_version_tag(max_config_version)
-	            .await;
-	          info!(
-	            proposed_term,
-	            config_version = max_config_version,
-	            "committed config version after joint election"
-	          );
-	        }
-	        Ok(false) => {}
-	        Err(e) => {
-	          warn!(
-	            proposed_term,
-	            max_config_version,
-	            "failed to commit config version after joint election: {e}"
-	          );
-	        }
-	      }
-	    }
-	  } else {
-	    info!(
+    // If we just won a joint election and at least one new-node acked, commit the new
+    // config_version and advertise it via discovery. This avoids being stuck in joint mode.
+    let new_yes = yes.saturating_sub(old_yes);
+    if quorum_cfg.is_joint() && max_config_version > local_config_version && new_yes > 0 {
+      match service.set_config_version_to(max_config_version).await {
+        Ok(true) => {
+          discovery
+            .set_local_config_version_tag(max_config_version)
+            .await;
+          info!(
+            proposed_term,
+            config_version = max_config_version,
+            "committed config version after joint election"
+          );
+        }
+        Ok(false) => {}
+        Err(e) => {
+          warn!(
+            proposed_term,
+            max_config_version, "failed to commit config version after joint election: {e}"
+          );
+        }
+      }
+    }
+  } else {
+    info!(
       proposed_term,
       yes,
       joint_majority,

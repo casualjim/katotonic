@@ -243,26 +243,26 @@ impl Debug for ChitchatDiscovery {
       let guard = cc.lock().await;
       let nodes = guard.live_nodes();
       let mut members = vec![];
-	      for cid in nodes {
-	        if let Some(state) = guard.node_state(cid) {
-	          let server_name = state
-	            .get("cluster_server_name")
-	            .or_else(|| state.get("server_name"))
-	            .map(|v| v.to_string())
-	            .and_then(|sn| ServerName::try_from(sn).ok());
-	          let config_version = state
-	            .get("config_version")
-	            .and_then(|v| v.parse().ok())
-	            .unwrap_or(0);
-	          members.push(Member {
-	            name: cid.node_id.clone(),
-	            id: cid.generation_id,
-	            addr: cid.gossip_advertise_addr,
-	            server_name,
-	            config_version,
-	          });
-	        }
-	      }
+      for cid in nodes {
+        if let Some(state) = guard.node_state(cid) {
+          let server_name = state
+            .get("cluster_server_name")
+            .or_else(|| state.get("server_name"))
+            .map(|v| v.to_string())
+            .and_then(|sn| ServerName::try_from(sn).ok());
+          let config_version = state
+            .get("config_version")
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0);
+          members.push(Member {
+            name: cid.node_id.clone(),
+            id: cid.generation_id,
+            addr: cid.gossip_advertise_addr,
+            server_name,
+            config_version,
+          });
+        }
+      }
       members
     });
     b.field("members", &members);
@@ -336,29 +336,29 @@ impl Discovery for ChitchatDiscovery {
 
     let stream = WatchStream::new(watcher);
     Box::pin(stream.map(|peers| {
-          Ok(
-            peers
-              .iter()
-              .map(|(cid, state)| {
-                let server_name = state
-                  .get("cluster_server_name")
-                  .or_else(|| state.get("server_name"))
-                  .map(|v| v.to_string())
-                  .unwrap_or_default();
-                let config_version = state
-                  .get("config_version")
-                  .and_then(|v| v.parse().ok())
-                  .unwrap_or(0);
-                Member {
-                  name: cid.node_id.clone(),
-                  addr: cid.gossip_advertise_addr,
-                  id: cid.generation_id,
-                  server_name: ServerName::try_from(server_name).ok(),
-                  config_version,
-                }
-              })
-              .collect(),
-          )
+      Ok(
+        peers
+          .iter()
+          .map(|(cid, state)| {
+            let server_name = state
+              .get("cluster_server_name")
+              .or_else(|| state.get("server_name"))
+              .map(|v| v.to_string())
+              .unwrap_or_default();
+            let config_version = state
+              .get("config_version")
+              .and_then(|v| v.parse().ok())
+              .unwrap_or(0);
+            Member {
+              name: cid.node_id.clone(),
+              addr: cid.gossip_advertise_addr,
+              id: cid.generation_id,
+              server_name: ServerName::try_from(server_name).ok(),
+              config_version,
+            }
+          })
+          .collect(),
+      )
     }))
   }
 

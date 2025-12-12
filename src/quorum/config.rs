@@ -55,4 +55,3 @@ impl JointQuorum {
     (self.joint_size / 2) + 1
   }
 }
-

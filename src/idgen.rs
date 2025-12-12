@@ -31,8 +31,11 @@ impl BlockIdGen {
 
   /// Returns `None` when the current block is exhausted.
   pub fn try_next_id(&self) -> Option<KatotonicId> {
-    let seq = self.next_seq.fetch_add(1, Ordering::SeqCst);
     let end = self.block_end.load(Ordering::SeqCst);
+    if end == 0 {
+      return None;
+    }
+    let seq = self.next_seq.fetch_add(1, Ordering::SeqCst);
     if seq <= end {
       Some(encode_v8(self.term.load(Ordering::SeqCst), seq as u128))
     } else {

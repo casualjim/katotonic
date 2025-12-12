@@ -170,9 +170,7 @@ async fn leader_lease_loop(
             high_watermark,
             ..
           } => {
-            highest_seen_term = highest_seen_term
-              .max(other_term)
-              .max(voted_term);
+            highest_seen_term = highest_seen_term.max(other_term).max(voted_term);
             max_hw = max_hw.max(high_watermark);
           }
           other => {
@@ -195,8 +193,7 @@ async fn leader_lease_loop(
       service.observe_higher_voted_term(highest_seen_term).await?;
       warn!(
         term,
-        highest_seen_term,
-        "observed higher term during lease renew; stepping down"
+        highest_seen_term, "observed higher term during lease renew; stepping down"
       );
       leader_state.write(LeaderState::Down);
       return Ok(());

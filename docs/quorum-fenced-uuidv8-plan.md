@@ -186,9 +186,9 @@ Key learnings/decisions:
 ---
 
 ### M3.2 Election triggers
-- [ ] Use Chitchat liveness to trigger elections:
+- [x] Use Chitchat liveness to trigger elections:
   - [x] Suspect/dead leader (triggered when leader disappears from membership stream)
-  - [ ] Join requiring reconfig
+  - [x] Join requiring reconfig
   - [x] Lease loss (from M4)
 - [x] Drive transitions in server runtime (`src/server/tokio.rs`, `src/server/smol.rs`, blocking server).
 
@@ -210,7 +210,7 @@ Key learnings/decisions:
 
 **Acceptance**
 - In a 3‑node integration test, exactly one leader emerges per term.
-  - Status (2025‑12‑12): unit tests pass; 3‑node integration test still pending.
+  - Status (2025‑12‑12): steady‑state 3‑node smoke test passes; failure‑injection scenarios still pending.
 
 ---
 
@@ -397,12 +397,12 @@ Key learnings/decisions:
 - [x] `src/quorum/state.rs`: persistence and invariants.
 - [x] `src/quorum/election.rs`: vote rules and term monotonicity.
 - [x] `src/quorum/lease.rs`: lease ack rules.
-- [ ] `src/quorum/reserve.rs`: HW advancement and overlap prevention.
+- [x] `src/quorum/reserve.rs`: HW advancement and overlap prevention.
 
 ### Integration tests
-- [ ] Add `tests/quorum_*.rs` that spin up 3 tokio servers.
+- [x] Add `tests/quorum_*.rs` that spin up 3 tokio servers.
 - [ ] Scenarios:
-  - [ ] steady‑state global monotonic ordering across nodes.
+  - [x] steady‑state global monotonic ordering across nodes.
   - [ ] minority partition (cluster port cut, API reachable) → must not serve.
   - [ ] leader stall → lease expiry → new term elected → no regression.
   - [ ] rolling replace with joint quorum/catchup.

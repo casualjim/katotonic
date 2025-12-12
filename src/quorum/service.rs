@@ -6,10 +6,8 @@ use tracing::error;
 use super::lease::FollowerLeaseState;
 use super::{LeaderState, QuorumRequest, QuorumResponse, QuorumState};
 use crate::{
-  disco::ChitchatDiscovery,
-  idgen::BlockIdGen,
-  id::KatotonicId,
-  Result, ServerConfig, WatchableValue,
+  disco::ChitchatDiscovery, id::KatotonicId, idgen::BlockIdGen, Result, ServerConfig,
+  WatchableValue,
 };
 
 pub struct QuorumService {
@@ -51,14 +49,9 @@ impl QuorumService {
       }
 
       let block_size = conf.block_size.max(1);
-      let (start_seq, end_seq) = super::reserve::reserve_next_block(
-        conf,
-        Arc::clone(&discovery),
-        self,
-        term,
-        block_size,
-      )
-      .await?;
+      let (start_seq, end_seq) =
+        super::reserve::reserve_next_block(conf, Arc::clone(&discovery), self, term, block_size)
+          .await?;
       self.idgen.install_block(term, start_seq, end_seq);
     }
   }
@@ -216,15 +209,17 @@ impl QuorumService {
           changed = true;
         }
 
-        match guard.advance_high_watermark(end_seq) {
-          Ok(true) => changed = true,
-          Ok(false) => {}
-          Err(e) => {
-            error!("failed to advance high watermark from reserve: {e}");
-            return QuorumResponse::Error {
-              code: 400,
-              message: e.to_string(),
-            };
+        if end_seq > guard.high_watermark {
+          match guard.advance_high_watermark(end_seq) {
+            Ok(true) => changed = true,
+            Ok(false) => {}
+            Err(e) => {
+              error!("failed to advance high watermark from reserve: {e}");
+              return QuorumResponse::Error {
+                code: 400,
+                message: e.to_string(),
+              };
+            }
           }
         }
 

@@ -4,13 +4,11 @@ use clap::Parser as _;
 use futures::{stream::FuturesOrdered, StreamExt};
 use katotonic::client::{AsyncClient as _, Client};
 use katotonic::KatotonicId;
-#[cfg(not(target_env = "msvc"))]
-use tikv_jemallocator::Jemalloc;
+use mimalloc::MiMalloc;
 use tokio::sync::mpsc;
 
-#[cfg(not(target_env = "msvc"))]
 #[global_allocator]
-static GLOBAL: Jemalloc = Jemalloc;
+static GLOBAL: MiMalloc = MiMalloc;
 
 const CONCURRENCY: usize = 5;
 const NUM_IDS: usize = 1_000_000;

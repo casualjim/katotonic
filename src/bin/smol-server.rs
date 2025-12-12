@@ -2,17 +2,13 @@ use std::sync::Arc;
 
 use async_compat::CompatExt;
 use clap::Parser;
-use katotonic::{
-  server::{run_smol_server, spawn_discovery},
-};
-#[cfg(not(target_env = "msvc"))]
-use tikv_jemallocator::Jemalloc;
+use katotonic::server::{run_smol_server, spawn_discovery};
+use mimalloc::MiMalloc;
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer as _};
 
-#[cfg(not(target_env = "msvc"))]
 #[global_allocator]
-static GLOBAL: Jemalloc = Jemalloc;
+static GLOBAL: MiMalloc = MiMalloc;
 
 fn main() -> anyhow::Result<()> {
   let env_filter = tracing_subscriber::EnvFilter::from_default_env();

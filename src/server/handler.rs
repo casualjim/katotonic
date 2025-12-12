@@ -25,7 +25,13 @@ pub async fn handle_client<IO: AsyncRead + AsyncWrite + Unpin>(
     1 => loop {
       let state = quorum_leader.read();
       let term = state.term();
-      if matches!(state, LeaderState::Leader { lease_valid: true, .. }) {
+      if matches!(
+        state,
+        LeaderState::Leader {
+          lease_valid: true,
+          ..
+        }
+      ) {
         match quorum_service
           .next_id(conf.as_ref(), Arc::clone(&discovery), state.term())
           .await

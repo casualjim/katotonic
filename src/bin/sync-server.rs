@@ -14,16 +14,14 @@ use katotonic::{
   server::{spawn_discovery, RedirectInfo},
   server_tls_config, WatchableValue,
 };
+use mimalloc::MiMalloc;
 use rustls::{ServerConnection, Stream};
-#[cfg(not(target_env = "msvc"))]
-use tikv_jemallocator::Jemalloc;
 use tokio::runtime::Runtime;
 use tracing::{error, info};
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _, Layer as _};
 
-#[cfg(not(target_env = "msvc"))]
 #[global_allocator]
-static GLOBAL: Jemalloc = Jemalloc;
+static GLOBAL: MiMalloc = MiMalloc;
 
 fn main() -> anyhow::Result<()> {
   let console_layer = console_subscriber::spawn();
@@ -123,7 +121,13 @@ fn handle_client(
     1 => loop {
       let state = quorum_leader.read();
       let term = state.term();
-      if matches!(state, LeaderState::Leader { lease_valid: true, .. }) {
+      if matches!(
+        state,
+        LeaderState::Leader {
+          lease_valid: true,
+          ..
+        }
+      ) {
         let issued = discovery.rt.block_on({
           let service = quorum_service.clone();
           let disco = Arc::clone(&discovery.discovery);
@@ -175,9 +179,7 @@ fn handle_client(
   Ok(())
 }
 
-fn run_background_processes(
-  conf: katotonic::ServerConfig,
-) -> anyhow::Result<BackgroundHandles> {
+fn run_background_processes(conf: katotonic::ServerConfig) -> anyhow::Result<BackgroundHandles> {
   let rt = Arc::new(Runtime::new()?);
 
   let (membership, discovery, quorum_leader, quorum_service) = rt.block_on(async {

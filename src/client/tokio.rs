@@ -1,3 +1,4 @@
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::{
   io,
   net::SocketAddr,
@@ -5,7 +6,6 @@ use std::{
   sync::Arc,
   task::{Context, Poll},
 };
-use std::sync::atomic::{AtomicU64, Ordering};
 
 use async_trait::async_trait;
 use kanal::{AsyncReceiver, AsyncSender};

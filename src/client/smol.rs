@@ -1,5 +1,5 @@
-use std::{io, net::SocketAddr, sync::Arc};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::{io, net::SocketAddr, sync::Arc};
 
 use futures_rustls::{client::TlsStream, TlsConnector};
 use kanal::{AsyncReceiver, AsyncSender};
