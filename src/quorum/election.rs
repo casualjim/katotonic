@@ -114,8 +114,8 @@ async fn membership_monitor(
           continue;
         }
 
-        if max_config_version > local_config_version {
-          if let Some(leader_member) = members.iter().find(|m| m.name == leader) {
+        if max_config_version > local_config_version
+          && let Some(leader_member) = members.iter().find(|m| m.name == leader) {
             let client_config = cluster_client_config(&conf)?;
             let addr = Cow::Owned(leader_member.addr.to_string());
             let server_name = server_name_for(leader_member);
@@ -160,7 +160,6 @@ async fn membership_monitor(
               }
             }
           }
-        }
       }
       LeaderState::Leader { term, lease_valid } => {
         if max_config_version > local_config_version {
@@ -459,7 +458,7 @@ mod tests {
 
   #[test]
   fn test_random_delay_in_range() {
-    let conf = ServerConfig::new().unwrap();
+    let conf = ServerConfig::for_tests().unwrap();
     for _ in 0..50 {
       let d = random_election_delay(&conf);
       assert!(d >= Duration::from_millis(conf.election_timeout_min_ms));

@@ -82,7 +82,7 @@ async fn spawn_node(
   let state_dir = path.parent().unwrap().to_path_buf();
   QuorumState::default().persist(&path).unwrap();
 
-  let mut conf = ServerConfig::new().unwrap();
+  let mut conf = ServerConfig::for_tests().unwrap();
   conf.node_id = Some(node_id.to_string());
   conf.cluster_id = label.to_string();
   conf.addr = format!("127.0.0.1:{api_port}");

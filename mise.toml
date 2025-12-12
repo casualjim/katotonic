@@ -1,0 +1,6 @@
+[tools]
+go = "latest"
+hk = "latest"
+mkcert = "latest"
+pkl = "latest"
+rust = "latest"

@@ -238,8 +238,7 @@ async fn manage_state(
                 && this_node.id == id
                 && member.id != id
                 && member.name != name
-              {
-                if let Err(e) = peer
+                && let Err(e) = peer
                   .send(Request::Coordinator {
                     node_name: this_node.name.to_string(),
                     node_id: this_node.id,
@@ -248,7 +247,6 @@ async fn manage_state(
                 {
                   error!(name=%member.name, id=%member.id, addr = %member.addr, "failed to send coordinator message: {:?}", e);
                 }
-              }
             }
             PeerState::Follower(_, id) => {
               if member.id > id {

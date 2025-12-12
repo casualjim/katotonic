@@ -149,11 +149,10 @@ impl ApiClientFactory for ChitchatDiscovery {
     cf: Self::ClientFactory,
   ) -> Result<Arc<dyn AsyncClient + Send + Sync>> {
     let guard = self.current_client.read().await;
-    if let Some((ref current_id, ref client)) = *guard {
-      if current_id == &id.0 {
+    if let Some((ref current_id, ref client)) = *guard
+      && current_id == &id.0 {
         return Ok(Arc::clone(client));
       }
-    }
     drop(guard);
 
     let guard = self.chitchat.lock().await;

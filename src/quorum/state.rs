@@ -52,11 +52,10 @@ impl QuorumState {
 
     replace_file(&tmp_path, path)?;
 
-    if let Some(parent) = path.parent() {
-      if let Ok(dir) = File::open(parent) {
+    if let Some(parent) = path.parent()
+      && let Ok(dir) = File::open(parent) {
         let _ = dir.sync_all();
       }
-    }
 
     Ok(())
   }

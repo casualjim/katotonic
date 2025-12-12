@@ -16,7 +16,7 @@
   "rust-analyzer.rustfmt.overrideCommand": [
     "rustfmt",
     "+nightly",
-    "--edition=2021"
+    "--edition=2024"
   ],
   "rust-analyzer.rustfmt.rangeFormatting.enable": true,
   "rust-analyzer.cargo.extraEnv": {
@@ -27,5 +27,9 @@
   },
   "debug.javascript.defaultRuntimeExecutable": {
     "pwa-node": "/home/ivan/.local/share/mise/shims/node"
+  },
+  "go.goroot": "/home/ivan/.local/share/mise/installs/go/1.25.4",
+  "go.alternateTools": {
+    "go": "/home/ivan/.local/share/mise/shims/go"
   }
 }

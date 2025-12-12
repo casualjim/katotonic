@@ -16,8 +16,8 @@ use chitchat::{ChitchatConfig, ChitchatId};
 use clap::Parser;
 use rand::Rng as _;
 use rustls::{
-  pki_types::{CertificateDer, PrivateKeyDer},
   RootCertStore,
+  pki_types::{CertificateDer, PrivateKeyDer},
 };
 use rustls_pki_types::pem::PemObject;
 
@@ -40,11 +40,11 @@ pub struct ClientConfig {
 
 impl ClientConfig {
   pub fn new() -> crate::Result<Self> {
-    Ok(Self::try_parse_from(["katotonic-client"])?)
+    Ok(Self::try_parse()?)
   }
 
-  pub fn from_args() -> crate::Result<Self> {
-    Ok(Self::try_parse()?)
+  pub fn for_tests() -> crate::Result<Self> {
+    Ok(Self::try_parse_from(["katotonic-client-test"])?)
   }
 
   pub fn root_store(&self) -> Result<RootCertStore> {
@@ -212,11 +212,11 @@ fn parse_seed_node(s: &str) -> Result<SeedNode> {
 
 impl ServerConfig {
   pub fn new() -> crate::Result<Self> {
-    Ok(Self::try_parse_from(["katotonic"])?)
+    Ok(Self::try_parse()?)
   }
 
-  pub fn from_args() -> crate::Result<Self> {
-    Ok(Self::try_parse()?)
+  pub fn for_tests() -> crate::Result<Self> {
+    Ok(Self::try_parse_from(["katotonic-test"])?)
   }
 
   pub fn root_store(&self) -> Result<Option<RootCertStore>> {

@@ -2,7 +2,7 @@ use std::sync::atomic::Ordering;
 
 use portable_atomic::AtomicU64;
 
-use crate::id::{encode_v8, KatotonicId};
+use crate::id::{KatotonicId, encode_v8};
 
 static PREVIOUS_SEQ: AtomicU64 = AtomicU64::new(0);
 
@@ -60,20 +60,19 @@ mod tests {
 
   #[test]
   fn test_block_gen_exhausts_and_reinstalls_monotonically() {
-    let gen = BlockIdGen::new();
-    gen.install_block(1, 10, 12);
+    let idgen = BlockIdGen::new();
+    idgen.install_block(1, 10, 12);
     let mut ids = Vec::new();
     for _ in 0..3 {
-      ids.push(gen.try_next_id().unwrap());
+      ids.push(idgen.try_next_id().unwrap());
     }
-    assert!(gen.try_next_id().is_none());
+    assert!(idgen.try_next_id().is_none());
 
-    gen.install_block(1, 13, 15);
+    idgen.install_block(1, 13, 15);
     for _ in 0..3 {
-      ids.push(gen.try_next_id().unwrap());
+      ids.push(idgen.try_next_id().unwrap());
     }
-    assert!(gen.try_next_id().is_none());
-
+    assert!(idgen.try_next_id().is_none());
     let mut sorted = ids.clone();
     sorted.sort_by(|a, b| a.as_bytes().cmp(b.as_bytes()));
     assert_eq!(ids, sorted);

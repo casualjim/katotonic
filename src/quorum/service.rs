@@ -143,15 +143,14 @@ impl QuorumService {
           changed = true;
         }
 
-        if changed {
-          if let Err(e) = guard.persist(&self.state_path) {
+        if changed
+          && let Err(e) = guard.persist(&self.state_path) {
             error!("failed to persist quorum state on lease renew: {e}");
             return QuorumResponse::Error {
               code: 500,
               message: e.to_string(),
             };
           }
-        }
 
         let voted_term = guard.voted_term;
         let high_watermark = guard.high_watermark;
@@ -223,15 +222,14 @@ impl QuorumService {
           }
         }
 
-        if changed {
-          if let Err(e) = guard.persist(&self.state_path) {
+        if changed
+          && let Err(e) = guard.persist(&self.state_path) {
             error!("failed to persist quorum state on reserve: {e}");
             return QuorumResponse::Error {
               code: 500,
               message: e.to_string(),
             };
           }
-        }
 
         QuorumResponse::ReserveAck {
           term,

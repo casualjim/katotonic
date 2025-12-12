@@ -48,8 +48,8 @@ mod sync {
       F: FnOnce(&T) -> Option<T>,
     {
       let mut current_value = self.value.write().unwrap();
-      if let Some(new_value) = update(&current_value) {
-        if *current_value != new_value {
+      if let Some(new_value) = update(&current_value)
+        && *current_value != new_value {
           *current_value = new_value;
           let (lock, cvar) = &*self.notify;
           let _guard = lock.lock();
@@ -57,7 +57,6 @@ mod sync {
           self.async_notify.notify_waiters();
           return true;
         }
-      }
       false
     }
 

@@ -64,7 +64,7 @@ async fn spawn_test_discovery(
 }
 
 async fn wait_for_api(addr: SocketAddr) {
-  let _ = timeout(Duration::from_secs(3), async move {
+  timeout(Duration::from_secs(3), async move {
     loop {
       if tokio::net::TcpStream::connect(addr).await.is_ok() {
         return;
@@ -80,7 +80,7 @@ async fn wait_for_all_members(
   discoveries: &[std::sync::Arc<ChitchatDiscovery>],
   expected: usize,
 ) {
-  let _ = timeout(Duration::from_secs(5), async move {
+  timeout(Duration::from_secs(5), async move {
     loop {
       let mut all_ready = true;
       for d in discoveries {
@@ -143,7 +143,7 @@ async fn spawn_node(
   let state_dir = path.parent().unwrap().to_path_buf();
   QuorumState::default().persist(&path).unwrap();
 
-  let mut conf = ServerConfig::new().unwrap();
+  let mut conf = ServerConfig::for_tests().unwrap();
   conf.node_id = Some(node_id.to_string());
   conf.cluster_id = label.to_string();
   conf.addr = format!("127.0.0.1:{api_port}");
@@ -226,7 +226,7 @@ async fn steady_state_ids_are_globally_monotonic() {
   let c1 = Client::new(mk_client(n1.conf.addr.clone()), 2).await.unwrap();
   let c2 = Client::new(mk_client(n2.conf.addr.clone()), 2).await.unwrap();
   let c3 = Client::new(mk_client(n3.conf.addr.clone()), 2).await.unwrap();
-  let clients = vec![c1, c2, c3];
+  let clients = [c1, c2, c3];
 
   let mut ids = Vec::new();
   for i in 0..60usize {

@@ -53,8 +53,8 @@ pub async fn handle_client<IO: AsyncRead + AsyncWrite + Unpin>(
         }
       }
 
-      if let LeaderState::Follower { leader, .. } = state {
-        if let Some(leader_addr) = discovery.api_addr_for_latest(&leader).await {
+      if let LeaderState::Follower { leader, .. } = state
+        && let Some(leader_addr) = discovery.api_addr_for_latest(&leader).await {
           let redirect_info = RedirectInfo {
             term,
             leader: leader_addr,
@@ -78,7 +78,6 @@ pub async fn handle_client<IO: AsyncRead + AsyncWrite + Unpin>(
           tls_stream.write_all(&response_bytes).await?;
           break;
         }
-      }
 
       // we're not sure who the leader is. Either because we're still bootstrapping
       // or we're inside a leader election cycle.

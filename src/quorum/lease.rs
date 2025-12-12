@@ -157,11 +157,10 @@ where
 
 impl FollowerLeaseState {
   pub fn allows(&self, term: u64, leader_id: &str) -> bool {
-    if term == self.acked_term {
-      if let Some(ref existing) = self.acked_leader {
+    if term == self.acked_term
+      && let Some(ref existing) = self.acked_leader {
         return existing == leader_id;
       }
-    }
     true
   }
 
@@ -384,6 +383,17 @@ fn now_ms() -> u64 {
     .as_millis() as u64
 }
 
+#[allow(dead_code)]
+fn server_name_for(member: &Member) -> rustls::pki_types::ServerName<'static> {
+  member
+    .server_name
+    .clone()
+    .unwrap_or_else(|| match member.addr.ip() {
+      IpAddr::V4(ip) => rustls::pki_types::ServerName::IpAddress(ip.into()),
+      IpAddr::V6(ip) => rustls::pki_types::ServerName::IpAddress(ip.into()),
+    })
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -511,15 +521,4 @@ mod tests {
     assert!(decision.highest_seen_term > term);
     assert_eq!(decision.highest_seen_term, 7);
   }
-}
-
-#[allow(dead_code)]
-fn server_name_for(member: &Member) -> rustls::pki_types::ServerName<'static> {
-  member
-    .server_name
-    .clone()
-    .unwrap_or_else(|| match member.addr.ip() {
-      IpAddr::V4(ip) => rustls::pki_types::ServerName::IpAddress(ip.into()),
-      IpAddr::V6(ip) => rustls::pki_types::ServerName::IpAddress(ip.into()),
-    })
 }

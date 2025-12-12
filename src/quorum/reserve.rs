@@ -226,7 +226,7 @@ mod tests {
     seeds: Vec<SocketAddr>,
     state_path: String,
   ) -> ServerConfig {
-    let mut conf = ServerConfig::new().unwrap();
+    let mut conf = ServerConfig::for_tests().unwrap();
     conf.node_id = Some(node_id.to_string());
     conf.cluster_id = cluster_id.to_string();
     conf.addr = format!("127.0.0.1:{api_port}");
