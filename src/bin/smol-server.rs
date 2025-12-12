@@ -34,11 +34,20 @@ fn main() -> anyhow::Result<()> {
   );
   smolscale::block_on(async move {
     let (membership, discovery) = spawn_discovery(conf.clone()).compat().await?;
-    let leader_tracker = bully::track_leader(conf.clone(), Arc::clone(&discovery), None)
-      .compat()
-      .await?;
+    let (quorum_leader, quorum_service) =
+      katotonic::quorum::track_leader(conf.clone(), Arc::clone(&discovery))
+        .compat()
+        .await?;
+    let bully_leader = bully::track_leader(
+      conf.clone(),
+      Arc::clone(&discovery),
+      None,
+      Some(quorum_service.clone()),
+    )
+    .compat()
+    .await?;
 
-    run_smol_server(conf, discovery, leader_tracker).await?;
+    run_smol_server(conf, discovery, quorum_leader, quorum_service, bully_leader).await?;
     membership.shutdown().compat().await?;
     Ok(())
   })

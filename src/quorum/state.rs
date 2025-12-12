@@ -9,23 +9,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::{cbor, Result};
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct QuorumState {
   pub current_term: u64,
   pub voted_term: u64,
   pub high_watermark: u64,
   pub config_version: u64,
-}
-
-impl Default for QuorumState {
-  fn default() -> Self {
-    Self {
-      current_term: 0,
-      voted_term: 0,
-      high_watermark: 0,
-      config_version: 0,
-    }
-  }
 }
 
 impl QuorumState {

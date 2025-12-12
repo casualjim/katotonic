@@ -6,7 +6,42 @@ use crate::id::{encode_v8, KatotonicId};
 
 static PREVIOUS_SEQ: AtomicU64 = AtomicU64::new(0);
 
-/// Temporary local monotonic generator used until quorum reservation is implemented.
+/// Hot-path generator for a reserved block of sequence numbers.
+#[derive(Debug)]
+pub struct BlockIdGen {
+  term: AtomicU64,
+  next_seq: AtomicU64,
+  block_end: AtomicU64,
+}
+
+impl BlockIdGen {
+  pub fn new() -> Self {
+    Self {
+      term: AtomicU64::new(0),
+      next_seq: AtomicU64::new(0),
+      block_end: AtomicU64::new(0),
+    }
+  }
+
+  pub fn install_block(&self, term: u64, start_seq: u64, end_seq: u64) {
+    self.term.store(term, Ordering::SeqCst);
+    self.next_seq.store(start_seq, Ordering::SeqCst);
+    self.block_end.store(end_seq, Ordering::SeqCst);
+  }
+
+  /// Returns `None` when the current block is exhausted.
+  pub fn try_next_id(&self) -> Option<KatotonicId> {
+    let seq = self.next_seq.fetch_add(1, Ordering::SeqCst);
+    let end = self.block_end.load(Ordering::SeqCst);
+    if seq <= end {
+      Some(encode_v8(self.term.load(Ordering::SeqCst), seq as u128))
+    } else {
+      None
+    }
+  }
+}
+
+/// Fallback local monotonic generator (not block-reserved).
 pub fn generate_monotonic_id(term: u64) -> KatotonicId {
   let seq = PREVIOUS_SEQ.fetch_add(1, Ordering::SeqCst) as u128;
   encode_v8(term, seq)
@@ -19,6 +54,27 @@ mod tests {
   use crossbeam::channel;
 
   use super::*;
+
+  #[test]
+  fn test_block_gen_exhausts_and_reinstalls_monotonically() {
+    let gen = BlockIdGen::new();
+    gen.install_block(1, 10, 12);
+    let mut ids = Vec::new();
+    for _ in 0..3 {
+      ids.push(gen.try_next_id().unwrap());
+    }
+    assert!(gen.try_next_id().is_none());
+
+    gen.install_block(1, 13, 15);
+    for _ in 0..3 {
+      ids.push(gen.try_next_id().unwrap());
+    }
+    assert!(gen.try_next_id().is_none());
+
+    let mut sorted = ids.clone();
+    sorted.sort_by(|a, b| a.as_bytes().cmp(b.as_bytes()));
+    assert_eq!(ids, sorted);
+  }
 
   #[test]
   fn test_generate_monotonic_id_monotonicity_and_uniqueness() {

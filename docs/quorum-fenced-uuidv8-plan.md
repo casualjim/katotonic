@@ -4,19 +4,32 @@ This plan is the concrete work breakdown for shipping quorum‑fenced sequencing
 
 ---
 
+## Implementation Status (as of 2025‑12‑12)
+
+Completed in this repo:
+- Milestone 0 (Rust + docs): UUIDv8 formal format, Rust helpers, monotonic generator, tests, and examples migrated. Go client migration still pending.
+- Milestone 1: Durable per‑node quorum summary (`current_term`, `voted_term`, `high_watermark`, `config_version`) with atomic persist + fsync, and server startup wiring.
+- Milestone 2: Quorum RPC types and cluster‑port TLS transport. Cluster listener multiplexes Bully + Quorum messages.
+- Milestone 3 (core election): `LeaderState` added, quorum election loop implemented, and serving gated on quorum leader state (Bully retained for redirects only).
+
+Key learnings/decisions:
+- Persisted quorum state is a tiny leadership/ordering summary, written on elections/leases/block reservations; **no disk I/O on the per‑ID hot path**.
+- Persistence is required for safety under crash‑recovery + partitions; diskless variants require relaxing guarantees or changing the failure model.
+- Lease fencing (M4) and block reservation (M5) are the next safety/perf steps; currently `lease_valid` is optimistic until M4 lands.
+
 ## Milestone 0 — Formal UUIDv8 ID Format + Remove ULID Everywhere
 
 ### M0.1 Write the ID spec doc
-- [ ] Add `docs/id-format-uuidv8.md`.
-- [ ] Specify:
-  - [ ] ID is RFC 4122 UUID, **version 8**, variant RFC4122.
-  - [ ] Payload ordering is `(term, seq)` big‑endian over **122 variable bits**.
-  - [ ] Fixed bits: version bits (48–51) = `1000`, variant (64–65) = `10`.
-  - [ ] `term` uses 48 bits, `seq` uses 74 bits.
-  - [ ] Lexicographic order on raw 16 bytes == global order.
-  - [ ] No wall‑clock or ULID semantics; IDs are opaque.
-  - [ ] Backward compatibility policy: ULID removed; mixed clusters unsupported.
-- [ ] Link this doc from `docs/quorum-fenced-sequencer.md` (replace ULID language).
+- [x] Add `docs/id-format-uuidv8.md`.
+- [x] Specify:
+  - [x] ID is RFC 4122 UUID, **version 8**, variant RFC4122.
+  - [x] Payload ordering is `(term, seq)` big‑endian over **122 variable bits**.
+  - [x] Fixed bits: version bits (48–51) = `1000`, variant (64–65) = `10`.
+  - [x] `term` uses 48 bits, `seq` uses 74 bits.
+  - [x] Lexicographic order on raw 16 bytes == global order.
+  - [x] No wall‑clock or ULID semantics; IDs are opaque.
+  - [x] Backward compatibility policy: ULID removed; mixed clusters unsupported.
+- [x] Link this doc from `docs/quorum-fenced-sequencer.md` (replace ULID language).
 
 **Acceptance**
 - Spec is clear enough to reimplement in Rust/Go without guessing.
@@ -25,19 +38,19 @@ This plan is the concrete work breakdown for shipping quorum‑fenced sequencing
 ---
 
 ### M0.2 Add Rust UUIDv8 helpers
-- [ ] Add `src/id.rs` and export it publicly.
-- [ ] Implement:
-  - [ ] `pub type KatotonicId = uuid::Uuid`
-  - [ ] `pub fn encode_v8(term: u64, seq: u128) -> uuid::Uuid`
-  - [ ] `pub fn decode_v8(id: uuid::Uuid) -> (u64, u128)`
-  - [ ] `pub fn is_katotonic_v8(id: uuid::Uuid) -> bool`
-- [ ] Big‑endian packing:
-  - [ ] Fill variable bit positions with payload bits in increasing UUID bit index order.
-  - [ ] Set version and variant bits after payload insertion.
-- [ ] Add unit tests:
-  - [ ] Round‑trip term/seq.
-  - [ ] Fixed‑bit correctness.
-  - [ ] Bytewise ordering matches `(term, seq)` ordering.
+- [x] Add `src/id.rs` and export it publicly.
+- [x] Implement:
+  - [x] `pub type KatotonicId = uuid::Uuid`
+  - [x] `pub fn encode_v8(term: u64, seq: u128) -> uuid::Uuid`
+  - [x] `pub fn decode_v8(id: uuid::Uuid) -> (u64, u128)`
+  - [x] `pub fn is_katotonic_v8(id: uuid::Uuid) -> bool`
+- [x] Big‑endian packing:
+  - [x] Fill variable bit positions with payload bits in increasing UUID bit index order.
+  - [x] Set version and variant bits after payload insertion.
+- [x] Add unit tests:
+  - [x] Round‑trip term/seq.
+  - [x] Fixed‑bit correctness.
+  - [x] Bytewise ordering matches `(term, seq)` ordering.
 
 **Acceptance**
 - `encode_v8` produces valid v8 UUIDs for all inputs in range.
@@ -46,14 +59,14 @@ This plan is the concrete work breakdown for shipping quorum‑fenced sequencing
 ---
 
 ### M0.3 Replace `src/idgen.rs` ULID generator
-- [ ] Remove `ulid::Ulid` usage and timestamp logic.
-- [ ] Introduce a temporary local monotonic generator:
-  - [ ] `static PREVIOUS_SEQ: AtomicU64`
-  - [ ] `pub fn generate_monotonic_id(term: u64) -> KatotonicId`
-- [ ] Update `src/lib.rs`:
-  - [ ] `pub mod id;`
-  - [ ] `pub use id::KatotonicId;`
-  - [ ] Reexport the new generator with same public name.
+- [x] Remove `ulid::Ulid` usage and timestamp logic.
+- [x] Introduce a temporary local monotonic generator:
+  - [x] `static PREVIOUS_SEQ: AtomicU64`
+  - [x] `pub fn generate_monotonic_id(term: u64) -> KatotonicId`
+- [x] Update `src/lib.rs`:
+  - [x] `pub mod id;`
+  - [x] `pub use id::KatotonicId;`
+  - [x] Reexport the new generator with same public name.
 
 **Acceptance**
 - Crate compiles without ULID types in public API.
@@ -61,10 +74,10 @@ This plan is the concrete work breakdown for shipping quorum‑fenced sequencing
 ---
 
 ### M0.4 Update Rust tests to UUID semantics
-- [ ] Convert tests in `src/idgen.rs`:
-  - [ ] Uniqueness and strict monotonicity by bytewise ordering.
-  - [ ] Remove timestamp assertions.
-- [ ] Ensure concurrency test still validates global uniqueness/order.
+- [x] Convert tests in `src/idgen.rs`:
+  - [x] Uniqueness and strict monotonicity by bytewise ordering.
+  - [x] Remove timestamp assertions.
+- [x] Ensure concurrency test still validates global uniqueness/order.
 
 **Acceptance**
 - `cargo test` passes on this module.
@@ -72,13 +85,13 @@ This plan is the concrete work breakdown for shipping quorum‑fenced sequencing
 ---
 
 ### M0.5 Update Rust examples from ULID to UUID
-- [ ] Files:
-  - [ ] `examples/async-client.rs`
-  - [ ] `examples/sync-client.rs`
-  - [ ] `examples/smol-client.rs`
-  - [ ] `examples/client.rs`
-- [ ] Replace ULID imports/formatting with UUIDv8.
-- [ ] Ordering checks compare raw bytes.
+- [x] Files:
+  - [x] `examples/async-client.rs`
+  - [x] `examples/sync-client.rs`
+  - [x] `examples/smol-client.rs`
+  - [x] `examples/client.rs`
+- [x] Replace ULID imports/formatting with UUIDv8.
+- [x] Ordering checks compare raw bytes.
 
 **Acceptance**
 - Examples compile and their validation output is correct.
@@ -105,14 +118,14 @@ This plan is the concrete work breakdown for shipping quorum‑fenced sequencing
 ## Milestone 1 — Quorum Persistent State
 
 ### M1.1 Create quorum module + state struct
-- [ ] Add `src/quorum/mod.rs` exporting submodules.
-- [ ] Add `src/quorum/state.rs`:
-  - [ ] `pub struct QuorumState { current_term, voted_term, high_watermark, config_version }`
-  - [ ] `load(path)`, `persist(path)` with atomic write + fsync.
-  - [ ] Helpers for bumping terms and advancing watermark.
-- [ ] Enforce invariants on load:
-  - [ ] `voted_term >= current_term`
-  - [ ] `high_watermark` is monotonic within term.
+- [x] Add `src/quorum/mod.rs` exporting submodules.
+- [x] Add `src/quorum/state.rs`:
+  - [x] `pub struct QuorumState { current_term, voted_term, high_watermark, config_version }`
+  - [x] `load(path)`, `persist(path)` with atomic write + fsync.
+  - [x] Helpers for bumping terms and advancing watermark.
+- [x] Enforce invariants on load:
+  - [x] `voted_term >= current_term`
+  - [x] `high_watermark` is monotonic within term.
 
 **Acceptance**
 - Unit tests cover load/persist, crash‑safe update, and rollback prevention.
@@ -120,12 +133,12 @@ This plan is the concrete work breakdown for shipping quorum‑fenced sequencing
 ---
 
 ### M1.2 Wire quorum state into startup
-- [ ] Load state at server boot in:
-  - [ ] `src/bin/async-server.rs`
-  - [ ] `src/bin/sync-server.rs`
-  - [ ] `src/bin/smol-server.rs`
-- [ ] Add config entries in `src/config.rs`:
-  - [ ] `state_path`
+- [x] Load state at server boot in:
+  - [x] `src/bin/async-server.rs`
+  - [x] `src/bin/sync-server.rs`
+  - [x] `src/bin/smol-server.rs`
+- [x] Add config entries in `src/config.rs`:
+  - [x] `state_path`
 
 **Acceptance**
 - Restarting a node never decreases term or watermark.
@@ -135,9 +148,9 @@ This plan is the concrete work breakdown for shipping quorum‑fenced sequencing
 ## Milestone 2 — Quorum RPC Types + Cluster Transport
 
 ### M2.1 Define RPC enums
-- [ ] Add `src/quorum/rpc.rs`:
-  - [ ] `QuorumRequest` and `QuorumResponse` per design.
-- [ ] Derive serde traits.
+- [x] Add `src/quorum/rpc.rs`:
+  - [x] `QuorumRequest` and `QuorumResponse` per design.
+- [x] Derive serde traits.
 
 **Acceptance**
 - All messages are CBOR‑serializable.
@@ -145,9 +158,9 @@ This plan is the concrete work breakdown for shipping quorum‑fenced sequencing
 ---
 
 ### M2.2 Stand up quorum RPC listener on cluster port
-- [ ] Reuse TLS framing (`src/transport.rs`, `src/cbor_codec.rs`).
-- [ ] Prefer cluster listener (based on `cluster_addr` tags) rather than API port.
-- [ ] Add a handler that routes QuorumRequest -> QuorumResponse.
+- [x] Reuse TLS framing (`src/transport.rs`, `src/cbor_codec.rs`).
+- [x] Prefer cluster listener (based on `cluster_addr` tags) rather than API port.
+- [x] Add a handler that routes QuorumRequest -> QuorumResponse.
 
 **Acceptance**
 - A node can send a QuorumRequest to another node and receive a response over TLS.
@@ -157,8 +170,8 @@ This plan is the concrete work breakdown for shipping quorum‑fenced sequencing
 ## Milestone 3 — Election + Leader State Machine
 
 ### M3.1 Add LeaderState + watchable leader state
-- [ ] Add `LeaderState` enum in `src/quorum/mod.rs`.
-- [ ] Replace Bully `PeerState` for serving with `WatchableValue<LeaderState>`.
+- [x] Add `LeaderState` enum in `src/quorum/mod.rs`.
+- [x] Replace Bully `PeerState` for serving with `WatchableValue<LeaderState>`.
 
 **Acceptance**
 - Leader state transitions are visible to API handler.
@@ -167,10 +180,10 @@ This plan is the concrete work breakdown for shipping quorum‑fenced sequencing
 
 ### M3.2 Election triggers
 - [ ] Use Chitchat liveness to trigger elections:
-  - [ ] Suspect/dead leader
+  - [x] Suspect/dead leader (triggered when leader disappears from membership stream)
   - [ ] Join requiring reconfig
   - [ ] Lease loss (from M4)
-- [ ] Drive transitions in server runtime (`src/server/tokio.rs`, `src/server/smol.rs`, blocking server).
+- [x] Drive transitions in server runtime (`src/server/tokio.rs`, `src/server/smol.rs`, blocking server).
 
 **Acceptance**
 - Elections start reliably on failure signals.
@@ -178,18 +191,19 @@ This plan is the concrete work breakdown for shipping quorum‑fenced sequencing
 ---
 
 ### M3.3 Implement election protocol
-- [ ] Add `src/quorum/election.rs`:
-  - [ ] Candidate increments term, self‑votes (persist voted_term).
-  - [ ] Sends `VoteRequest` to live members `M`.
-  - [ ] Follower rules:
-    - [ ] Reject if `proposed_term <= voted_term`.
-    - [ ] Else persist voted_term and reply yes with HW.
-  - [ ] Win on majority.
-  - [ ] On win persist current_term and set HW to max majority HW.
-- [ ] Add timeouts/backoff jitter.
+- [x] Add `src/quorum/election.rs`:
+  - [x] Candidate increments term, self‑votes (persist voted_term).
+  - [x] Sends `VoteRequest` to live members `M`.
+  - [x] Follower rules:
+    - [x] Reject if `proposed_term <= voted_term`.
+    - [x] Else persist voted_term and reply yes with HW.
+  - [x] Win on majority.
+  - [x] On win persist current_term and set HW to max majority HW.
+- [x] Add timeouts/backoff jitter.
 
 **Acceptance**
 - In a 3‑node integration test, exactly one leader emerges per term.
+  - Status (2025‑12‑12): unit tests pass; 3‑node integration test still pending.
 
 ---
 
@@ -387,4 +401,3 @@ This plan is the concrete work breakdown for shipping quorum‑fenced sequencing
 - `cargo test` passes.
 - Clients sort IDs correctly using raw bytewise comparisons only.
 - Under partitions and failover, no duplicates or regressions occur.
-

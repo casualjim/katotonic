@@ -228,7 +228,8 @@ impl Debug for ChitchatDiscovery {
       for cid in nodes {
         if let Some(state) = guard.node_state(cid) {
           let server_name = state
-            .get("server_name")
+            .get("cluster_server_name")
+            .or_else(|| state.get("server_name"))
             .map(|v| v.to_string())
             .and_then(|sn| ServerName::try_from(sn).ok());
           members.push(Member {
@@ -278,10 +279,11 @@ impl Discovery for ChitchatDiscovery {
 
     let mut members = vec![];
     for peer in online_peers {
-      if let Some(server_name) = guard
-        .node_state(peer)
-        .and_then(|v| v.get("server_name").map(|v| v.to_string()))
-      {
+      if let Some(server_name) = guard.node_state(peer).and_then(|v| {
+        v.get("cluster_server_name")
+          .or_else(|| v.get("server_name"))
+          .map(|v| v.to_string())
+      }) {
         let server_name = ServerName::try_from(server_name).ok();
         let member = Member {
           name: peer.node_id.clone(),
@@ -305,7 +307,8 @@ impl Discovery for ChitchatDiscovery {
           .iter()
           .map(|(cid, state)| {
             let server_name = state
-              .get("server_name")
+              .get("cluster_server_name")
+              .or_else(|| state.get("server_name"))
               .map(|v| v.to_string())
               .unwrap_or_default();
             Member {

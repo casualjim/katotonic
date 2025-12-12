@@ -119,6 +119,9 @@ pub struct ServerConfig {
   #[clap(long, default_value = "katotonic.state")]
   pub state_path: String,
 
+  #[clap(long, default_value_t = 100_000)]
+  pub block_size: u64,
+
   #[clap(long, default_value = "500ms", value_parser = humantime::parse_duration)]
   pub gossip_interval: time::Duration,
   #[clap(long)]

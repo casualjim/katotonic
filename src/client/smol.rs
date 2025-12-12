@@ -42,7 +42,7 @@ impl Client {
     loop {
       tries += 1;
       if tries > 3 {
-        return Err(io::Error::new(io::ErrorKind::Other, "too many tries").into());
+        return Err(io::Error::other("too many tries").into());
       }
       let mut tls_stream = self.pool.get_connection().await?;
       let msg = [1u8];

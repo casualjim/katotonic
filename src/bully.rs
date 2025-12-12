@@ -29,7 +29,7 @@ use crate::cbor_codec::Codec;
 use crate::{
   disco::ChitchatDiscovery,
   keypair,
-  quorum::{QuorumRequest, QuorumResponse},
+  quorum::{QuorumRequest, QuorumResponse, QuorumService},
   root_store, server_tls_config,
   transport::{TcpTransport, TlsTransport, Transport},
   Error, Result, ServerConfig, WatchableValue,
@@ -408,6 +408,7 @@ async fn handle_requests<'a, S: AsyncRead + AsyncWrite + Unpin>(
   this_node: &LocalPeer<'a>,
   codec: Codec<ClusterRequest, ClusterResponse>,
   leader_holder: WatchableValue<PeerState>,
+  quorum_service: Option<Arc<QuorumService>>,
   stream: S,
 ) {
   let (mut sender, mut receiver) = codec.framed(stream).split();
@@ -426,7 +427,13 @@ async fn handle_requests<'a, S: AsyncRead + AsyncWrite + Unpin>(
     }
 
     let request = maybe_error.unwrap();
-    let response = handle_cluster_request(this_node, &leader_holder, request).await;
+    let response = handle_cluster_request(
+      this_node,
+      &leader_holder,
+      quorum_service.as_deref(),
+      request,
+    )
+    .await;
     if let Err(e) = sender.send(response).await {
       error!("failed to send response: {}", e);
       break;
@@ -437,6 +444,7 @@ async fn handle_requests<'a, S: AsyncRead + AsyncWrite + Unpin>(
 async fn handle_cluster_request<'a>(
   this_node: &LocalPeer<'a>,
   leader_holder: &WatchableValue<PeerState>,
+  quorum_service: Option<&QuorumService>,
   request: ClusterRequest,
 ) -> ClusterResponse {
   match request {
@@ -462,7 +470,13 @@ async fn handle_cluster_request<'a>(
         ClusterResponse::Bully(Response::Done(this_node.name.to_string()))
       }
     },
-    ClusterRequest::Quorum(req) => ClusterResponse::Quorum(handle_quorum_request(req).await),
+    ClusterRequest::Quorum(req) => {
+      if let Some(service) = quorum_service {
+        ClusterResponse::Quorum(service.handle(req).await)
+      } else {
+        ClusterResponse::Quorum(handle_quorum_request(req).await)
+      }
+    }
   }
 }
 
@@ -486,6 +500,7 @@ async fn run_server(
   conf: ServerConfig,
   discovery: Arc<dyn Discovery>,
   current_leader: WatchableValue<PeerState>,
+  quorum_service: Option<Arc<QuorumService>>,
 ) -> Result<()> {
   let codec: Codec<ClusterRequest, ClusterResponse> = Codec::new();
   let config = Arc::new(server_tls_config(
@@ -510,10 +525,11 @@ async fn run_server(
     };
 
     let current_leader = current_leader.clone();
+    let quorum_service = quorum_service.clone();
     let codec = codec.clone();
     tokio::spawn(async move {
       let stream = acceptor.accept(stream).await.unwrap();
-      handle_requests(&this_node, codec, current_leader, stream).await
+      handle_requests(&this_node, codec, current_leader, quorum_service, stream).await
     });
   }
 }
@@ -547,6 +563,7 @@ pub async fn track_leader(
   conf: ServerConfig,
   discovery: Arc<ChitchatDiscovery>,
   peer_factory: Option<PeerFactory>,
+  quorum_service: Option<Arc<QuorumService>>,
 ) -> Result<WatchableValue<PeerState>> {
   let current_leader = WatchableValue::new(PeerState::Down);
 
@@ -563,8 +580,11 @@ pub async fn track_leader(
   tokio::spawn({
     let discovery = Arc::clone(&discovery);
     let leader_holder = current_leader.clone();
+    let quorum_service = quorum_service.clone();
     async move {
-      run_server(conf, discovery, leader_holder).await.unwrap();
+      run_server(conf, discovery, leader_holder, quorum_service)
+        .await
+        .unwrap();
     }
   });
 
@@ -718,6 +738,7 @@ mod tests {
     let response = handle_cluster_request(
       &this_node,
       &leader_holder,
+      None,
       ClusterRequest::Quorum(QuorumRequest::Ping),
     )
     .await;

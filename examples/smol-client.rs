@@ -56,7 +56,7 @@ fn main() -> anyhow::Result<()> {
 
   // Run the executor until all tasks are complete
   smolscale::block_on(async move {
-    while let Some(_) = processed.next().await {}
+    while processed.next().await.is_some() {}
     println!("All tasks completed in {:?}", start.elapsed());
 
     let mut all_ids = Vec::new();

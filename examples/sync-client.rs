@@ -98,7 +98,7 @@ fn next_id(pool: &ConnectionPool) -> katotonic::Result<KatotonicId> {
   loop {
     tries += 1;
     if tries > 3 {
-      return Err(io::Error::new(io::ErrorKind::Other, "too many tries").into());
+      return Err(io::Error::other("too many tries").into());
     }
     let mut tls_stream = pool.get_connection()?;
 
@@ -233,7 +233,7 @@ impl ConnectionPool {
 
   fn reconnect(&self) {
     loop {
-      let tcp_stream = match TcpStream::connect(&*self.addr.read()) {
+      let tcp_stream = match TcpStream::connect(*self.addr.read()) {
         Ok(tcp_stream) => tcp_stream,
         Err(e) => {
           error!("Failed to connect: {:?}", e);
@@ -312,7 +312,7 @@ impl<'a> Read for ConnectionHandle<'a> {
     if let Some(ref mut tls_stream) = self.tls_stream {
       tls_stream.read(buf)
     } else {
-      Err(io::Error::new(io::ErrorKind::Other, "connection is broken"))
+      Err(io::Error::other("connection is broken"))
     }
   }
 }
@@ -322,7 +322,7 @@ impl<'a> Write for ConnectionHandle<'a> {
     if let Some(ref mut tls_stream) = self.tls_stream {
       tls_stream.write(buf)
     } else {
-      Err(io::Error::new(io::ErrorKind::Other, "connection is broken"))
+      Err(io::Error::other("connection is broken"))
     }
   }
 
@@ -330,7 +330,7 @@ impl<'a> Write for ConnectionHandle<'a> {
     if let Some(ref mut tls_stream) = self.tls_stream {
       tls_stream.flush()
     } else {
-      Err(io::Error::new(io::ErrorKind::Other, "connection is broken").into())
+      Err(io::Error::other("connection is broken"))
     }
   }
 }
@@ -418,7 +418,7 @@ impl SemaphoreInner {
         .waiters
         .lock()
         .front()
-        .map_or(false, |w| w.0 != permits)
+        .is_some_and(|w| w.0 != permits)
     {
       waiter.wait(&mut count);
     }

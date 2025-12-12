@@ -6,31 +6,48 @@ use tracing::{error, info, instrument};
 
 use super::RedirectInfo;
 use crate::{
-  bully::PeerState, cbor, disco::ChitchatDiscovery, generate_monotonic_id, WatchableValue,
+  bully::PeerState, cbor, disco::ChitchatDiscovery, quorum::QuorumService, quorum::LeaderState,
+  ServerConfig, WatchableValue,
 };
 
-#[instrument(skip(tls_stream, discovery, leader))]
+#[instrument(skip(tls_stream, discovery, quorum_leader, quorum_service, bully_leader, conf))]
 pub async fn handle_client<IO: AsyncRead + AsyncWrite + Unpin>(
   tls_stream: &mut IO,
   discovery: Arc<ChitchatDiscovery>,
-  leader: WatchableValue<PeerState>,
+  quorum_leader: WatchableValue<LeaderState>,
+  quorum_service: Arc<QuorumService>,
+  bully_leader: WatchableValue<PeerState>,
+  conf: Arc<ServerConfig>,
 ) -> std::io::Result<()> {
   let mut buf = [0; 1];
   tls_stream.read_exact(&mut buf).await?;
 
   match buf[0] {
     1 => loop {
-      match leader.read() {
-        PeerState::Leader(_, _) => {
-          let new_id = generate_monotonic_id(0);
-          let response = new_id.into_bytes();
-          // message type 1
-          let response_type = &[1u8];
+      let state = quorum_leader.read();
+      if matches!(state, LeaderState::Leader { lease_valid: true, .. }) {
+        match quorum_service
+          .next_id(conf.as_ref(), Arc::clone(&discovery), state.term())
+          .await
+        {
+          Ok(new_id) => {
+            let response = new_id.into_bytes();
+            // message type 1
+            let response_type = &[1u8];
 
-          tls_stream.write_all(response_type).await?;
-          tls_stream.write_all(&response).await?;
-          break;
+            tls_stream.write_all(response_type).await?;
+            tls_stream.write_all(&response).await?;
+            break;
+          }
+          Err(e) => {
+            error!("Failed to issue ID: {e}");
+            sleep(Duration::from_millis(50)).await;
+            continue;
+          }
         }
+      }
+
+      match bully_leader.read() {
         PeerState::Follower(ref name, generation) => {
           if let Some(leader_node) = discovery.api_addr_for(name, generation).await {
             let redirect_info = RedirectInfo {

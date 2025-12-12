@@ -5,8 +5,7 @@ use katotonic::{
   bully,
   server::{run_server, spawn_discovery},
 };
-#[cfg(not(target_env = "msvc"))]
-use tikv_jemallocator::Jemalloc;
+#[cfg(not(target_env = "msvc"))] use tikv_jemallocator::Jemalloc;
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer as _};
 
@@ -39,9 +38,17 @@ async fn main() -> anyhow::Result<()> {
   );
 
   let (membership, discovery) = spawn_discovery(conf.clone()).await?;
-  let leader_tracker = bully::track_leader(conf.clone(), Arc::clone(&discovery), None).await?;
+  let (quorum_leader, quorum_service) =
+    katotonic::quorum::track_leader(conf.clone(), Arc::clone(&discovery)).await?;
+  let bully_leader = bully::track_leader(
+    conf.clone(),
+    Arc::clone(&discovery),
+    None,
+    Some(quorum_service.clone()),
+  )
+  .await?;
 
-  run_server(conf, discovery, leader_tracker).await?;
+  run_server(conf, discovery, quorum_leader, quorum_service, bully_leader).await?;
 
   membership.shutdown().await?;
   Ok(())
